@@ -3,14 +3,28 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertSupplierSchema, insertItemSchema, insertPurchaseOrderSchema, insertLineItemSchema } from "@shared/schema";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { setupAuth, isAuthenticated, isAdmin } from "./replitAuth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  await setupAuth(app);
+  
   const objectStorageService = new ObjectStorageService();
 
-  app.get("/api/suppliers", async (req, res) => {
+  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  app.get("/api/suppliers", isAuthenticated, async (req, res) => {
     try {
       const suppliers = await storage.getSuppliers();
       res.json(suppliers);
@@ -20,7 +34,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/suppliers", async (req, res) => {
+  app.post("/api/suppliers", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const parsed = insertSupplierSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -34,7 +48,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/suppliers/:id", async (req, res) => {
+  app.put("/api/suppliers/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -55,7 +69,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/suppliers/:id", async (req, res) => {
+  app.delete("/api/suppliers/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -72,7 +86,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/items", async (req, res) => {
+  app.get("/api/items", isAuthenticated, async (req, res) => {
     try {
       const items = await storage.getItems();
       res.json(items);
@@ -82,7 +96,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/items", async (req, res) => {
+  app.post("/api/items", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const parsed = insertItemSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -96,7 +110,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/items/:id", async (req, res) => {
+  app.put("/api/items/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -117,7 +131,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/items/:id", async (req, res) => {
+  app.delete("/api/items/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -134,7 +148,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/purchase-orders", async (req, res) => {
+  app.get("/api/purchase-orders", isAuthenticated, async (req, res) => {
     try {
       const orders = await storage.getPurchaseOrders();
       res.json(orders);
@@ -144,7 +158,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/purchase-orders/:id", async (req, res) => {
+  app.get("/api/purchase-orders/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -161,9 +175,10 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/purchase-orders", async (req, res) => {
+  app.post("/api/purchase-orders", isAuthenticated, async (req: any, res) => {
     try {
       const { lineItems, ...orderData } = req.body;
+      const userId = req.user?.claims?.sub;
       
       const order = await storage.createPurchaseOrder(
         {
@@ -178,6 +193,7 @@ export async function registerRoutes(
           deliveryNoteFilePath: orderData.deliveryNoteFilePath,
           ttCopyFilePath: orderData.ttCopyFilePath,
           grnDate: orderData.grnDate,
+          createdBy: userId,
         },
         lineItems || []
       );
@@ -189,7 +205,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/purchase-orders/:id", async (req, res) => {
+  app.delete("/api/purchase-orders/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -206,7 +222,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/stats/monthly", async (req, res) => {
+  app.get("/api/stats/monthly", isAuthenticated, async (req, res) => {
     try {
       const year = req.query.year ? parseInt(req.query.year as string) : undefined;
       const stats = await storage.getMonthlyStats(year);
@@ -217,7 +233,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/objects/upload", async (req, res) => {
+  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
@@ -227,7 +243,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/files/uploaded", async (req, res) => {
+  app.put("/api/files/uploaded", isAuthenticated, async (req, res) => {
     try {
       const { uploadURL } = req.body;
       if (!uploadURL) {

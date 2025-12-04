@@ -2,17 +2,22 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PurchaseOrderForm, type FormData } from "@/components/PurchaseOrderForm";
 import { ReportingSection } from "@/components/ReportingSection";
 import { SupplierDialog } from "@/components/SupplierDialog";
 import { ItemDialog } from "@/components/ItemDialog";
 import { PurchaseOrderDetail } from "@/components/PurchaseOrderDetail";
+import { LogOut } from "lucide-react";
 import type { Supplier, Item, PurchaseOrderWithDetails } from "@shared/schema";
 
 export default function Home() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [supplierDialogMode, setSupplierDialogMode] = useState<"add" | "edit">("add");
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
@@ -208,6 +213,20 @@ export default function Home() {
     await createPOMutation.mutateAsync(data);
   };
 
+  const handleLogout = () => {
+    window.location.href = "/api/logout";
+  };
+
+  const getInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return "U";
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -220,14 +239,35 @@ export default function Home() {
               Purchase Order Register
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="secondary" className="font-normal">
-              Storage: Database
-            </Badge>
-            <Badge variant="secondary" className="font-normal">
-              Formats: PDF / JPG / PNG
-            </Badge>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="secondary" className="font-normal">
+                Storage: Database
+              </Badge>
+              <Badge variant="secondary" className="font-normal">
+                Formats: PDF / JPG / PNG
+              </Badge>
+            </div>
             <ThemeToggle />
+            <div className="flex items-center gap-2 border-l border-border pl-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user?.profileImageUrl || undefined} className="object-cover" />
+                <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
+              </Avatar>
+              <div className="hidden md:block text-xs">
+                <p className="font-medium">{user?.firstName || user?.email || "User"}</p>
+                <p className="text-muted-foreground capitalize">{user?.role || "viewer"}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                title="Sign out"
+                data-testid="button-logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -241,6 +281,7 @@ export default function Home() {
             onEditItems={handleEditItems}
             onSubmit={handleSubmitPO}
             isSubmitting={createPOMutation.isPending}
+            isAdmin={user?.role === "admin"}
           />
         </section>
 

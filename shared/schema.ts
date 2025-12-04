@@ -1,8 +1,32 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, numeric, date, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, numeric, date, integer, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  role: varchar("role").default("viewer").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
 
 export const suppliers = pgTable("suppliers", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -39,7 +63,9 @@ export const purchaseOrders = pgTable("purchase_orders", {
   deliveryNoteFilePath: text("delivery_note_file_path"),
   ttCopyFilePath: text("tt_copy_file_path"),
   grnDate: date("grn_date"),
+  createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const purchaseOrdersRelations = relations(purchaseOrders, ({ one, many }) => ({
@@ -52,7 +78,8 @@ export const purchaseOrdersRelations = relations(purchaseOrders, ({ one, many })
 
 export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit({ 
   id: true, 
-  createdAt: true 
+  createdAt: true,
+  updatedAt: true,
 });
 export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;

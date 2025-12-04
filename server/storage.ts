@@ -3,6 +3,7 @@ import {
   items, 
   purchaseOrders, 
   purchaseOrderLineItems,
+  users,
   type Supplier, 
   type InsertSupplier,
   type Item,
@@ -11,12 +12,16 @@ import {
   type InsertPurchaseOrder,
   type LineItem,
   type InsertLineItem,
-  type PurchaseOrderWithDetails
+  type PurchaseOrderWithDetails,
+  type User,
+  type UpsertUser,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 
 export interface IStorage {
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
   getSuppliers(): Promise<Supplier[]>;
   getSupplier(id: number): Promise<Supplier | undefined>;
   createSupplier(supplier: InsertSupplier): Promise<Supplier>;
@@ -39,6 +44,43 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existingUser = await this.getUser(userData.id);
+    
+    if (existingUser) {
+      const [user] = await db
+        .update(users)
+        .set({
+          ...userData,
+          role: existingUser.role,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userData.id))
+        .returning();
+      return user;
+    }
+    
+    const [adminCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(eq(users.role, "admin"));
+    const needsAdmin = adminCount.count === 0;
+    
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...userData,
+        role: needsAdmin ? "admin" : "viewer",
+      })
+      .returning();
+    return user;
+  }
+
   async getSuppliers(): Promise<Supplier[]> {
     return await db.select().from(suppliers).orderBy(suppliers.name);
   }

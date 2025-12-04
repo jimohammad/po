@@ -67,14 +67,25 @@ Preferred communication style: Simple, everyday language.
 - Migration support via `drizzle-kit`
 
 **Data Models**:
-1. **Suppliers** - Simple name-based supplier registry
-2. **Items** - Product/inventory items with unique names
-3. **Purchase Orders** - Main transaction records with:
+1. **Users** - User accounts with role-based permissions (admin/viewer)
+2. **Sessions** - PostgreSQL-backed session storage for authentication
+3. **Suppliers** - Simple name-based supplier registry
+4. **Items** - Product/inventory items with unique names
+5. **Purchase Orders** - Main transaction records with:
    - Purchase date, invoice number, GRN date
    - Supplier relationship (foreign key)
    - Currency fields (KWD totals, FX currency/rate/totals)
    - File paths for document attachments
-4. **Line Items** - Individual purchase items with quantities and prices
+   - createdBy field for audit trail
+6. **Line Items** - Individual purchase items with quantities and prices
+
+**Authentication & Authorization**:
+- **Replit Auth (OIDC)** - OpenID Connect integration for user authentication
+- **Role-based access control (RBAC)**:
+  - Admin role: Can manage suppliers, items, and delete purchase orders
+  - Viewer role: Can create purchase orders and view all data
+- **First-admin logic**: If no admin users exist, the next new user automatically becomes admin
+- **Session management**: PostgreSQL-backed sessions via connect-pg-simple
 
 **File Storage Strategy**:
 - Object storage using Google Cloud Storage via `@google-cloud/storage`
@@ -132,5 +143,6 @@ Preferred communication style: Simple, everyday language.
 
 **Environment Requirements**:
 - `DATABASE_URL` - PostgreSQL connection string (required)
+- `SESSION_SECRET` - Secret key for session encryption (required for authentication)
 - `PUBLIC_OBJECT_SEARCH_PATHS` - Comma-separated paths for public object access (optional)
 - Node.js environment with ESM module support
