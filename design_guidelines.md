@@ -7,7 +7,8 @@
 ## Typography System
 
 **Font Family**: 
-- Primary: Inter or System UI stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto`)
+- Primary: Source Sans Pro (from HTML5 UP Landed template), fallback to Helvetica and system fonts
+- Font weights: 300 (light), 400 (regular), 600 (semi-bold), 700 (bold)
 - Monospace: `"SF Mono", Monaco, "Cascadia Code"` for invoice numbers, amounts
 
 **Hierarchy**:
