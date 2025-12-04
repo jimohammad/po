@@ -1,18 +1,84 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, numeric, date, integer, timestamp } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+export const suppliers = pgTable("suppliers", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const suppliersRelations = relations(suppliers, ({ many }) => ({
+  purchaseOrders: many(purchaseOrders),
+}));
+
+export const insertSupplierSchema = createInsertSchema(suppliers).omit({ id: true });
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+export type Supplier = typeof suppliers.$inferSelect;
+
+export const items = pgTable("items", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull().unique(),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export const insertItemSchema = createInsertSchema(items).omit({ id: true });
+export type InsertItem = z.infer<typeof insertItemSchema>;
+export type Item = typeof items.$inferSelect;
+
+export const purchaseOrders = pgTable("purchase_orders", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  purchaseDate: date("purchase_date").notNull(),
+  invoiceNumber: text("invoice_number"),
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  totalKwd: numeric("total_kwd", { precision: 12, scale: 3 }),
+  fxCurrency: text("fx_currency").default("AED"),
+  fxRate: numeric("fx_rate", { precision: 10, scale: 4 }),
+  totalFx: numeric("total_fx", { precision: 12, scale: 2 }),
+  invoiceFilePath: text("invoice_file_path"),
+  deliveryNoteFilePath: text("delivery_note_file_path"),
+  ttCopyFilePath: text("tt_copy_file_path"),
+  grnDate: date("grn_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const purchaseOrdersRelations = relations(purchaseOrders, ({ one, many }) => ({
+  supplier: one(suppliers, {
+    fields: [purchaseOrders.supplierId],
+    references: [suppliers.id],
+  }),
+  lineItems: many(purchaseOrderLineItems),
+}));
+
+export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+
+export const purchaseOrderLineItems = pgTable("purchase_order_line_items", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id, { onDelete: "cascade" }).notNull(),
+  itemName: text("item_name").notNull(),
+  quantity: integer("quantity").default(1),
+  priceKwd: numeric("price_kwd", { precision: 12, scale: 3 }),
+  fxPrice: numeric("fx_price", { precision: 12, scale: 2 }),
+  totalKwd: numeric("total_kwd", { precision: 12, scale: 3 }),
+});
+
+export const purchaseOrderLineItemsRelations = relations(purchaseOrderLineItems, ({ one }) => ({
+  purchaseOrder: one(purchaseOrders, {
+    fields: [purchaseOrderLineItems.purchaseOrderId],
+    references: [purchaseOrders.id],
+  }),
+}));
+
+export const insertLineItemSchema = createInsertSchema(purchaseOrderLineItems).omit({ id: true });
+export type InsertLineItem = z.infer<typeof insertLineItemSchema>;
+export type LineItem = typeof purchaseOrderLineItems.$inferSelect;
+
+export type PurchaseOrderWithDetails = PurchaseOrder & {
+  supplier: Supplier | null;
+  lineItems: LineItem[];
+};
