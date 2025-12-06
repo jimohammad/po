@@ -184,6 +184,18 @@ export default function Home() {
     },
   });
 
+  const deletePOMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/purchase-orders/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/purchase-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats/monthly"] });
+      toast({ title: "Purchase order deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete purchase order", variant: "destructive" });
+    },
+  });
+
   const handleAddSupplier = () => {
     setSupplierDialogMode("add");
     setSupplierDialogOpen(true);
@@ -292,6 +304,8 @@ export default function Home() {
             isLoading={ordersLoading}
             isStatsLoading={statsLoading}
             onViewOrder={handleViewOrder}
+            onDeleteOrder={(id) => deletePOMutation.mutate(id)}
+            isAdmin={user?.role === "admin"}
           />
         </section>
       </div>

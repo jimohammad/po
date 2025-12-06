@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, FileText, Truck, CreditCard, Printer, X } from "lucide-react";
+import { Eye, FileText, Truck, CreditCard, Printer, X, Trash2 } from "lucide-react";
 import { MonthlyChart } from "./MonthlyChart";
 import type { PurchaseOrderWithDetails } from "@shared/schema";
 
@@ -17,6 +17,8 @@ interface ReportingSectionProps {
   isLoading: boolean;
   isStatsLoading: boolean;
   onViewOrder: (order: PurchaseOrderWithDetails) => void;
+  onDeleteOrder?: (orderId: number) => void;
+  isAdmin?: boolean;
 }
 
 const MONTHS = [
@@ -40,6 +42,8 @@ export function ReportingSection({
   isLoading,
   isStatsLoading,
   onViewOrder,
+  onDeleteOrder,
+  isAdmin,
 }: ReportingSectionProps) {
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>("all");
@@ -250,7 +254,7 @@ export function ReportingSection({
                   <th className="px-3 py-2 text-right">Total FX</th>
                   <th className="px-3 py-2 text-center">Docs</th>
                   <th className="px-3 py-2 text-center">GRN Date</th>
-                  <th className="px-3 py-2 text-center no-print">View</th>
+                  <th className="px-3 py-2 text-center no-print">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -324,14 +328,27 @@ export function ReportingSection({
                         {formatDate(order.grnDate)}
                       </td>
                       <td className="px-3 py-3 text-center no-print">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => onViewOrder(order)}
-                          data-testid={`button-view-order-${order.id}`}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => onViewOrder(order)}
+                            data-testid={`button-view-order-${order.id}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {isAdmin && onDeleteOrder && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => onDeleteOrder(order.id)}
+                              className="text-destructive hover:text-destructive"
+                              data-testid={`button-delete-order-${order.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
