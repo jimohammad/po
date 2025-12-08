@@ -729,8 +729,11 @@ export async function registerRoutes(
       const userId = req.user?.claims?.sub;
       const expenseData = { ...req.body, createdBy: userId };
       
+      console.log("Creating expense with data:", JSON.stringify(expenseData, null, 2));
+      
       const parsed = insertExpenseSchema.safeParse(expenseData);
       if (!parsed.success) {
+        console.error("Expense validation error:", parsed.error.format());
         return res.status(400).json({ error: parsed.error.message });
       }
       

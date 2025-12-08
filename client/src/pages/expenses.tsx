@@ -98,17 +98,16 @@ export default function ExpensesPage() {
 
   const createExpenseMutation = useMutation({
     mutationFn: async (data: ExpenseFormValues) => {
-      return apiRequest("/api/expenses", {
-        method: "POST",
-        body: JSON.stringify({
-          expenseDate: data.expenseDate,
-          categoryId: data.categoryId ? parseInt(data.categoryId) : null,
-          accountId: parseInt(data.accountId),
-          amount: data.amount,
-          description: data.description || null,
-          reference: data.reference || null,
-        }),
-      });
+      const payload = {
+        expenseDate: data.expenseDate,
+        categoryId: data.categoryId ? parseInt(data.categoryId) : null,
+        accountId: parseInt(data.accountId),
+        amount: data.amount,
+        description: data.description || null,
+        reference: data.reference || null,
+      };
+      console.log("Creating expense with payload:", payload);
+      return apiRequest("POST", "/api/expenses", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
@@ -116,14 +115,15 @@ export default function ExpensesPage() {
       expenseForm.reset();
       toast({ title: "Expense recorded successfully" });
     },
-    onError: () => {
-      toast({ title: "Failed to record expense", variant: "destructive" });
+    onError: (error: any) => {
+      console.error("Expense creation error:", error);
+      toast({ title: "Failed to record expense", description: error?.message || "Unknown error", variant: "destructive" });
     },
   });
 
   const deleteExpenseMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/expenses/${id}`, { method: "DELETE" });
+      return apiRequest("DELETE", `/api/expenses/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
@@ -136,10 +136,8 @@ export default function ExpensesPage() {
 
   const createCategoryMutation = useMutation({
     mutationFn: async (data: CategoryFormValues) => {
-      return apiRequest("/api/expense-categories", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      console.log("Creating category with data:", data);
+      return apiRequest("POST", "/api/expense-categories", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expense-categories"] });
@@ -147,14 +145,15 @@ export default function ExpensesPage() {
       categoryForm.reset();
       toast({ title: "Category created successfully" });
     },
-    onError: () => {
-      toast({ title: "Failed to create category", variant: "destructive" });
+    onError: (error: any) => {
+      console.error("Category creation error:", error);
+      toast({ title: "Failed to create category", description: error?.message || "Unknown error", variant: "destructive" });
     },
   });
 
   const deleteCategoryMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/expense-categories/${id}`, { method: "DELETE" });
+      return apiRequest("DELETE", `/api/expense-categories/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expense-categories"] });

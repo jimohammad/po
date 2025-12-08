@@ -104,16 +104,14 @@ export default function AccountsPage() {
 
   const createTransferMutation = useMutation({
     mutationFn: async (data: TransferFormValues) => {
-      return apiRequest("/api/account-transfers", {
-        method: "POST",
-        body: JSON.stringify({
-          transferDate: data.transferDate,
-          fromAccountId: parseInt(data.fromAccountId),
-          toAccountId: parseInt(data.toAccountId),
-          amount: data.amount,
-          notes: data.notes || null,
-        }),
-      });
+      const payload = {
+        transferDate: data.transferDate,
+        fromAccountId: parseInt(data.fromAccountId),
+        toAccountId: parseInt(data.toAccountId),
+        amount: data.amount,
+        notes: data.notes || null,
+      };
+      return apiRequest("POST", "/api/account-transfers", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/account-transfers"] });

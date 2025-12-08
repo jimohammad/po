@@ -14,6 +14,8 @@ This is a **Purchase Order Register** system built for Iqbal Electronics Co. WLL
 - Sales module with IMEI tracking and customer management
 - Payment module with IN/OUT direction tracking for cash flow
 - Reports module with Available Stock, Daily Cash Flow, and Customer Reports
+- Expenses module with category management and expense tracking
+- Accounts module with 5 predefined accounts (Cash, NBK Bank, CBK Bank, Knet, Wamd), account statements, and inter-account transfer functionality
 
 The system is designed as an enterprise productivity tool with a focus on efficient data entry workflows and comprehensive purchase tracking.
 
