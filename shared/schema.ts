@@ -189,3 +189,38 @@ export type SalesOrderWithDetails = SalesOrder & {
   customer: Customer | null;
   lineItems: SalesLineItem[];
 };
+
+// ==================== PAYMENT MODULE ====================
+
+export const PAYMENT_TYPES = ["Cash", "NBK Bank", "CBK Bank", "Knet", "Wamd"] as const;
+export type PaymentType = typeof PAYMENT_TYPES[number];
+
+export const payments = pgTable("payments", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  paymentDate: date("payment_date").notNull(),
+  customerId: integer("customer_id").references(() => customers.id),
+  paymentType: text("payment_type").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 3 }).notNull(),
+  reference: text("reference"),
+  notes: text("notes"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  customer: one(customers, {
+    fields: [payments.customerId],
+    references: [customers.id],
+  }),
+}));
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({ 
+  id: true, 
+  createdAt: true,
+});
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+
+export type PaymentWithCustomer = Payment & {
+  customer: Customer | null;
+};

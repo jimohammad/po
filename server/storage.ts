@@ -6,6 +6,7 @@ import {
   customers,
   salesOrders,
   salesOrderLineItems,
+  payments,
   users,
   type Supplier, 
   type InsertSupplier,
@@ -23,6 +24,9 @@ import {
   type SalesLineItem,
   type InsertSalesLineItem,
   type SalesOrderWithDetails,
+  type Payment,
+  type InsertPayment,
+  type PaymentWithCustomer,
   type User,
   type UpsertUser,
 } from "@shared/schema";
@@ -65,6 +69,12 @@ export interface IStorage {
   deleteSalesOrder(id: number): Promise<boolean>;
 
   getSalesMonthlyStats(year?: number): Promise<{ month: number; totalKwd: number; totalFx: number }[]>;
+
+  // Payment Module
+  getPayments(): Promise<PaymentWithCustomer[]>;
+  getPayment(id: number): Promise<PaymentWithCustomer | undefined>;
+  createPayment(payment: InsertPayment): Promise<PaymentWithCustomer>;
+  deletePayment(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -344,6 +354,38 @@ export class DatabaseStorage implements IStorage {
       ORDER BY month
     `);
     return result.rows as { month: number; totalKwd: number; totalFx: number }[];
+  }
+
+  // ==================== PAYMENT MODULE ====================
+
+  async getPayments(): Promise<PaymentWithCustomer[]> {
+    const paymentList = await db.query.payments.findMany({
+      with: {
+        customer: true,
+      },
+      orderBy: [desc(payments.paymentDate), desc(payments.id)],
+    });
+    return paymentList;
+  }
+
+  async getPayment(id: number): Promise<PaymentWithCustomer | undefined> {
+    const payment = await db.query.payments.findFirst({
+      where: eq(payments.id, id),
+      with: {
+        customer: true,
+      },
+    });
+    return payment || undefined;
+  }
+
+  async createPayment(payment: InsertPayment): Promise<PaymentWithCustomer> {
+    const [newPayment] = await db.insert(payments).values(payment).returning();
+    return this.getPayment(newPayment.id) as Promise<PaymentWithCustomer>;
+  }
+
+  async deletePayment(id: number): Promise<boolean> {
+    const result = await db.delete(payments).where(eq(payments.id, id)).returning();
+    return result.length > 0;
   }
 }
 
