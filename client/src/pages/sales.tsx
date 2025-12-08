@@ -6,7 +6,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { SalesOrderForm, type SalesFormData } from "@/components/SalesOrderForm";
 import { SalesReportingSection } from "@/components/SalesReportingSection";
 import { CustomerDialog } from "@/components/CustomerDialog";
-import { ItemDialog } from "@/components/ItemDialog";
 import { SalesOrderDetail } from "@/components/SalesOrderDetail";
 import type { Customer, Item, SalesOrderWithDetails } from "@shared/schema";
 
@@ -15,8 +14,6 @@ export default function SalesPage() {
   const { user } = useAuth();
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [customerDialogMode, setCustomerDialogMode] = useState<"add" | "edit">("add");
-  const [itemDialogOpen, setItemDialogOpen] = useState(false);
-  const [itemDialogMode, setItemDialogMode] = useState<"add" | "edit">("add");
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrderWithDetails | null>(null);
 
@@ -71,47 +68,6 @@ export default function SalesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({ title: "Customer deleted successfully" });
-    },
-    onError: (error: Error) => {
-      toast({ title: error.message, variant: "destructive" });
-    },
-  });
-
-  const createItemMutation = useMutation({
-    mutationFn: (name: string) => apiRequest("POST", "/api/items", { name }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-      toast({ title: "Item added successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to add item", variant: "destructive" });
-    },
-  });
-
-  const updateItemMutation = useMutation({
-    mutationFn: ({ id, name }: { id: number; name: string }) =>
-      apiRequest("PUT", `/api/items/${id}`, { name }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-      toast({ title: "Item updated successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to update item", variant: "destructive" });
-    },
-  });
-
-  const deleteItemMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await fetch(`/api/items/${id}`, { method: "DELETE", credentials: "include" });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to delete item");
-      }
-      return response;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-      toast({ title: "Item deleted successfully" });
     },
     onError: (error: Error) => {
       toast({ title: error.message, variant: "destructive" });
@@ -242,16 +198,6 @@ export default function SalesPage() {
         onAdd={(name) => createCustomerMutation.mutate(name)}
         onUpdate={(id, name) => updateCustomerMutation.mutate({ id, name })}
         onDelete={(id) => deleteCustomerMutation.mutate(id)}
-      />
-
-      <ItemDialog
-        open={itemDialogOpen}
-        onOpenChange={setItemDialogOpen}
-        mode={itemDialogMode}
-        items={items}
-        onAdd={(name) => createItemMutation.mutate(name)}
-        onUpdate={(id, name) => updateItemMutation.mutate({ id, name })}
-        onDelete={(id) => deleteItemMutation.mutate(id)}
       />
 
       <SalesOrderDetail
