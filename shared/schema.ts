@@ -234,3 +234,98 @@ export type PaymentWithDetails = Payment & {
   customer: Customer | null;
   supplier: Supplier | null;
 };
+
+// ==================== ACCOUNTS MODULE ====================
+
+export const ACCOUNT_NAMES = ["Cash", "NBK Bank", "CBK Bank", "Knet", "Wamd"] as const;
+export type AccountName = typeof ACCOUNT_NAMES[number];
+
+export const accounts = pgTable("accounts", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull().unique(),
+  balance: numeric("balance", { precision: 12, scale: 3 }).default("0"),
+});
+
+export const insertAccountSchema = createInsertSchema(accounts).omit({ id: true });
+export type InsertAccount = z.infer<typeof insertAccountSchema>;
+export type Account = typeof accounts.$inferSelect;
+
+export const accountTransfers = pgTable("account_transfers", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  transferDate: date("transfer_date").notNull(),
+  fromAccountId: integer("from_account_id").references(() => accounts.id).notNull(),
+  toAccountId: integer("to_account_id").references(() => accounts.id).notNull(),
+  amount: numeric("amount", { precision: 12, scale: 3 }).notNull(),
+  notes: text("notes"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const accountTransfersRelations = relations(accountTransfers, ({ one }) => ({
+  fromAccount: one(accounts, {
+    fields: [accountTransfers.fromAccountId],
+    references: [accounts.id],
+  }),
+  toAccount: one(accounts, {
+    fields: [accountTransfers.toAccountId],
+    references: [accounts.id],
+  }),
+}));
+
+export const insertAccountTransferSchema = createInsertSchema(accountTransfers).omit({ 
+  id: true, 
+  createdAt: true,
+});
+export type InsertAccountTransfer = z.infer<typeof insertAccountTransferSchema>;
+export type AccountTransfer = typeof accountTransfers.$inferSelect;
+
+export type AccountTransferWithDetails = AccountTransfer & {
+  fromAccount: Account;
+  toAccount: Account;
+};
+
+// ==================== EXPENSES MODULE ====================
+
+export const expenseCategories = pgTable("expense_categories", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull().unique(),
+});
+
+export const insertExpenseCategorySchema = createInsertSchema(expenseCategories).omit({ id: true });
+export type InsertExpenseCategory = z.infer<typeof insertExpenseCategorySchema>;
+export type ExpenseCategory = typeof expenseCategories.$inferSelect;
+
+export const expenses = pgTable("expenses", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  expenseDate: date("expense_date").notNull(),
+  categoryId: integer("category_id").references(() => expenseCategories.id),
+  accountId: integer("account_id").references(() => accounts.id),
+  amount: numeric("amount", { precision: 12, scale: 3 }).notNull(),
+  description: text("description"),
+  reference: text("reference"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  category: one(expenseCategories, {
+    fields: [expenses.categoryId],
+    references: [expenseCategories.id],
+  }),
+  account: one(accounts, {
+    fields: [expenses.accountId],
+    references: [accounts.id],
+  }),
+}));
+
+export const insertExpenseSchema = createInsertSchema(expenses).omit({ 
+  id: true, 
+  createdAt: true,
+});
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+export type Expense = typeof expenses.$inferSelect;
+
+export type ExpenseWithDetails = Expense & {
+  category: ExpenseCategory | null;
+  account: Account | null;
+};

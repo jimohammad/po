@@ -8,6 +8,11 @@ import {
   salesOrderLineItems,
   payments,
   users,
+  accounts,
+  accountTransfers,
+  expenseCategories,
+  expenses,
+  ACCOUNT_NAMES,
   type Supplier, 
   type InsertSupplier,
   type Item,
@@ -29,6 +34,16 @@ import {
   type PaymentWithDetails,
   type User,
   type UpsertUser,
+  type Account,
+  type InsertAccount,
+  type AccountTransfer,
+  type InsertAccountTransfer,
+  type AccountTransferWithDetails,
+  type ExpenseCategory,
+  type InsertExpenseCategory,
+  type Expense,
+  type InsertExpense,
+  type ExpenseWithDetails,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
@@ -80,6 +95,24 @@ export interface IStorage {
   getStockBalance(): Promise<{ itemName: string; purchased: number; sold: number; balance: number }[]>;
   getDailyCashFlow(startDate?: string, endDate?: string): Promise<{ date: string; inAmount: number; outAmount: number; net: number; runningBalance: number }[]>;
   getCustomerReport(): Promise<{ customerId: number; customerName: string; totalSales: number; totalPayments: number; balance: number }[]>;
+
+  // Accounts Module
+  getAccounts(): Promise<Account[]>;
+  getAccount(id: number): Promise<Account | undefined>;
+  ensureDefaultAccounts(): Promise<void>;
+  getAccountTransactions(accountId: number, startDate?: string, endDate?: string): Promise<{ date: string; description: string; type: string; amount: number; balance: number }[]>;
+  createAccountTransfer(transfer: InsertAccountTransfer): Promise<AccountTransferWithDetails>;
+  getAccountTransfers(): Promise<AccountTransferWithDetails[]>;
+
+  // Expense Module
+  getExpenseCategories(): Promise<ExpenseCategory[]>;
+  createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory>;
+  updateExpenseCategory(id: number, category: InsertExpenseCategory): Promise<ExpenseCategory | undefined>;
+  deleteExpenseCategory(id: number): Promise<{ deleted: boolean; error?: string }>;
+  getExpenses(): Promise<ExpenseWithDetails[]>;
+  getExpense(id: number): Promise<ExpenseWithDetails | undefined>;
+  createExpense(expense: InsertExpense): Promise<ExpenseWithDetails>;
+  deleteExpense(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -490,6 +523,195 @@ export class DatabaseStorage implements IStorage {
       ORDER BY c.name
     `);
     return result.rows as { customerId: number; customerName: string; totalSales: number; totalPayments: number; balance: number }[];
+  }
+
+  // ==================== ACCOUNTS MODULE ====================
+
+  async getAccounts(): Promise<Account[]> {
+    return await db.select().from(accounts).orderBy(accounts.id);
+  }
+
+  async getAccount(id: number): Promise<Account | undefined> {
+    const [account] = await db.select().from(accounts).where(eq(accounts.id, id));
+    return account || undefined;
+  }
+
+  async ensureDefaultAccounts(): Promise<void> {
+    for (const name of ACCOUNT_NAMES) {
+      const existing = await db.select().from(accounts).where(eq(accounts.name, name));
+      if (existing.length === 0) {
+        await db.insert(accounts).values({ name, balance: "0" });
+      }
+    }
+  }
+
+  async getAccountTransactions(accountId: number, startDate?: string, endDate?: string): Promise<{ date: string; description: string; type: string; amount: number; balance: number }[]> {
+    let dateFilter = sql``;
+    if (startDate && endDate) {
+      dateFilter = sql`AND date >= ${startDate} AND date <= ${endDate}`;
+    } else if (startDate) {
+      dateFilter = sql`AND date >= ${startDate}`;
+    } else if (endDate) {
+      dateFilter = sql`AND date <= ${endDate}`;
+    }
+
+    const account = await this.getAccount(accountId);
+    if (!account) return [];
+
+    const result = await db.execute(sql`
+      WITH all_transactions AS (
+        -- Payments IN (money coming into this account)
+        SELECT 
+          payment_date as date,
+          CASE 
+            WHEN direction = 'IN' THEN 'Payment received from ' || COALESCE((SELECT name FROM customers WHERE id = customer_id), 'Unknown')
+            ELSE 'Payment to ' || COALESCE((SELECT name FROM suppliers WHERE id = supplier_id), 'Unknown')
+          END as description,
+          CASE WHEN direction = 'IN' THEN 'IN' ELSE 'OUT' END as type,
+          CASE WHEN direction = 'IN' THEN CAST(amount AS DECIMAL) ELSE -CAST(amount AS DECIMAL) END as amount,
+          created_at
+        FROM payments
+        WHERE payment_type = ${account.name}
+        ${dateFilter}
+        
+        UNION ALL
+        
+        -- Expenses (money going out from this account)
+        SELECT 
+          expense_date as date,
+          'Expense: ' || COALESCE(description, 'No description') as description,
+          'OUT' as type,
+          -CAST(amount AS DECIMAL) as amount,
+          created_at
+        FROM expenses
+        WHERE account_id = ${accountId}
+        ${dateFilter}
+        
+        UNION ALL
+        
+        -- Transfers OUT (from this account)
+        SELECT 
+          transfer_date as date,
+          'Transfer to ' || (SELECT name FROM accounts WHERE id = to_account_id) as description,
+          'TRANSFER_OUT' as type,
+          -CAST(amount AS DECIMAL) as amount,
+          created_at
+        FROM account_transfers
+        WHERE from_account_id = ${accountId}
+        ${dateFilter}
+        
+        UNION ALL
+        
+        -- Transfers IN (to this account)
+        SELECT 
+          transfer_date as date,
+          'Transfer from ' || (SELECT name FROM accounts WHERE id = from_account_id) as description,
+          'TRANSFER_IN' as type,
+          CAST(amount AS DECIMAL) as amount,
+          created_at
+        FROM account_transfers
+        WHERE to_account_id = ${accountId}
+        ${dateFilter}
+      )
+      SELECT 
+        date,
+        description,
+        type,
+        amount::float,
+        SUM(amount) OVER (ORDER BY date, created_at)::float as balance
+      FROM all_transactions
+      ORDER BY date DESC, created_at DESC
+    `);
+    return result.rows as { date: string; description: string; type: string; amount: number; balance: number }[];
+  }
+
+  async createAccountTransfer(transfer: InsertAccountTransfer): Promise<AccountTransferWithDetails> {
+    const [newTransfer] = await db.insert(accountTransfers).values(transfer).returning();
+    
+    const result = await db.query.accountTransfers.findFirst({
+      where: eq(accountTransfers.id, newTransfer.id),
+      with: {
+        fromAccount: true,
+        toAccount: true,
+      },
+    });
+    return result as AccountTransferWithDetails;
+  }
+
+  async getAccountTransfers(): Promise<AccountTransferWithDetails[]> {
+    const transfers = await db.query.accountTransfers.findMany({
+      with: {
+        fromAccount: true,
+        toAccount: true,
+      },
+      orderBy: [desc(accountTransfers.transferDate), desc(accountTransfers.id)],
+    });
+    return transfers as AccountTransferWithDetails[];
+  }
+
+  // ==================== EXPENSE MODULE ====================
+
+  async getExpenseCategories(): Promise<ExpenseCategory[]> {
+    return await db.select().from(expenseCategories).orderBy(expenseCategories.name);
+  }
+
+  async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
+    const [newCategory] = await db.insert(expenseCategories).values(category).returning();
+    return newCategory;
+  }
+
+  async updateExpenseCategory(id: number, category: InsertExpenseCategory): Promise<ExpenseCategory | undefined> {
+    const [updated] = await db.update(expenseCategories).set(category).where(eq(expenseCategories.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteExpenseCategory(id: number): Promise<{ deleted: boolean; error?: string }> {
+    const linkedExpenses = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(expenses)
+      .where(eq(expenses.categoryId, id));
+    
+    if (linkedExpenses[0].count > 0) {
+      return { 
+        deleted: false, 
+        error: `Cannot delete category: ${linkedExpenses[0].count} expense(s) are linked to this category` 
+      };
+    }
+    
+    const result = await db.delete(expenseCategories).where(eq(expenseCategories.id, id)).returning();
+    return { deleted: result.length > 0 };
+  }
+
+  async getExpenses(): Promise<ExpenseWithDetails[]> {
+    const expenseList = await db.query.expenses.findMany({
+      with: {
+        category: true,
+        account: true,
+      },
+      orderBy: [desc(expenses.expenseDate), desc(expenses.id)],
+    });
+    return expenseList;
+  }
+
+  async getExpense(id: number): Promise<ExpenseWithDetails | undefined> {
+    const expense = await db.query.expenses.findFirst({
+      where: eq(expenses.id, id),
+      with: {
+        category: true,
+        account: true,
+      },
+    });
+    return expense || undefined;
+  }
+
+  async createExpense(expense: InsertExpense): Promise<ExpenseWithDetails> {
+    const [newExpense] = await db.insert(expenses).values(expense).returning();
+    return this.getExpense(newExpense.id) as Promise<ExpenseWithDetails>;
+  }
+
+  async deleteExpense(id: number): Promise<boolean> {
+    const result = await db.delete(expenses).where(eq(expenses.id, id)).returning();
+    return result.length > 0;
   }
 }
 
