@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSupplierSchema, insertItemSchema, insertPurchaseOrderSchema, insertLineItemSchema, insertCustomerSchema, insertSalesOrderSchema, insertSalesLineItemSchema, insertPaymentSchema, PAYMENT_TYPES } from "@shared/schema";
+import { insertSupplierSchema, insertItemSchema, insertPurchaseOrderSchema, insertLineItemSchema, insertCustomerSchema, insertSalesOrderSchema, insertSalesLineItemSchema, insertPaymentSchema, PAYMENT_TYPES, PAYMENT_DIRECTIONS } from "@shared/schema";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { setupAuth, isAuthenticated, isAdmin } from "./replitAuth";
 
@@ -424,6 +424,10 @@ export async function registerRoutes(
       
       if (!PAYMENT_TYPES.includes(paymentData.paymentType)) {
         return res.status(400).json({ error: `Invalid payment type. Must be one of: ${PAYMENT_TYPES.join(", ")}` });
+      }
+      
+      if (paymentData.direction && !PAYMENT_DIRECTIONS.includes(paymentData.direction)) {
+        return res.status(400).json({ error: `Invalid payment direction. Must be one of: ${PAYMENT_DIRECTIONS.join(", ")}` });
       }
       
       const parsed = insertPaymentSchema.safeParse(paymentData);

@@ -153,10 +153,11 @@ export default function PaymentsPage() {
       ? payment.customer?.name 
       : payment.supplier?.name;
     
-    const matchesSearch = 
-      partyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.paymentType.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = searchTerm === "" ||
+      (partyName?.toLowerCase() ?? "").includes(searchLower) ||
+      (payment.reference?.toLowerCase() ?? "").includes(searchLower) ||
+      payment.paymentType.toLowerCase().includes(searchLower);
     
     const matchesType = paymentTypeFilter === "all" || payment.paymentType === paymentTypeFilter;
     const matchesDirection = directionFilter === "all" || payment.direction === directionFilter;
