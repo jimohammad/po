@@ -10,9 +10,10 @@ import SalesPage from "@/pages/sales";
 import PaymentsPage from "@/pages/payments";
 import ItemMaster from "@/pages/item-master";
 import SupplierMaster from "@/pages/supplier-master";
+import ReportsPage from "@/pages/reports";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
-import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Truck, CreditCard } from "lucide-react";
+import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Truck, CreditCard, FileBarChart } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +66,12 @@ function AppSidebar() {
       url: "/suppliers",
       icon: Truck,
       description: "Manage suppliers",
+    },
+    {
+      title: "Reports",
+      url: "/reports",
+      icon: FileBarChart,
+      description: "View reports",
     },
   ];
 
@@ -154,6 +161,8 @@ function AuthenticatedLayout() {
         return "Item Master";
       case "/suppliers":
         return "Supplier Master";
+      case "/reports":
+        return "Reports";
       default:
         return "";
     }
@@ -195,6 +204,7 @@ function AuthenticatedLayout() {
               <Route path="/payments" component={PaymentsPage} />
               <Route path="/items" component={ItemMaster} />
               <Route path="/suppliers" component={SupplierMaster} />
+              <Route path="/reports" component={ReportsPage} />
               <Route component={NotFound} />
             </Switch>
           </main>

@@ -11,6 +11,9 @@ This is a **Purchase Order Register** system built for Iqbal Electronics Co. WLL
 - Support multi-currency transactions (KWD, AED, USD) with foreign exchange rates
 - View monthly purchase statistics and reports
 - Filter and search historical purchase orders
+- Sales module with IMEI tracking and customer management
+- Payment module with IN/OUT direction tracking for cash flow
+- Reports module with Available Stock, Daily Cash Flow, and Customer Reports
 
 The system is designed as an enterprise productivity tool with a focus on efficient data entry workflows and comprehensive purchase tracking.
 

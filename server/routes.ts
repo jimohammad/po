@@ -512,5 +512,41 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== REPORTS API ====================
+
+  app.get("/api/reports/stock-balance", isAuthenticated, async (req, res) => {
+    try {
+      const stockBalance = await storage.getStockBalance();
+      res.json(stockBalance);
+    } catch (error) {
+      console.error("Error fetching stock balance:", error);
+      res.status(500).json({ error: "Failed to fetch stock balance" });
+    }
+  });
+
+  app.get("/api/reports/daily-cash-flow", isAuthenticated, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const cashFlow = await storage.getDailyCashFlow(
+        startDate as string | undefined,
+        endDate as string | undefined
+      );
+      res.json(cashFlow);
+    } catch (error) {
+      console.error("Error fetching cash flow:", error);
+      res.status(500).json({ error: "Failed to fetch cash flow" });
+    }
+  });
+
+  app.get("/api/reports/customer-report", isAuthenticated, async (req, res) => {
+    try {
+      const customerReport = await storage.getCustomerReport();
+      res.json(customerReport);
+    } catch (error) {
+      console.error("Error fetching customer report:", error);
+      res.status(500).json({ error: "Failed to fetch customer report" });
+    }
+  });
+
   return httpServer;
 }

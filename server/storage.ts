@@ -75,6 +75,11 @@ export interface IStorage {
   getPayment(id: number): Promise<PaymentWithDetails | undefined>;
   createPayment(payment: InsertPayment): Promise<PaymentWithDetails>;
   deletePayment(id: number): Promise<boolean>;
+
+  // Reports
+  getStockBalance(): Promise<{ itemName: string; purchased: number; sold: number; balance: number }[]>;
+  getDailyCashFlow(startDate?: string, endDate?: string): Promise<{ date: string; inAmount: number; outAmount: number; net: number; runningBalance: number }[]>;
+  getCustomerReport(): Promise<{ customerId: number; customerName: string; totalSales: number; totalPayments: number; balance: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -388,6 +393,103 @@ export class DatabaseStorage implements IStorage {
   async deletePayment(id: number): Promise<boolean> {
     const result = await db.delete(payments).where(eq(payments.id, id)).returning();
     return result.length > 0;
+  }
+
+  // ==================== REPORTS ====================
+
+  async getStockBalance(): Promise<{ itemName: string; purchased: number; sold: number; balance: number }[]> {
+    const result = await db.execute(sql`
+      WITH purchased AS (
+        SELECT item_name, COALESCE(SUM(quantity), 0) as qty
+        FROM purchase_order_line_items
+        GROUP BY item_name
+      ),
+      sold AS (
+        SELECT item_name, COALESCE(SUM(quantity), 0) as qty
+        FROM sales_order_line_items
+        GROUP BY item_name
+      ),
+      all_items AS (
+        SELECT item_name FROM purchased
+        UNION
+        SELECT item_name FROM sold
+      )
+      SELECT 
+        ai.item_name as "itemName",
+        COALESCE(p.qty, 0)::integer as purchased,
+        COALESCE(s.qty, 0)::integer as sold,
+        (COALESCE(p.qty, 0) - COALESCE(s.qty, 0))::integer as balance
+      FROM all_items ai
+      LEFT JOIN purchased p ON ai.item_name = p.item_name
+      LEFT JOIN sold s ON ai.item_name = s.item_name
+      ORDER BY ai.item_name
+    `);
+    return result.rows as { itemName: string; purchased: number; sold: number; balance: number }[];
+  }
+
+  async getDailyCashFlow(startDate?: string, endDate?: string): Promise<{ date: string; inAmount: number; outAmount: number; net: number; runningBalance: number }[]> {
+    let whereClause = sql``;
+    if (startDate && endDate) {
+      whereClause = sql`WHERE payment_date >= ${startDate} AND payment_date <= ${endDate}`;
+    } else if (startDate) {
+      whereClause = sql`WHERE payment_date >= ${startDate}`;
+    } else if (endDate) {
+      whereClause = sql`WHERE payment_date <= ${endDate}`;
+    }
+
+    const result = await db.execute(sql`
+      WITH daily_totals AS (
+        SELECT 
+          payment_date as date,
+          COALESCE(SUM(CASE WHEN direction = 'IN' THEN CAST(amount AS DECIMAL) ELSE 0 END), 0)::float as "inAmount",
+          COALESCE(SUM(CASE WHEN direction = 'OUT' THEN CAST(amount AS DECIMAL) ELSE 0 END), 0)::float as "outAmount"
+        FROM payments
+        ${whereClause}
+        GROUP BY payment_date
+        ORDER BY payment_date
+      )
+      SELECT 
+        date,
+        "inAmount",
+        "outAmount",
+        ("inAmount" - "outAmount")::float as net,
+        SUM("inAmount" - "outAmount") OVER (ORDER BY date)::float as "runningBalance"
+      FROM daily_totals
+      ORDER BY date
+    `);
+    return result.rows as { date: string; inAmount: number; outAmount: number; net: number; runningBalance: number }[];
+  }
+
+  async getCustomerReport(): Promise<{ customerId: number; customerName: string; totalSales: number; totalPayments: number; balance: number }[]> {
+    const result = await db.execute(sql`
+      WITH customer_sales AS (
+        SELECT 
+          customer_id,
+          COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total_sales
+        FROM sales_orders
+        WHERE customer_id IS NOT NULL
+        GROUP BY customer_id
+      ),
+      customer_payments AS (
+        SELECT 
+          customer_id,
+          COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::float as total_payments
+        FROM payments
+        WHERE customer_id IS NOT NULL AND direction = 'IN'
+        GROUP BY customer_id
+      )
+      SELECT 
+        c.id as "customerId",
+        c.name as "customerName",
+        COALESCE(cs.total_sales, 0)::float as "totalSales",
+        COALESCE(cp.total_payments, 0)::float as "totalPayments",
+        (COALESCE(cs.total_sales, 0) - COALESCE(cp.total_payments, 0))::float as balance
+      FROM customers c
+      LEFT JOIN customer_sales cs ON c.id = cs.customer_id
+      LEFT JOIN customer_payments cp ON c.id = cp.customer_id
+      ORDER BY c.name
+    `);
+    return result.rows as { customerId: number; customerName: string; totalSales: number; totalPayments: number; balance: number }[];
   }
 }
 
