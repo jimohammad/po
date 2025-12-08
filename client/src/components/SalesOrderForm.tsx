@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, RotateCcw, Save, Loader2 } from "lucide-react";
-import { LineItemRow, type LineItemData } from "./LineItemRow";
-import { CurrencyToggle } from "./CurrencyToggle";
+import { SalesLineItemRow, type SalesLineItemData } from "./SalesLineItemRow";
 import { FileUploadField } from "./FileUploadField";
 import type { Customer, Item } from "@shared/schema";
 
@@ -26,15 +25,12 @@ export interface SalesFormData {
   saleDate: string;
   invoiceNumber: string;
   customerId: number | null;
-  fxCurrency: "AED" | "USD";
-  fxRate: string;
   totalKwd: string;
-  totalFx: string;
   deliveryDate: string;
   invoiceFile: File | null;
   deliveryNoteFile: File | null;
   paymentReceiptFile: File | null;
-  lineItems: LineItemData[];
+  lineItems: SalesLineItemData[];
 }
 
 function generateItemId() {
@@ -55,35 +51,27 @@ export function SalesOrderForm({
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [customerId, setCustomerId] = useState<string>("");
-  const [fxCurrency, setFxCurrency] = useState<"AED" | "USD">("AED");
-  const [fxRate, setFxRate] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const [deliveryNoteFile, setDeliveryNoteFile] = useState<File | null>(null);
   const [paymentReceiptFile, setPaymentReceiptFile] = useState<File | null>(null);
-  const [lineItems, setLineItems] = useState<LineItemData[]>([
-    { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000" },
+  const [lineItems, setLineItems] = useState<SalesLineItemData[]>([
+    { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", totalKwd: "0.000", imeiNumbers: [] },
   ]);
 
-  const [totals, setTotals] = useState({ totalKwd: "0.000", totalFx: "" });
+  const [totalKwd, setTotalKwd] = useState("0.000");
 
   useEffect(() => {
-    let totalKwd = 0;
-    const rate = parseFloat(fxRate) || 0;
-
+    let total = 0;
     lineItems.forEach(item => {
       const qty = item.quantity || 0;
       const price = parseFloat(item.priceKwd) || 0;
-      totalKwd += qty * price;
+      total += qty * price;
     });
+    setTotalKwd(total.toFixed(3));
+  }, [lineItems]);
 
-    setTotals({
-      totalKwd: totalKwd.toFixed(3),
-      totalFx: rate ? (totalKwd * rate).toFixed(2) : "",
-    });
-  }, [lineItems, fxRate]);
-
-  const handleLineItemChange = (id: string, field: keyof LineItemData, value: string | number) => {
+  const handleLineItemChange = (id: string, field: keyof SalesLineItemData, value: string | number | string[]) => {
     setLineItems(prev => prev.map(item => {
       if (item.id !== id) return item;
       
@@ -102,7 +90,7 @@ export function SalesOrderForm({
   const handleAddRow = () => {
     setLineItems(prev => [
       ...prev,
-      { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000" },
+      { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", totalKwd: "0.000", imeiNumbers: [] },
     ]);
   };
 
@@ -114,14 +102,12 @@ export function SalesOrderForm({
     setSaleDate(new Date().toISOString().split("T")[0]);
     setInvoiceNumber("");
     setCustomerId("");
-    setFxCurrency("AED");
-    setFxRate("");
     setDeliveryDate("");
     setInvoiceFile(null);
     setDeliveryNoteFile(null);
     setPaymentReceiptFile(null);
     setLineItems([
-      { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000" },
+      { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", totalKwd: "0.000", imeiNumbers: [] },
     ]);
   };
 
@@ -132,10 +118,7 @@ export function SalesOrderForm({
       saleDate,
       invoiceNumber,
       customerId: customerId ? parseInt(customerId) : null,
-      fxCurrency,
-      fxRate,
-      totalKwd: totals.totalKwd,
-      totalFx: totals.totalFx,
+      totalKwd,
       deliveryDate,
       invoiceFile,
       deliveryNoteFile,
@@ -230,25 +213,7 @@ export function SalesOrderForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Currency</Label>
-              <CurrencyToggle value={fxCurrency} onChange={setFxCurrency} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="fxRate">FX Rate (1 KWD = ?)</Label>
-              <Input
-                id="fxRate"
-                type="number"
-                step="0.0001"
-                placeholder="e.g., 12.05"
-                value={fxRate}
-                onChange={(e) => setFxRate(e.target.value)}
-                data-testid="input-sales-fx-rate"
-              />
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="deliveryDate">Delivery Date</Label>
               <Input
@@ -290,14 +255,14 @@ export function SalesOrderForm({
             </div>
             
             <div className="space-y-2">
-              {lineItems.map((item) => (
-                <LineItemRow
+              {lineItems.map((item, index) => (
+                <SalesLineItemRow
                   key={item.id}
                   item={item}
                   items={items}
-                  fxCurrency={fxCurrency}
-                  onUpdate={(field, value) => handleLineItemChange(item.id, field, value)}
-                  onRemove={() => handleRemoveRow(item.id)}
+                  index={index}
+                  onChange={handleLineItemChange}
+                  onRemove={handleRemoveRow}
                   canRemove={lineItems.length > 1}
                 />
               ))}
@@ -315,17 +280,11 @@ export function SalesOrderForm({
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-md">
+          <div className="p-4 bg-muted/50 rounded-md">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Total (KWD)</Label>
               <p className="text-xl font-semibold font-mono" data-testid="text-sales-total-kwd">
-                {totals.totalKwd} KWD
-              </p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Total ({fxCurrency})</Label>
-              <p className="text-xl font-semibold font-mono" data-testid="text-sales-total-fx">
-                {totals.totalFx || "—"} {fxCurrency}
+                {totalKwd} KWD
               </p>
             </div>
           </div>
@@ -333,20 +292,20 @@ export function SalesOrderForm({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FileUploadField
               label="Invoice"
-              file={invoiceFile}
-              onFileChange={setInvoiceFile}
+              value={invoiceFile}
+              onChange={setInvoiceFile}
               testId="input-sales-invoice-file"
             />
             <FileUploadField
               label="Delivery Note"
-              file={deliveryNoteFile}
-              onFileChange={setDeliveryNoteFile}
+              value={deliveryNoteFile}
+              onChange={setDeliveryNoteFile}
               testId="input-sales-delivery-file"
             />
             <FileUploadField
               label="Payment Receipt"
-              file={paymentReceiptFile}
-              onFileChange={setPaymentReceiptFile}
+              value={paymentReceiptFile}
+              onChange={setPaymentReceiptFile}
               testId="input-payment-receipt-file"
             />
           </div>

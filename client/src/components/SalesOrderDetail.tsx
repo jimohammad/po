@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Truck, CreditCard, ExternalLink } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Truck, CreditCard, ExternalLink, Smartphone } from "lucide-react";
 import type { SalesOrderWithDetails } from "@shared/schema";
 
 interface SalesOrderDetailProps {
@@ -68,22 +69,44 @@ export function SalesOrderDetail({
             {order.lineItems.length === 0 ? (
               <p className="text-sm text-muted-foreground">No items</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {order.lineItems.map((item, index) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm"
+                    className="p-3 rounded-md bg-muted/50"
                     data-testid={`item-row-${index}`}
                   >
-                    <div className="flex-1">
-                      <p className="font-medium">{item.itemName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Qty: {item.quantity} × {formatNumber(item.priceKwd, 3)} KWD
-                      </p>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex-1">
+                        <p className="font-medium">{item.itemName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Qty: {item.quantity} × {formatNumber(item.priceKwd, 3)} KWD
+                        </p>
+                      </div>
+                      <div className="text-right font-mono">
+                        <p>{formatNumber(item.totalKwd, 3)} KWD</p>
+                      </div>
                     </div>
-                    <div className="text-right font-mono">
-                      <p>{formatNumber(item.totalKwd, 3)} KWD</p>
-                    </div>
+                    {item.imeiNumbers && item.imeiNumbers.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-border">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                          <Smartphone className="h-3 w-3" />
+                          <span>IMEI Numbers ({item.imeiNumbers.length})</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {item.imeiNumbers.map((imei, imeiIndex) => (
+                            <Badge 
+                              key={imeiIndex} 
+                              variant="secondary" 
+                              className="text-xs font-mono"
+                              data-testid={`imei-badge-${index}-${imeiIndex}`}
+                            >
+                              {imei}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -92,24 +115,11 @@ export function SalesOrderDetail({
 
           <Separator />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 rounded-md bg-muted/50">
-              <p className="text-xs text-muted-foreground mb-1">Total (KWD)</p>
-              <p className="text-lg font-semibold font-mono" data-testid="text-so-total-kwd">
-                {formatNumber(order.totalKwd, 3)}
-              </p>
-            </div>
-            <div className="p-3 rounded-md bg-muted/50">
-              <p className="text-xs text-muted-foreground mb-1">
-                Total ({order.fxCurrency || "FX"})
-              </p>
-              <p className="text-lg font-semibold font-mono" data-testid="text-so-total-fx">
-                {formatNumber(order.totalFx, 2)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Rate: {order.fxRate ? formatNumber(order.fxRate, 4) : "—"}
-              </p>
-            </div>
+          <div className="p-3 rounded-md bg-muted/50">
+            <p className="text-xs text-muted-foreground mb-1">Total (KWD)</p>
+            <p className="text-lg font-semibold font-mono" data-testid="text-so-total-kwd">
+              {formatNumber(order.totalKwd, 3)}
+            </p>
           </div>
 
           {order.deliveryDate && (

@@ -88,17 +88,14 @@ export function SalesReportingSection({
 
   const kpis = useMemo(() => {
     let totalKwd = 0;
-    let totalFx = 0;
 
     filteredOrders.forEach(order => {
       totalKwd += parseFloat(order.totalKwd || "0");
-      totalFx += parseFloat(order.totalFx || "0");
     });
 
     return {
       count: filteredOrders.length,
       totalKwd: totalKwd.toFixed(3),
-      totalFx: totalFx.toFixed(2),
     };
   }, [filteredOrders]);
 
@@ -201,7 +198,7 @@ export function SalesReportingSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 rounded-md bg-muted/50">
             <p className="text-xs text-muted-foreground mb-1">Total Invoices</p>
             <p className="text-2xl font-semibold" data-testid="text-sales-kpi-count">{kpis.count}</p>
@@ -209,10 +206,6 @@ export function SalesReportingSection({
           <div className="p-4 rounded-md bg-muted/50">
             <p className="text-xs text-muted-foreground mb-1">Total Revenue (KWD)</p>
             <p className="text-2xl font-semibold font-mono" data-testid="text-sales-kpi-kwd">{kpis.totalKwd}</p>
-          </div>
-          <div className="p-4 rounded-md bg-muted/50">
-            <p className="text-xs text-muted-foreground mb-1">Total Revenue (FX)</p>
-            <p className="text-2xl font-semibold font-mono" data-testid="text-sales-kpi-fx">{kpis.totalFx}</p>
           </div>
         </div>
 
@@ -275,11 +268,6 @@ export function SalesReportingSection({
                       <p className="font-mono text-sm" data-testid={`text-sales-order-kwd-${order.id}`}>
                         {formatNumber(order.totalKwd, 3)} KWD
                       </p>
-                      {order.totalFx && (
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {formatNumber(order.totalFx, 2)} {order.fxCurrency}
-                        </p>
-                      )}
                     </div>
                     <div className="flex gap-1 no-print">
                       <Button

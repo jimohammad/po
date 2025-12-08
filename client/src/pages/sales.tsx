@@ -163,9 +163,6 @@ export default function SalesPage() {
         invoiceNumber: formData.invoiceNumber || null,
         customerId: formData.customerId,
         totalKwd: formData.totalKwd,
-        fxCurrency: formData.fxCurrency,
-        fxRate: formData.fxRate || null,
-        totalFx: formData.totalFx || null,
         deliveryDate: formData.deliveryDate || null,
         invoiceFilePath,
         deliveryNoteFilePath,
@@ -176,8 +173,8 @@ export default function SalesPage() {
             itemName: item.itemName,
             quantity: item.quantity,
             priceKwd: item.priceKwd || null,
-            fxPrice: item.fxPrice || null,
             totalKwd: item.totalKwd,
+            imeiNumbers: item.imeiNumbers,
           })),
       };
 
