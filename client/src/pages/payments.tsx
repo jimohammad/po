@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -38,9 +39,12 @@ import {
   Eye,
   Calendar,
   User,
+  Building2,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from "lucide-react";
-import type { PaymentWithCustomer, Customer, PaymentType } from "@shared/schema";
-import { PAYMENT_TYPES } from "@shared/schema";
+import type { PaymentWithDetails, Customer, Supplier, PaymentType, PaymentDirection } from "@shared/schema";
+import { PAYMENT_TYPES, PAYMENT_DIRECTIONS } from "@shared/schema";
 
 export default function PaymentsPage() {
   const { toast } = useToast();
@@ -50,17 +54,20 @@ export default function PaymentsPage() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
-  const [selectedPayment, setSelectedPayment] = useState<PaymentWithCustomer | null>(null);
-  const [paymentToDelete, setPaymentToDelete] = useState<PaymentWithCustomer | null>(null);
+  const [directionFilter, setDirectionFilter] = useState<string>("all");
+  const [selectedPayment, setSelectedPayment] = useState<PaymentWithDetails | null>(null);
+  const [paymentToDelete, setPaymentToDelete] = useState<PaymentWithDetails | null>(null);
   
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [direction, setDirection] = useState<PaymentDirection>("IN");
   const [customerId, setCustomerId] = useState("");
+  const [supplierId, setSupplierId] = useState("");
   const [paymentType, setPaymentType] = useState<PaymentType>("Cash");
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
 
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery<PaymentWithCustomer[]>({
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery<PaymentWithDetails[]>({
     queryKey: ["/api/payments"],
   });
 
@@ -68,10 +75,16 @@ export default function PaymentsPage() {
     queryKey: ["/api/customers"],
   });
 
+  const { data: suppliers = [] } = useQuery<Supplier[]>({
+    queryKey: ["/api/suppliers"],
+  });
+
   const createPaymentMutation = useMutation({
     mutationFn: async (data: {
       paymentDate: string;
+      direction: string;
       customerId: number | null;
+      supplierId: number | null;
       paymentType: string;
       amount: string;
       reference: string | null;
@@ -106,7 +119,9 @@ export default function PaymentsPage() {
 
   const resetForm = () => {
     setPaymentDate(new Date().toISOString().split("T")[0]);
+    setDirection("IN");
     setCustomerId("");
+    setSupplierId("");
     setPaymentType("Cash");
     setAmount("");
     setReference("");
@@ -123,7 +138,9 @@ export default function PaymentsPage() {
 
     createPaymentMutation.mutate({
       paymentDate,
-      customerId: customerId ? parseInt(customerId) : null,
+      direction,
+      customerId: direction === "IN" && customerId ? parseInt(customerId) : null,
+      supplierId: direction === "OUT" && supplierId ? parseInt(supplierId) : null,
       paymentType,
       amount,
       reference: reference || null,
@@ -132,14 +149,19 @@ export default function PaymentsPage() {
   };
 
   const filteredPayments = payments.filter((payment) => {
+    const partyName = payment.direction === "IN" 
+      ? payment.customer?.name 
+      : payment.supplier?.name;
+    
     const matchesSearch = 
-      payment.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      partyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.paymentType.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesType = paymentTypeFilter === "all" || payment.paymentType === paymentTypeFilter;
+    const matchesDirection = directionFilter === "all" || payment.direction === directionFilter;
     
-    return matchesSearch && matchesType;
+    return matchesSearch && matchesType && matchesDirection;
   });
 
   const formatDate = (dateStr: string) => {
@@ -167,7 +189,30 @@ export default function PaymentsPage() {
     }
   };
 
-  const totalPayments = filteredPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+  const getDirectionBadge = (dir: string) => {
+    if (dir === "IN") {
+      return (
+        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+          <ArrowDownLeft className="h-3 w-3 mr-1" />
+          IN
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+        <ArrowUpRight className="h-3 w-3 mr-1" />
+        OUT
+      </Badge>
+    );
+  };
+
+  const totalIn = filteredPayments
+    .filter(p => p.direction === "IN")
+    .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+  
+  const totalOut = filteredPayments
+    .filter(p => p.direction === "OUT")
+    .reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
   if (paymentsLoading) {
     return (
@@ -185,7 +230,7 @@ export default function PaymentsPage() {
             Payment Register
           </h2>
           <p className="text-sm text-muted-foreground">
-            Record and track customer payments
+            Record and track payments (received and paid)
           </p>
         </div>
         <Button onClick={() => setShowForm(true)} data-testid="button-new-payment">
@@ -200,15 +245,25 @@ export default function PaymentsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by customer, reference..."
+                placeholder="Search by customer/supplier, reference..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
                 data-testid="input-search-payments"
               />
             </div>
+            <Select value={directionFilter} onValueChange={setDirectionFilter}>
+              <SelectTrigger className="w-[140px]" data-testid="select-filter-direction">
+                <SelectValue placeholder="Direction" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Directions</SelectItem>
+                <SelectItem value="IN">Payment IN</SelectItem>
+                <SelectItem value="OUT">Payment OUT</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
-              <SelectTrigger className="w-[180px]" data-testid="select-filter-payment-type">
+              <SelectTrigger className="w-[140px]" data-testid="select-filter-payment-type">
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
               <SelectContent>
@@ -236,7 +291,8 @@ export default function PaymentsPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-2 font-medium">Date</th>
-                      <th className="text-left py-3 px-2 font-medium">Customer</th>
+                      <th className="text-left py-3 px-2 font-medium">Direction</th>
+                      <th className="text-left py-3 px-2 font-medium">Customer/Supplier</th>
                       <th className="text-left py-3 px-2 font-medium">Type</th>
                       <th className="text-right py-3 px-2 font-medium">Amount (KWD)</th>
                       <th className="text-left py-3 px-2 font-medium">Reference</th>
@@ -256,7 +312,22 @@ export default function PaymentsPage() {
                           </span>
                         </td>
                         <td className="py-3 px-2">
-                          {payment.customer?.name || "-"}
+                          {getDirectionBadge(payment.direction)}
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="flex items-center gap-2">
+                            {payment.direction === "IN" ? (
+                              <>
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                {payment.customer?.name || "-"}
+                              </>
+                            ) : (
+                              <>
+                                <Building2 className="h-4 w-4 text-muted-foreground" />
+                                {payment.supplier?.name || "-"}
+                              </>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-2">
                           <Badge 
@@ -299,13 +370,29 @@ export default function PaymentsPage() {
                   </tbody>
                   <tfoot>
                     <tr className="bg-muted/50">
-                      <td colSpan={3} className="py-3 px-2 font-medium">
-                        Total ({filteredPayments.length} payments)
+                      <td colSpan={4} className="py-3 px-2 font-medium">
+                        Summary ({filteredPayments.length} payments)
                       </td>
-                      <td className="py-3 px-2 text-right font-mono font-bold">
-                        {totalPayments.toFixed(3)} KWD
+                      <td colSpan={3} className="py-3 px-2">
+                        <div className="flex flex-wrap items-center justify-end gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <ArrowDownLeft className="h-4 w-4 text-emerald-600" />
+                            <span className="text-muted-foreground">IN:</span>
+                            <span className="font-mono font-bold text-emerald-600">{totalIn.toFixed(3)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <ArrowUpRight className="h-4 w-4 text-red-600" />
+                            <span className="text-muted-foreground">OUT:</span>
+                            <span className="font-mono font-bold text-red-600">{totalOut.toFixed(3)}</span>
+                          </div>
+                          <div className="border-l pl-4 flex items-center gap-2">
+                            <span className="text-muted-foreground">Net:</span>
+                            <span className={`font-mono font-bold ${totalIn - totalOut >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {(totalIn - totalOut).toFixed(3)} KWD
+                            </span>
+                          </div>
+                        </div>
                       </td>
-                      <td colSpan={2}></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -324,6 +411,26 @@ export default function PaymentsPage() {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex items-center justify-center p-4 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-4">
+                <span className={`font-medium ${direction === "IN" ? "text-emerald-600" : "text-muted-foreground"}`}>
+                  Payment IN
+                </span>
+                <Switch
+                  checked={direction === "OUT"}
+                  onCheckedChange={(checked) => {
+                    setDirection(checked ? "OUT" : "IN");
+                    setCustomerId("");
+                    setSupplierId("");
+                  }}
+                  data-testid="switch-payment-direction"
+                />
+                <span className={`font-medium ${direction === "OUT" ? "text-red-600" : "text-muted-foreground"}`}>
+                  Payment OUT
+                </span>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="paymentDate">Payment Date</Label>
@@ -353,22 +460,47 @@ export default function PaymentsPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="customer">Customer</Label>
-              <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger data-testid="select-payment-customer">
-                  <SelectValue placeholder="Select customer (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- No customer --</SelectItem>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id.toString()}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {direction === "IN" ? (
+              <div className="space-y-2">
+                <Label htmlFor="customer" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Customer (Received from)
+                </Label>
+                <Select value={customerId} onValueChange={setCustomerId}>
+                  <SelectTrigger data-testid="select-payment-customer">
+                    <SelectValue placeholder="Select customer (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">-- No customer --</SelectItem>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id.toString()}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="supplier" className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Supplier (Paid to)
+                </Label>
+                <Select value={supplierId} onValueChange={setSupplierId}>
+                  <SelectTrigger data-testid="select-payment-supplier">
+                    <SelectValue placeholder="Select supplier (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">-- No supplier --</SelectItem>
+                    {suppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="amount">Amount (KWD)</Label>
@@ -449,6 +581,31 @@ export default function PaymentsPage() {
                   </p>
                 </div>
                 <div>
+                  <p className="text-xs text-muted-foreground">Direction</p>
+                  <div className="mt-1">{getDirectionBadge(selectedPayment.direction)}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedPayment.direction === "IN" ? "Customer" : "Supplier"}
+                  </p>
+                  <p className="font-medium flex items-center gap-2">
+                    {selectedPayment.direction === "IN" ? (
+                      <>
+                        <User className="h-4 w-4" />
+                        {selectedPayment.customer?.name || "Not specified"}
+                      </>
+                    ) : (
+                      <>
+                        <Building2 className="h-4 w-4" />
+                        {selectedPayment.supplier?.name || "Not specified"}
+                      </>
+                    )}
+                  </p>
+                </div>
+                <div>
                   <p className="text-xs text-muted-foreground">Type</p>
                   <Badge className={`mt-1 ${getPaymentTypeColor(selectedPayment.paymentType)}`}>
                     {selectedPayment.paymentType}
@@ -457,18 +614,10 @@ export default function PaymentsPage() {
               </div>
               
               <div>
-                <p className="text-xs text-muted-foreground">Customer</p>
-                <p className="font-medium flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {selectedPayment.customer?.name || "No customer specified"}
-                </p>
-              </div>
-              
-              <div>
                 <p className="text-xs text-muted-foreground">Amount</p>
-                <p className="text-2xl font-bold font-mono flex items-center gap-2">
+                <p className={`text-2xl font-bold font-mono flex items-center gap-2 ${selectedPayment.direction === "IN" ? "text-emerald-600" : "text-red-600"}`}>
                   <Banknote className="h-6 w-6" />
-                  {parseFloat(selectedPayment.amount).toFixed(3)} KWD
+                  {selectedPayment.direction === "OUT" ? "-" : "+"}{parseFloat(selectedPayment.amount).toFixed(3)} KWD
                 </p>
               </div>
               
@@ -498,9 +647,13 @@ export default function PaymentsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Payment?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this payment of{" "}
+              Are you sure you want to delete this {paymentToDelete?.direction === "IN" ? "incoming" : "outgoing"} payment of{" "}
               <strong>{paymentToDelete ? parseFloat(paymentToDelete.amount).toFixed(3) : 0} KWD</strong>
-              {paymentToDelete?.customer ? ` from ${paymentToDelete.customer.name}` : ""}?
+              {paymentToDelete?.direction === "IN" && paymentToDelete?.customer 
+                ? ` from ${paymentToDelete.customer.name}` 
+                : paymentToDelete?.direction === "OUT" && paymentToDelete?.supplier
+                  ? ` to ${paymentToDelete.supplier.name}`
+                  : ""}?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
