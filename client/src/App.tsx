@@ -11,9 +11,11 @@ import PaymentsPage from "@/pages/payments";
 import ItemMaster from "@/pages/item-master";
 import SupplierMaster from "@/pages/supplier-master";
 import ReportsPage from "@/pages/reports";
+import ExpensesPage from "@/pages/expenses";
+import AccountsPage from "@/pages/accounts";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
-import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Truck, CreditCard, FileBarChart } from "lucide-react";
+import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Truck, CreditCard, FileBarChart, Receipt, Wallet } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +56,18 @@ function AppSidebar() {
       url: "/payments",
       icon: CreditCard,
       description: "Record customer payments",
+    },
+    {
+      title: "Expenses",
+      url: "/expenses",
+      icon: Receipt,
+      description: "Track expenses",
+    },
+    {
+      title: "Accounts",
+      url: "/accounts",
+      icon: Wallet,
+      description: "Manage accounts",
     },
     {
       title: "Item Master",
@@ -157,6 +171,10 @@ function AuthenticatedLayout() {
         return "Sales Invoice Register";
       case "/payments":
         return "Payment Register";
+      case "/expenses":
+        return "Expense Tracker";
+      case "/accounts":
+        return "Account Management";
       case "/items":
         return "Item Master";
       case "/suppliers":
@@ -202,6 +220,8 @@ function AuthenticatedLayout() {
               <Route path="/" component={Home} />
               <Route path="/sales" component={SalesPage} />
               <Route path="/payments" component={PaymentsPage} />
+              <Route path="/expenses" component={ExpensesPage} />
+              <Route path="/accounts" component={AccountsPage} />
               <Route path="/items" component={ItemMaster} />
               <Route path="/suppliers" component={SupplierMaster} />
               <Route path="/reports" component={ReportsPage} />
