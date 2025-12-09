@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSupplierSchema, insertItemSchema, insertPurchaseOrderSchema, insertLineItemSchema, insertCustomerSchema, insertSalesOrderSchema, insertSalesLineItemSchema, insertPaymentSchema, PAYMENT_TYPES, PAYMENT_DIRECTIONS, insertExpenseCategorySchema, insertExpenseSchema, insertAccountTransferSchema } from "@shared/schema";
+import { insertSupplierSchema, insertItemSchema, insertPurchaseOrderSchema, insertLineItemSchema, insertCustomerSchema, insertSalesOrderSchema, insertSalesLineItemSchema, insertPaymentSchema, PAYMENT_TYPES, PAYMENT_DIRECTIONS, insertExpenseCategorySchema, insertExpenseSchema, insertAccountTransferSchema, insertReturnSchema, insertReturnLineItemSchema } from "@shared/schema";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { setupAuth, isAuthenticated, isAdmin } from "./replitAuth";
 
@@ -784,6 +784,82 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting expense:", error);
       res.status(500).json({ error: "Failed to delete expense" });
+    }
+  });
+
+  // ==================== RETURNS MODULE ====================
+
+  app.get("/api/returns", isAuthenticated, async (req, res) => {
+    try {
+      const returns = await storage.getReturns();
+      res.json(returns);
+    } catch (error) {
+      console.error("Error fetching returns:", error);
+      res.status(500).json({ error: "Failed to fetch returns" });
+    }
+  });
+
+  app.get("/api/returns/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid return ID" });
+      }
+      const returnRecord = await storage.getReturn(id);
+      if (!returnRecord) {
+        return res.status(404).json({ error: "Return not found" });
+      }
+      res.json(returnRecord);
+    } catch (error) {
+      console.error("Error fetching return:", error);
+      res.status(500).json({ error: "Failed to fetch return" });
+    }
+  });
+
+  app.post("/api/returns", isAuthenticated, async (req: any, res) => {
+    try {
+      const { lineItems, ...returnData } = req.body;
+      
+      const returnParsed = insertReturnSchema.safeParse({
+        ...returnData,
+        createdBy: req.user?.claims?.sub,
+      });
+      
+      if (!returnParsed.success) {
+        console.error("Return validation error:", returnParsed.error.format());
+        return res.status(400).json({ error: returnParsed.error.message });
+      }
+      
+      const parsedLineItems = (lineItems || []).map((item: any) => ({
+        itemName: item.itemName,
+        quantity: item.quantity || 1,
+        priceKwd: item.priceKwd,
+        totalKwd: item.totalKwd,
+        imeiNumbers: item.imeiNumbers || [],
+      }));
+      
+      const newReturn = await storage.createReturn(returnParsed.data, parsedLineItems);
+      res.status(201).json(newReturn);
+    } catch (error) {
+      console.error("Error creating return:", error);
+      res.status(500).json({ error: "Failed to create return" });
+    }
+  });
+
+  app.delete("/api/returns/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid return ID" });
+      }
+      const deleted = await storage.deleteReturn(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Return not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting return:", error);
+      res.status(500).json({ error: "Failed to delete return" });
     }
   });
 
