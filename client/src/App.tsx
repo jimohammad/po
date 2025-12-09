@@ -1,4 +1,5 @@
 import { Switch, Route, useLocation, Link } from "wouter";
+import { Suspense, lazy } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,29 +8,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BranchProvider, useBranch } from "@/contexts/BranchContext";
 import { BranchSelector } from "@/components/BranchSelector";
-import Home from "@/pages/home";
-import DashboardPage from "@/pages/dashboard";
-import SalesPage from "@/pages/sales";
-import PaymentsPage from "@/pages/payments";
-import ReturnsPage from "@/pages/returns";
-import ItemMaster from "@/pages/item-master";
-import ItemBulkEdit from "@/pages/item-bulk-edit";
-import PartyMaster from "@/pages/party-master";
-import ReportsPage from "@/pages/reports";
-import PartyStatementPage from "@/pages/party-statement";
-import AccountStatementPage from "@/pages/account-statement";
-import ItemReportPage from "@/pages/item-report";
-import UserRolesPage from "@/pages/user-roles";
-import ExpensesPage from "@/pages/expenses";
-import AccountsPage from "@/pages/accounts";
-import DiscountPage from "@/pages/discount";
-import ExportImeiPage from "@/pages/export-imei";
-import CustomerStatementPage from "@/pages/customer-statement";
-import StockTransfersPage from "@/pages/stock-transfers";
-import BranchesPage from "@/pages/branches";
-import Landing from "@/pages/landing";
-import PublicStatementPage from "@/pages/public-statement";
-import NotFound from "@/pages/not-found";
 import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent, LayoutDashboard, ArrowLeftRight, Building2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -56,6 +34,38 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+
+const Home = lazy(() => import("@/pages/home"));
+const DashboardPage = lazy(() => import("@/pages/dashboard"));
+const SalesPage = lazy(() => import("@/pages/sales"));
+const PaymentsPage = lazy(() => import("@/pages/payments"));
+const ReturnsPage = lazy(() => import("@/pages/returns"));
+const ItemMaster = lazy(() => import("@/pages/item-master"));
+const ItemBulkEdit = lazy(() => import("@/pages/item-bulk-edit"));
+const PartyMaster = lazy(() => import("@/pages/party-master"));
+const ReportsPage = lazy(() => import("@/pages/reports"));
+const PartyStatementPage = lazy(() => import("@/pages/party-statement"));
+const AccountStatementPage = lazy(() => import("@/pages/account-statement"));
+const ItemReportPage = lazy(() => import("@/pages/item-report"));
+const UserRolesPage = lazy(() => import("@/pages/user-roles"));
+const ExpensesPage = lazy(() => import("@/pages/expenses"));
+const AccountsPage = lazy(() => import("@/pages/accounts"));
+const DiscountPage = lazy(() => import("@/pages/discount"));
+const ExportImeiPage = lazy(() => import("@/pages/export-imei"));
+const CustomerStatementPage = lazy(() => import("@/pages/customer-statement"));
+const StockTransfersPage = lazy(() => import("@/pages/stock-transfers"));
+const BranchesPage = lazy(() => import("@/pages/branches"));
+const Landing = lazy(() => import("@/pages/landing"));
+const PublicStatementPage = lazy(() => import("@/pages/public-statement"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
 
 interface MyPermissions {
   role: string;
@@ -419,29 +429,31 @@ function AuthenticatedLayout() {
             </div>
           </header>
           <main className="flex-1 p-4 md:p-6 overflow-auto">
-            <Switch>
-              <Route path="/" component={DashboardPage} />
-              <Route path="/purchases" component={Home} />
-              <Route path="/sales" component={SalesPage} />
-              <Route path="/payments" component={PaymentsPage} />
-              <Route path="/returns" component={ReturnsPage} />
-              <Route path="/expenses" component={ExpensesPage} />
-              <Route path="/accounts" component={AccountsPage} />
-              <Route path="/discount" component={DiscountPage} />
-              <Route path="/items" component={ItemMaster} />
-              <Route path="/items/bulk-edit" component={ItemBulkEdit} />
-              <Route path="/parties" component={PartyMaster} />
-              <Route path="/reports" component={ReportsPage} />
-              <Route path="/reports/party-statement" component={PartyStatementPage} />
-              <Route path="/reports/account-statement" component={AccountStatementPage} />
-              <Route path="/reports/item-report" component={ItemReportPage} />
-              <Route path="/reports/export-imei" component={ExportImeiPage} />
-              <Route path="/reports/customer-statement" component={CustomerStatementPage} />
-              <Route path="/settings/user-roles" component={UserRolesPage} />
-              <Route path="/settings/branches" component={BranchesPage} />
-              <Route path="/stock-transfers" component={StockTransfersPage} />
-              <Route component={NotFound} />
-            </Switch>
+            <Suspense fallback={<PageLoader />}>
+              <Switch>
+                <Route path="/" component={DashboardPage} />
+                <Route path="/purchases" component={Home} />
+                <Route path="/sales" component={SalesPage} />
+                <Route path="/payments" component={PaymentsPage} />
+                <Route path="/returns" component={ReturnsPage} />
+                <Route path="/expenses" component={ExpensesPage} />
+                <Route path="/accounts" component={AccountsPage} />
+                <Route path="/discount" component={DiscountPage} />
+                <Route path="/items" component={ItemMaster} />
+                <Route path="/items/bulk-edit" component={ItemBulkEdit} />
+                <Route path="/parties" component={PartyMaster} />
+                <Route path="/reports" component={ReportsPage} />
+                <Route path="/reports/party-statement" component={PartyStatementPage} />
+                <Route path="/reports/account-statement" component={AccountStatementPage} />
+                <Route path="/reports/item-report" component={ItemReportPage} />
+                <Route path="/reports/export-imei" component={ExportImeiPage} />
+                <Route path="/reports/customer-statement" component={CustomerStatementPage} />
+                <Route path="/settings/user-roles" component={UserRolesPage} />
+                <Route path="/settings/branches" component={BranchesPage} />
+                <Route path="/stock-transfers" component={StockTransfersPage} />
+                <Route component={NotFound} />
+              </Switch>
+            </Suspense>
           </main>
         </div>
       </div>
@@ -464,7 +476,11 @@ function Router() {
   }
 
   if (!isAuthenticated) {
-    return <Landing />;
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Landing />
+      </Suspense>
+    );
   }
 
   return (
@@ -479,10 +495,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Switch>
-          <Route path="/statement/:customerId" component={PublicStatementPage} />
-          <Route component={Router} />
-        </Switch>
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
+            <Route path="/statement/:customerId" component={PublicStatementPage} />
+            <Route component={Router} />
+          </Switch>
+        </Suspense>
       </TooltipProvider>
     </QueryClientProvider>
   );
