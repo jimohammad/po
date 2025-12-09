@@ -9,13 +9,14 @@ import Home from "@/pages/home";
 import SalesPage from "@/pages/sales";
 import PaymentsPage from "@/pages/payments";
 import ItemMaster from "@/pages/item-master";
+import ItemBulkEdit from "@/pages/item-bulk-edit";
 import SupplierMaster from "@/pages/supplier-master";
 import ReportsPage from "@/pages/reports";
 import ExpensesPage from "@/pages/expenses";
 import AccountsPage from "@/pages/accounts";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
-import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Truck, CreditCard, FileBarChart, Receipt, Wallet } from "lucide-react";
+import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Truck, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,62 +31,65 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 function AppSidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
   
-  const menuItems = [
+  const mainMenuItems = [
     {
       title: "Purchases",
       url: "/",
       icon: ShoppingCart,
-      description: "Manage purchase orders",
     },
     {
       title: "Sales",
       url: "/sales",
       icon: TrendingUp,
-      description: "Manage sales invoices",
     },
     {
       title: "Payments",
       url: "/payments",
       icon: CreditCard,
-      description: "Record customer payments",
     },
     {
       title: "Expenses",
       url: "/expenses",
       icon: Receipt,
-      description: "Track expenses",
     },
     {
       title: "Accounts",
       url: "/accounts",
       icon: Wallet,
-      description: "Manage accounts",
     },
-    {
-      title: "Item Master",
-      url: "/items",
-      icon: Package,
-      description: "Manage items",
-    },
+  ];
+
+  const itemMasterSubItems = [
+    { title: "View Items", url: "/items" },
+    { title: "Bulk Edit", url: "/items/bulk-edit" },
+  ];
+
+  const bottomMenuItems = [
     {
       title: "Supplier Master",
       url: "/suppliers",
       icon: Truck,
-      description: "Manage suppliers",
     },
     {
       title: "Reports",
       url: "/reports",
       icon: FileBarChart,
-      description: "View reports",
     },
   ];
 
@@ -118,13 +122,56 @@ function AppSidebar() {
           <SidebarGroupLabel>Modules</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {mainMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 
                     isActive={location === item.url}
                   >
-                    <Link href={item.url} data-testid={`link-${item.title.toLowerCase()}`}>
+                    <Link href={item.url} data-testid={`link-${item.title.toLowerCase().replace(" ", "-")}`}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+
+              <Collapsible defaultOpen={location.startsWith("/items")} className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={location.startsWith("/items")}>
+                      <Package className="h-4 w-4" />
+                      <span>Item Master</span>
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {itemMasterSubItems.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.url}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === subItem.url}
+                          >
+                            <Link href={subItem.url} data-testid={`link-${subItem.title.toLowerCase().replace(" ", "-")}`}>
+                              {subItem.title === "Bulk Edit" && <Edit3 className="h-3 w-3" />}
+                              {subItem.title}
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
+              {bottomMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location === item.url}
+                  >
+                    <Link href={item.url} data-testid={`link-${item.title.toLowerCase().replace(" ", "-")}`}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -177,6 +224,8 @@ function AuthenticatedLayout() {
         return "Account Management";
       case "/items":
         return "Item Master";
+      case "/items/bulk-edit":
+        return "Item Master - Bulk Edit";
       case "/suppliers":
         return "Supplier Master";
       case "/reports":
@@ -223,6 +272,7 @@ function AuthenticatedLayout() {
               <Route path="/expenses" component={ExpensesPage} />
               <Route path="/accounts" component={AccountsPage} />
               <Route path="/items" component={ItemMaster} />
+              <Route path="/items/bulk-edit" component={ItemBulkEdit} />
               <Route path="/suppliers" component={SupplierMaster} />
               <Route path="/reports" component={ReportsPage} />
               <Route component={NotFound} />
