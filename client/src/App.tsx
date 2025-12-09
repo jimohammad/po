@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { BranchProvider, useBranch } from "@/contexts/BranchContext";
+import { BranchSelector } from "@/components/BranchSelector";
 import Home from "@/pages/home";
 import DashboardPage from "@/pages/dashboard";
 import SalesPage from "@/pages/sales";
@@ -23,10 +25,12 @@ import AccountsPage from "@/pages/accounts";
 import DiscountPage from "@/pages/discount";
 import ExportImeiPage from "@/pages/export-imei";
 import CustomerStatementPage from "@/pages/customer-statement";
+import StockTransfersPage from "@/pages/stock-transfers";
+import BranchesPage from "@/pages/branches";
 import Landing from "@/pages/landing";
 import PublicStatementPage from "@/pages/public-statement";
 import NotFound from "@/pages/not-found";
-import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent, LayoutDashboard } from "lucide-react";
+import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent, LayoutDashboard, ArrowLeftRight, Building2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +124,12 @@ function AppSidebar() {
       icon: Percent,
       module: "discount",
     },
+    {
+      title: "Stock Transfers",
+      url: "/stock-transfers",
+      icon: ArrowLeftRight,
+      module: "purchases",
+    },
   ].filter(item => canAccess(item.module));
 
   const itemMasterSubItems = [
@@ -138,6 +148,7 @@ function AppSidebar() {
 
   const settingsSubItems = [
     { title: "User Roles", url: "/settings/user-roles" },
+    { title: "Branches", url: "/settings/branches" },
   ];
 
   const handleLogout = () => {
@@ -321,6 +332,16 @@ function AppSidebar() {
   );
 }
 
+function BranchSelectorHeader() {
+  const { currentBranchId, setCurrentBranchId } = useBranch();
+  return (
+    <BranchSelector
+      selectedBranchId={currentBranchId}
+      onBranchChange={setCurrentBranchId}
+    />
+  );
+}
+
 function AuthenticatedLayout() {
   const [location] = useLocation();
   
@@ -358,6 +379,10 @@ function AuthenticatedLayout() {
         return "Export IMEI";
       case "/settings/user-roles":
         return "User Roles & Permissions";
+      case "/settings/branches":
+        return "Branch Management";
+      case "/stock-transfers":
+        return "Stock Transfers";
       default:
         return "";
     }
@@ -382,7 +407,8 @@ function AuthenticatedLayout() {
                 </h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <BranchSelectorHeader />
               <Badge variant="secondary" className="text-xs font-normal">
                 Database
               </Badge>
@@ -412,6 +438,8 @@ function AuthenticatedLayout() {
               <Route path="/reports/export-imei" component={ExportImeiPage} />
               <Route path="/reports/customer-statement" component={CustomerStatementPage} />
               <Route path="/settings/user-roles" component={UserRolesPage} />
+              <Route path="/settings/branches" component={BranchesPage} />
+              <Route path="/stock-transfers" component={StockTransfersPage} />
               <Route component={NotFound} />
             </Switch>
           </main>
@@ -439,7 +467,11 @@ function Router() {
     return <Landing />;
   }
 
-  return <AuthenticatedLayout />;
+  return (
+    <BranchProvider>
+      <AuthenticatedLayout />
+    </BranchProvider>
+  );
 }
 
 function App() {
