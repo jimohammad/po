@@ -166,6 +166,10 @@ export interface IStorage {
 
   // Export IMEI
   getExportImei(filters: { customerId?: number; itemName?: string; invoiceNumber?: string; dateFrom?: string; dateTo?: string }): Promise<{ imei: string; itemName: string; customerName: string; invoiceNumber: string; saleDate: string }[]>;
+
+  // Dashboard
+  getDashboardStats(): Promise<{ totalStock: number; totalCash: number; monthlySales: number; monthlyPurchases: number }>;
+  globalSearch(query: string): Promise<{ type: string; id: number; title: string; subtitle: string; url: string }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1284,6 +1288,183 @@ export class DatabaseStorage implements IStorage {
     }
 
     return flattened;
+  }
+
+  // ==================== DASHBOARD ====================
+
+  async getDashboardStats(): Promise<{ totalStock: number; totalCash: number; monthlySales: number; monthlyPurchases: number }> {
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+
+    // Get total stock balance (purchased - sold + sale_returns - purchase_returns)
+    const stockResult = await db.execute(sql`
+      WITH purchased AS (
+        SELECT item_name, COALESCE(SUM(quantity), 0) as qty
+        FROM purchase_order_line_items
+        GROUP BY item_name
+      ),
+      sold AS (
+        SELECT item_name, COALESCE(SUM(quantity), 0) as qty
+        FROM sales_order_line_items
+        GROUP BY item_name
+      ),
+      sale_returns AS (
+        SELECT rl.item_name, COALESCE(SUM(rl.quantity), 0) as qty
+        FROM return_line_items rl
+        JOIN returns r ON rl.return_id = r.id
+        WHERE r.return_type = 'sale'
+        GROUP BY rl.item_name
+      ),
+      purchase_returns AS (
+        SELECT rl.item_name, COALESCE(SUM(rl.quantity), 0) as qty
+        FROM return_line_items rl
+        JOIN returns r ON rl.return_id = r.id
+        WHERE r.return_type = 'purchase'
+        GROUP BY rl.item_name
+      ),
+      all_items AS (
+        SELECT item_name FROM purchased
+        UNION SELECT item_name FROM sold
+        UNION SELECT item_name FROM sale_returns
+        UNION SELECT item_name FROM purchase_returns
+      )
+      SELECT COALESCE(SUM(
+        COALESCE(p.qty, 0) - COALESCE(s.qty, 0) + COALESCE(sr.qty, 0) - COALESCE(pr.qty, 0)
+      ), 0)::integer as total
+      FROM all_items ai
+      LEFT JOIN purchased p ON ai.item_name = p.item_name
+      LEFT JOIN sold s ON ai.item_name = s.item_name
+      LEFT JOIN sale_returns sr ON ai.item_name = sr.item_name
+      LEFT JOIN purchase_returns pr ON ai.item_name = pr.item_name
+    `);
+    const totalStock = (stockResult.rows[0] as { total: number })?.total || 0;
+
+    // Get total cash across all accounts
+    const cashResult = await db.execute(sql`
+      WITH payment_totals AS (
+        SELECT 
+          payment_type,
+          SUM(CASE WHEN direction = 'IN' THEN CAST(amount AS DECIMAL) ELSE -CAST(amount AS DECIMAL) END) as net
+        FROM payments
+        GROUP BY payment_type
+      ),
+      expense_totals AS (
+        SELECT 
+          a.name as account_name,
+          -SUM(CAST(e.amount AS DECIMAL)) as net
+        FROM expenses e
+        JOIN accounts a ON e.account_id = a.id
+        GROUP BY a.name
+      ),
+      transfer_totals AS (
+        SELECT 
+          from_account_id,
+          to_account_id,
+          SUM(CAST(amount AS DECIMAL)) as amount
+        FROM account_transfers
+        GROUP BY from_account_id, to_account_id
+      )
+      SELECT 
+        COALESCE(SUM(COALESCE(p.net, 0) + COALESCE(e.net, 0)), 0)::float as total
+      FROM accounts a
+      LEFT JOIN payment_totals p ON a.name = p.payment_type
+      LEFT JOIN expense_totals e ON a.name = e.account_name
+    `);
+    const totalCash = (cashResult.rows[0] as { total: number })?.total || 0;
+
+    // Get current month sales
+    const salesResult = await db.execute(sql`
+      SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+      FROM sales_orders
+      WHERE EXTRACT(MONTH FROM sale_date) = ${currentMonth}
+      AND EXTRACT(YEAR FROM sale_date) = ${currentYear}
+    `);
+    const monthlySales = (salesResult.rows[0] as { total: number })?.total || 0;
+
+    // Get current month purchases
+    const purchasesResult = await db.execute(sql`
+      SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+      FROM purchase_orders
+      WHERE EXTRACT(MONTH FROM purchase_date) = ${currentMonth}
+      AND EXTRACT(YEAR FROM purchase_date) = ${currentYear}
+    `);
+    const monthlyPurchases = (purchasesResult.rows[0] as { total: number })?.total || 0;
+
+    return { totalStock, totalCash, monthlySales, monthlyPurchases };
+  }
+
+  async globalSearch(query: string): Promise<{ type: string; id: number; title: string; subtitle: string; url: string }[]> {
+    if (!query || query.trim().length < 2) return [];
+    
+    const searchPattern = `%${query.trim()}%`;
+    const results: { type: string; id: number; title: string; subtitle: string; url: string }[] = [];
+
+    // Search customers
+    const customerResults = await db.execute(sql`
+      SELECT id, name, phone FROM customers 
+      WHERE name ILIKE ${searchPattern} OR phone ILIKE ${searchPattern}
+      LIMIT 5
+    `);
+    for (const row of customerResults.rows as { id: number; name: string; phone: string | null }[]) {
+      results.push({ type: 'Customer', id: row.id, title: row.name, subtitle: row.phone || '', url: '/parties' });
+    }
+
+    // Search suppliers
+    const supplierResults = await db.execute(sql`
+      SELECT id, name, phone FROM suppliers 
+      WHERE name ILIKE ${searchPattern} OR phone ILIKE ${searchPattern}
+      LIMIT 5
+    `);
+    for (const row of supplierResults.rows as { id: number; name: string; phone: string | null }[]) {
+      results.push({ type: 'Supplier', id: row.id, title: row.name, subtitle: row.phone || '', url: '/parties' });
+    }
+
+    // Search items
+    const itemResults = await db.execute(sql`
+      SELECT id, name FROM items 
+      WHERE name ILIKE ${searchPattern}
+      LIMIT 5
+    `);
+    for (const row of itemResults.rows as { id: number; name: string }[]) {
+      results.push({ type: 'Item', id: row.id, title: row.name, subtitle: '', url: '/items' });
+    }
+
+    // Search sales orders by invoice number
+    const salesResults = await db.execute(sql`
+      SELECT so.id, so.invoice_number, c.name as customer_name
+      FROM sales_orders so
+      LEFT JOIN customers c ON so.customer_id = c.id
+      WHERE so.invoice_number ILIKE ${searchPattern}
+      LIMIT 5
+    `);
+    for (const row of salesResults.rows as { id: number; invoice_number: string; customer_name: string | null }[]) {
+      results.push({ type: 'Sale', id: row.id, title: `Invoice: ${row.invoice_number}`, subtitle: row.customer_name || '', url: '/sales' });
+    }
+
+    // Search purchase orders by invoice number
+    const purchaseResults = await db.execute(sql`
+      SELECT po.id, po.invoice_number, s.name as supplier_name
+      FROM purchase_orders po
+      LEFT JOIN suppliers s ON po.supplier_id = s.id
+      WHERE po.invoice_number ILIKE ${searchPattern}
+      LIMIT 5
+    `);
+    for (const row of purchaseResults.rows as { id: number; invoice_number: string; supplier_name: string | null }[]) {
+      results.push({ type: 'Purchase', id: row.id, title: `Invoice: ${row.invoice_number}`, subtitle: row.supplier_name || '', url: '/' });
+    }
+
+    // Search payments by reference
+    const paymentResults = await db.execute(sql`
+      SELECT id, reference, payment_type FROM payments 
+      WHERE reference ILIKE ${searchPattern}
+      LIMIT 5
+    `);
+    for (const row of paymentResults.rows as { id: number; reference: string | null; payment_type: string }[]) {
+      results.push({ type: 'Payment', id: row.id, title: row.reference || 'Payment', subtitle: row.payment_type, url: '/payments' });
+    }
+
+    return results.slice(0, 20);
   }
 }
 

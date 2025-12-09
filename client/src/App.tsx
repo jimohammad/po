@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Home from "@/pages/home";
+import DashboardPage from "@/pages/dashboard";
 import SalesPage from "@/pages/sales";
 import PaymentsPage from "@/pages/payments";
 import ReturnsPage from "@/pages/returns";
@@ -25,7 +26,7 @@ import CustomerStatementPage from "@/pages/customer-statement";
 import Landing from "@/pages/landing";
 import PublicStatementPage from "@/pages/public-statement";
 import NotFound from "@/pages/not-found";
-import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent } from "lucide-react";
+import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent, LayoutDashboard } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,8 +73,14 @@ function AppSidebar() {
   
   const mainMenuItems = [
     {
-      title: "Purchases",
+      title: "Dashboard",
       url: "/",
+      icon: LayoutDashboard,
+      module: "dashboard",
+    },
+    {
+      title: "Purchases",
+      url: "/purchases",
       icon: ShoppingCart,
       module: "purchases",
     },
@@ -387,7 +394,8 @@ function AuthenticatedLayout() {
           </header>
           <main className="flex-1 p-4 md:p-6 overflow-auto">
             <Switch>
-              <Route path="/" component={Home} />
+              <Route path="/" component={DashboardPage} />
+              <Route path="/purchases" component={Home} />
               <Route path="/sales" component={SalesPage} />
               <Route path="/payments" component={PaymentsPage} />
               <Route path="/returns" component={ReturnsPage} />

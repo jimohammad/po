@@ -409,6 +409,7 @@ export const ROLE_TYPES = ["super_user", "admin", "user"] as const;
 export type RoleType = typeof ROLE_TYPES[number];
 
 export const MODULE_NAMES = [
+  "dashboard",
   "purchases",
   "sales", 
   "payments",
