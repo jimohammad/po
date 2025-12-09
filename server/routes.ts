@@ -573,6 +573,25 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/reports/item-sales", isAuthenticated, async (req, res) => {
+    try {
+      const { itemId, customerId, startDate, endDate } = req.query;
+      if (!itemId) {
+        return res.status(400).json({ error: "Item ID is required" });
+      }
+      const sales = await storage.getItemSales(
+        parseInt(itemId as string),
+        customerId && customerId !== "all" ? parseInt(customerId as string) : undefined,
+        startDate as string | undefined,
+        endDate as string | undefined
+      );
+      res.json(sales);
+    } catch (error) {
+      console.error("Error fetching item sales:", error);
+      res.status(500).json({ error: "Failed to fetch item sales" });
+    }
+  });
+
   app.get("/api/reports/party-statement/:partyId", isAuthenticated, async (req, res) => {
     try {
       const partyId = parseInt(req.params.partyId);

@@ -14,6 +14,8 @@ import ItemBulkEdit from "@/pages/item-bulk-edit";
 import PartyMaster from "@/pages/party-master";
 import ReportsPage from "@/pages/reports";
 import PartyStatementPage from "@/pages/party-statement";
+import AccountStatementPage from "@/pages/account-statement";
+import ItemReportPage from "@/pages/item-report";
 import ExpensesPage from "@/pages/expenses";
 import AccountsPage from "@/pages/accounts";
 import Landing from "@/pages/landing";
@@ -90,6 +92,8 @@ function AppSidebar() {
   const reportsSubItems = [
     { title: "General Reports", url: "/reports" },
     { title: "Party Statement", url: "/reports/party-statement" },
+    { title: "Account Statement", url: "/reports/account-statement" },
+    { title: "Item Report", url: "/reports/item-report" },
   ];
 
   const handleLogout = () => {
@@ -260,6 +264,10 @@ function AuthenticatedLayout() {
         return "Reports";
       case "/reports/party-statement":
         return "Party Statement";
+      case "/reports/account-statement":
+        return "Account Statement";
+      case "/reports/item-report":
+        return "Item Sales Report";
       default:
         return "";
     }
@@ -307,6 +315,8 @@ function AuthenticatedLayout() {
               <Route path="/parties" component={PartyMaster} />
               <Route path="/reports" component={ReportsPage} />
               <Route path="/reports/party-statement" component={PartyStatementPage} />
+              <Route path="/reports/account-statement" component={AccountStatementPage} />
+              <Route path="/reports/item-report" component={ItemReportPage} />
               <Route component={NotFound} />
             </Switch>
           </main>

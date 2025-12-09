@@ -105,6 +105,7 @@ export interface IStorage {
   getDailyCashFlow(startDate?: string, endDate?: string): Promise<{ date: string; inAmount: number; outAmount: number; net: number; runningBalance: number }[]>;
   getCustomerReport(): Promise<{ customerId: number; customerName: string; totalSales: number; totalPayments: number; balance: number }[]>;
   getPartyStatement(partyId: number, startDate?: string, endDate?: string): Promise<{ id: number; date: string; type: string; reference: string; description: string; debit: number; credit: number; balance: number }[]>;
+  getItemSales(itemId: number, customerId?: number, startDate?: string, endDate?: string): Promise<{ date: string; invoiceNumber: string; customerName: string; quantity: number; unitPrice: number; totalAmount: number }[]>;
 
   // Accounts Module
   getAccounts(): Promise<Account[]>;
@@ -715,6 +716,46 @@ export class DatabaseStorage implements IStorage {
     }
     
     return result.rows as { id: number; date: string; type: string; reference: string; description: string; debit: number; credit: number; balance: number }[];
+  }
+
+  async getItemSales(itemId: number, customerId?: number, startDate?: string, endDate?: string): Promise<{ date: string; invoiceNumber: string; customerName: string; quantity: number; unitPrice: number; totalAmount: number }[]> {
+    const item = await db.select().from(items).where(eq(items.id, itemId));
+    if (item.length === 0) return [];
+    
+    const itemName = item[0].name;
+
+    let dateFilter = sql``;
+    if (startDate && endDate) {
+      dateFilter = sql`AND so.invoice_date >= ${startDate} AND so.invoice_date <= ${endDate}`;
+    } else if (startDate) {
+      dateFilter = sql`AND so.invoice_date >= ${startDate}`;
+    } else if (endDate) {
+      dateFilter = sql`AND so.invoice_date <= ${endDate}`;
+    }
+
+    let customerFilter = sql``;
+    if (customerId) {
+      customerFilter = sql`AND so.customer_id = ${customerId}`;
+    }
+
+    const result = await db.execute(sql`
+      SELECT 
+        TO_CHAR(so.invoice_date, 'YYYY-MM-DD') as date,
+        so.invoice_number as "invoiceNumber",
+        c.name as "customerName",
+        sli.quantity::int as quantity,
+        COALESCE(CAST(sli.unit_price AS DECIMAL), 0)::float as "unitPrice",
+        (sli.quantity * COALESCE(CAST(sli.unit_price AS DECIMAL), 0))::float as "totalAmount"
+      FROM sales_line_items sli
+      JOIN sales_orders so ON sli.sales_order_id = so.id
+      JOIN customers c ON so.customer_id = c.id
+      WHERE sli.item_name = ${itemName}
+      ${dateFilter}
+      ${customerFilter}
+      ORDER BY so.invoice_date DESC
+    `);
+    
+    return result.rows as { date: string; invoiceNumber: string; customerName: string; quantity: number; unitPrice: number; totalAmount: number }[];
   }
 
   // ==================== ACCOUNTS MODULE ====================
