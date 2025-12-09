@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -70,20 +70,38 @@ interface LineItemInput {
 
 export default function StockTransfersPage() {
   const { toast } = useToast();
-  const { branches } = useBranch();
+  const { branches, currentBranchId } = useBranch();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     transferDate: new Date().toISOString().split("T")[0],
     transferNumber: "",
-    fromBranchId: "",
+    fromBranchId: currentBranchId?.toString() || "",
     toBranchId: "",
     notes: "",
   });
   const [lineItems, setLineItems] = useState<LineItemInput[]>([{ itemName: "", quantity: 1 }]);
 
-  const { data: transfers = [], isLoading } = useQuery<StockTransfer[]>({
+  const { data: allTransfers = [], isLoading } = useQuery<StockTransfer[]>({
     queryKey: ["/api/stock-transfers"],
   });
+
+  // Filter transfers to show only those involving the current branch
+  const transfers = currentBranchId
+    ? allTransfers.filter(
+        (t) => t.fromBranchId === currentBranchId || t.toBranchId === currentBranchId
+      )
+    : allTransfers;
+
+  // Sync form when branch changes
+  useEffect(() => {
+    if (currentBranchId && !isDialogOpen) {
+      setFormData((prev) => ({
+        ...prev,
+        fromBranchId: currentBranchId.toString(),
+        toBranchId: prev.toBranchId === currentBranchId.toString() ? "" : prev.toBranchId,
+      }));
+    }
+  }, [currentBranchId, isDialogOpen]);
 
   const { data: items = [] } = useQuery<Item[]>({
     queryKey: ["/api/items"],
@@ -131,7 +149,7 @@ export default function StockTransfersPage() {
     setFormData({
       transferDate: new Date().toISOString().split("T")[0],
       transferNumber: "",
-      fromBranchId: "",
+      fromBranchId: currentBranchId?.toString() || "",
       toBranchId: "",
       notes: "",
     });
