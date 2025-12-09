@@ -146,11 +146,22 @@ export default function ItemReport() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle>Select Item & Filters</CardTitle>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedCustomerId("");
+              setStartDate("");
+              setEndDate("");
+            }}
+            data-testid="button-clear-filters"
+          >
+            Clear Filters
+          </Button>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Item *</Label>
               <Select value={selectedItemId} onValueChange={setSelectedItemId}>
@@ -167,7 +178,7 @@ export default function ItemReport() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Customer (Optional)</Label>
+              <Label>Customer</Label>
               <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
                 <SelectTrigger data-testid="select-customer">
                   <SelectValue placeholder="All customers" />
@@ -199,19 +210,6 @@ export default function ItemReport() {
                 onChange={(e) => setEndDate(e.target.value)}
                 data-testid="input-end-date"
               />
-            </div>
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedCustomerId("");
-                  setStartDate("");
-                  setEndDate("");
-                }}
-                data-testid="button-clear-filters"
-              >
-                Clear Filters
-              </Button>
             </div>
           </div>
         </CardContent>
