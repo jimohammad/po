@@ -57,6 +57,7 @@ const ExportImeiPage = lazy(() => import("@/pages/export-imei"));
 const CustomerStatementPage = lazy(() => import("@/pages/customer-statement"));
 const StockTransfersPage = lazy(() => import("@/pages/stock-transfers"));
 const BranchesPage = lazy(() => import("@/pages/branches"));
+const OpeningBalancesPage = lazy(() => import("@/pages/opening-balances"));
 const Landing = lazy(() => import("@/pages/landing"));
 const PublicStatementPage = lazy(() => import("@/pages/public-statement"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -181,6 +182,7 @@ function AppSidebar() {
   const settingsSubItems = [
     { title: "User Roles", url: "/settings/user-roles" },
     { title: "Branches", url: "/settings/branches" },
+    { title: "Opening Balances", url: "/settings/opening-balances" },
   ];
 
   const handleLogout = () => {
@@ -573,6 +575,7 @@ function AuthenticatedLayout() {
                 <Route path="/reports/customer-statement" component={CustomerStatementPage} />
                 <Route path="/settings/user-roles" component={UserRolesPage} />
                 <Route path="/settings/branches" component={BranchesPage} />
+                <Route path="/settings/opening-balances" component={OpeningBalancesPage} />
                 <Route path="/stock-transfers" component={StockTransfersPage} />
                 <Route component={NotFound} />
               </Switch>
