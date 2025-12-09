@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, RotateCcw, Save, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, RotateCcw, Save, Loader2, AlertTriangle } from "lucide-react";
 import { SalesLineItemRow, type SalesLineItemData } from "./SalesLineItemRow";
 import type { Customer, Item } from "@shared/schema";
 
@@ -13,6 +14,7 @@ interface SalesOrderFormProps {
   items: Item[];
   onSubmit: (data: SalesFormData) => Promise<void>;
   isSubmitting: boolean;
+  isAdmin?: boolean;
 }
 
 export interface SalesFormData {
@@ -32,6 +34,7 @@ export function SalesOrderForm({
   items,
   onSubmit,
   isSubmitting,
+  isAdmin = false,
 }: SalesOrderFormProps) {
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -51,6 +54,32 @@ export function SalesOrderForm({
     });
     setTotalKwd(total.toFixed(3));
   }, [lineItems]);
+
+  const selectedCustomer = useMemo(() => {
+    if (!customerId) return null;
+    return customers.find(c => c.id === parseInt(customerId)) || null;
+  }, [customerId, customers]);
+
+  const creditLimitInfo = useMemo(() => {
+    if (!selectedCustomer) return { hasLimit: false, limit: 0, exceeded: false };
+    
+    const limit = selectedCustomer.creditLimit ? parseFloat(selectedCustomer.creditLimit) : 0;
+    if (limit === 0) return { hasLimit: false, limit: 0, exceeded: false };
+    
+    const total = parseFloat(totalKwd) || 0;
+    return {
+      hasLimit: true,
+      limit,
+      exceeded: total > limit,
+    };
+  }, [selectedCustomer, totalKwd]);
+
+  const canSubmit = useMemo(() => {
+    if (creditLimitInfo.exceeded && !isAdmin) {
+      return false;
+    }
+    return true;
+  }, [creditLimitInfo.exceeded, isAdmin]);
 
   const handleLineItemChange = (id: string, field: keyof SalesLineItemData, value: string | number | string[]) => {
     setLineItems(prev => prev.map(item => {
@@ -90,6 +119,10 @@ export function SalesOrderForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!canSubmit) {
+      return;
+    }
     
     await onSubmit({
       saleDate,
@@ -160,6 +193,11 @@ export function SalesOrderForm({
                   </SelectContent>
                 </Select>
               </div>
+              {creditLimitInfo.hasLimit && (
+                <p className="text-xs text-muted-foreground" data-testid="text-credit-limit-info">
+                  Credit Limit: {creditLimitInfo.limit.toFixed(3)} KWD
+                </p>
+              )}
             </div>
           </div>
 
@@ -205,10 +243,29 @@ export function SalesOrderForm({
             </div>
           </div>
 
+          {creditLimitInfo.exceeded && (
+            <Alert variant="destructive" data-testid="alert-credit-limit-exceeded">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {isAdmin ? (
+                  <>
+                    <span className="font-medium">Warning:</span> Invoice total ({totalKwd} KWD) exceeds customer credit limit ({creditLimitInfo.limit.toFixed(3)} KWD). 
+                    As admin, you can still save this invoice.
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium">Cannot save invoice:</span> Total ({totalKwd} KWD) exceeds customer credit limit ({creditLimitInfo.limit.toFixed(3)} KWD). 
+                    Please contact admin for approval.
+                  </>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="flex justify-end">
             <Button 
               type="submit" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || !canSubmit}
               data-testid="button-submit-sales"
             >
               {isSubmitting ? (

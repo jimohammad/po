@@ -127,6 +127,7 @@ export const customers = pgTable("customers", {
   name: text("name").notNull(),
   phone: text("phone"),
   email: text("email"),
+  creditLimit: numeric("credit_limit", { precision: 12, scale: 3 }),
 });
 
 export const customersRelations = relations(customers, ({ many }) => ({

@@ -34,7 +34,11 @@ export default function SalesPage() {
   });
 
   const createCustomerMutation = useMutation({
-    mutationFn: (name: string) => apiRequest("POST", "/api/customers", { name }),
+    mutationFn: (data: { name: string; creditLimit?: string }) => 
+      apiRequest("POST", "/api/customers", { 
+        name: data.name, 
+        creditLimit: data.creditLimit || null 
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({ title: "Customer added successfully" });
@@ -45,8 +49,11 @@ export default function SalesPage() {
   });
 
   const updateCustomerMutation = useMutation({
-    mutationFn: ({ id, name }: { id: number; name: string }) =>
-      apiRequest("PUT", `/api/customers/${id}`, { name }),
+    mutationFn: ({ id, data }: { id: number; data: { name: string; creditLimit?: string } }) =>
+      apiRequest("PUT", `/api/customers/${id}`, { 
+        name: data.name, 
+        creditLimit: data.creditLimit || null 
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({ title: "Customer updated successfully" });
@@ -133,6 +140,7 @@ export default function SalesPage() {
           items={items}
           onSubmit={handleSubmitSO}
           isSubmitting={createSOMutation.isPending}
+          isAdmin={user?.role === "admin"}
         />
       </section>
 
@@ -153,8 +161,8 @@ export default function SalesPage() {
         onOpenChange={setCustomerDialogOpen}
         mode={customerDialogMode}
         customers={customers}
-        onAdd={(name) => createCustomerMutation.mutate(name)}
-        onUpdate={(id, name) => updateCustomerMutation.mutate({ id, name })}
+        onAdd={(data) => createCustomerMutation.mutate(data)}
+        onUpdate={(id, data) => updateCustomerMutation.mutate({ id, data })}
         onDelete={(id) => deleteCustomerMutation.mutate(id)}
       />
 
