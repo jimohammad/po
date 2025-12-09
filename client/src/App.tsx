@@ -87,12 +87,24 @@ function AppSidebar() {
     return permissions.modules.includes(moduleName);
   };
 
-  // Alt+S shortcut for new sales invoice
+  // Keyboard shortcuts: Alt+S (Sales), Alt+E (Expenses), Alt+P (Purchase), Alt+I (Item)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        setLocation('/sales');
+      if (e.altKey) {
+        const key = e.key.toLowerCase();
+        if (key === 's') {
+          e.preventDefault();
+          setLocation('/sales');
+        } else if (key === 'e') {
+          e.preventDefault();
+          setLocation('/expenses');
+        } else if (key === 'p') {
+          e.preventDefault();
+          setLocation('/purchases');
+        } else if (key === 'i') {
+          e.preventDefault();
+          setLocation('/items');
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
