@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSupplierSchema, insertItemSchema, insertPurchaseOrderSchema, insertLineItemSchema, insertCustomerSchema, insertSalesOrderSchema, insertSalesLineItemSchema, insertPaymentSchema, PAYMENT_TYPES, PAYMENT_DIRECTIONS, insertExpenseCategorySchema, insertExpenseSchema, insertAccountTransferSchema, insertReturnSchema, insertReturnLineItemSchema, insertUserRoleAssignmentSchema, insertDiscountSchema, insertBranchSchema, insertStockTransferSchema, insertStockTransferLineItemSchema, ROLE_TYPES, MODULE_NAMES } from "@shared/schema";
+import { insertSupplierSchema, insertItemSchema, insertPurchaseOrderSchema, insertLineItemSchema, insertCustomerSchema, insertSalesOrderSchema, insertSalesLineItemSchema, insertPaymentSchema, PAYMENT_TYPES, PAYMENT_DIRECTIONS, insertExpenseCategorySchema, insertExpenseSchema, insertAccountTransferSchema, insertReturnSchema, insertReturnLineItemSchema, insertUserRoleAssignmentSchema, insertDiscountSchema, insertBranchSchema, insertStockTransferSchema, insertStockTransferLineItemSchema, insertInventoryAdjustmentSchema, insertOpeningBalanceSchema, ROLE_TYPES, MODULE_NAMES } from "@shared/schema";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { setupAuth, isAuthenticated, isAdmin } from "./replitAuth";
 
@@ -1432,6 +1432,168 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting stock transfer:", error);
       res.status(500).json({ error: "Failed to delete stock transfer" });
+    }
+  });
+
+  // ==================== OPENING BALANCES ROUTES ====================
+
+  // Inventory Adjustments (Opening Stock)
+  app.get("/api/inventory-adjustments", isAuthenticated, async (req, res) => {
+    try {
+      const branchId = req.query.branchId ? parseInt(req.query.branchId as string) : undefined;
+      const adjustments = await storage.getInventoryAdjustments(branchId);
+      res.json(adjustments);
+    } catch (error) {
+      console.error("Error fetching inventory adjustments:", error);
+      res.status(500).json({ error: "Failed to fetch inventory adjustments" });
+    }
+  });
+
+  app.get("/api/inventory-adjustments/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid adjustment ID" });
+      }
+      const adjustment = await storage.getInventoryAdjustment(id);
+      if (!adjustment) {
+        return res.status(404).json({ error: "Inventory adjustment not found" });
+      }
+      res.json(adjustment);
+    } catch (error) {
+      console.error("Error fetching inventory adjustment:", error);
+      res.status(500).json({ error: "Failed to fetch inventory adjustment" });
+    }
+  });
+
+  app.post("/api/inventory-adjustments", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const parsed = insertInventoryAdjustmentSchema.safeParse({
+        ...req.body,
+        createdBy: req.user?.claims?.sub,
+      });
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.message });
+      }
+      const adjustment = await storage.createInventoryAdjustment(parsed.data);
+      res.status(201).json(adjustment);
+    } catch (error) {
+      console.error("Error creating inventory adjustment:", error);
+      res.status(500).json({ error: "Failed to create inventory adjustment" });
+    }
+  });
+
+  app.put("/api/inventory-adjustments/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid adjustment ID" });
+      }
+      const adjustment = await storage.updateInventoryAdjustment(id, req.body);
+      if (!adjustment) {
+        return res.status(404).json({ error: "Inventory adjustment not found" });
+      }
+      res.json(adjustment);
+    } catch (error) {
+      console.error("Error updating inventory adjustment:", error);
+      res.status(500).json({ error: "Failed to update inventory adjustment" });
+    }
+  });
+
+  app.delete("/api/inventory-adjustments/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid adjustment ID" });
+      }
+      const deleted = await storage.deleteInventoryAdjustment(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Inventory adjustment not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting inventory adjustment:", error);
+      res.status(500).json({ error: "Failed to delete inventory adjustment" });
+    }
+  });
+
+  // Opening Balances (Party Balances)
+  app.get("/api/opening-balances", isAuthenticated, async (req, res) => {
+    try {
+      const branchId = req.query.branchId ? parseInt(req.query.branchId as string) : undefined;
+      const balances = await storage.getOpeningBalances(branchId);
+      res.json(balances);
+    } catch (error) {
+      console.error("Error fetching opening balances:", error);
+      res.status(500).json({ error: "Failed to fetch opening balances" });
+    }
+  });
+
+  app.get("/api/opening-balances/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid balance ID" });
+      }
+      const balance = await storage.getOpeningBalance(id);
+      if (!balance) {
+        return res.status(404).json({ error: "Opening balance not found" });
+      }
+      res.json(balance);
+    } catch (error) {
+      console.error("Error fetching opening balance:", error);
+      res.status(500).json({ error: "Failed to fetch opening balance" });
+    }
+  });
+
+  app.post("/api/opening-balances", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const parsed = insertOpeningBalanceSchema.safeParse({
+        ...req.body,
+        createdBy: req.user?.claims?.sub,
+      });
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.message });
+      }
+      const balance = await storage.createOpeningBalance(parsed.data);
+      res.status(201).json(balance);
+    } catch (error) {
+      console.error("Error creating opening balance:", error);
+      res.status(500).json({ error: "Failed to create opening balance" });
+    }
+  });
+
+  app.put("/api/opening-balances/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid balance ID" });
+      }
+      const balance = await storage.updateOpeningBalance(id, req.body);
+      if (!balance) {
+        return res.status(404).json({ error: "Opening balance not found" });
+      }
+      res.json(balance);
+    } catch (error) {
+      console.error("Error updating opening balance:", error);
+      res.status(500).json({ error: "Failed to update opening balance" });
+    }
+  });
+
+  app.delete("/api/opening-balances/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid balance ID" });
+      }
+      const deleted = await storage.deleteOpeningBalance(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Opening balance not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting opening balance:", error);
+      res.status(500).json({ error: "Failed to delete opening balance" });
     }
   });
 
