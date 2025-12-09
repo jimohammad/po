@@ -176,7 +176,7 @@ export default function PaymentsPage() {
   const getPaymentTypeColor = (type: string) => {
     switch (type) {
       case "Cash":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        return "bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200";
       case "NBK Bank":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       case "CBK Bank":
@@ -193,7 +193,7 @@ export default function PaymentsPage() {
   const getDirectionBadge = (dir: string) => {
     if (dir === "IN") {
       return (
-        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+        <Badge variant="secondary" className="bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200">
           <ArrowDownLeft className="h-3 w-3 mr-1" />
           IN
         </Badge>

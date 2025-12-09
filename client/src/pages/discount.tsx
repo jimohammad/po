@@ -323,7 +323,7 @@ export default function DiscountPage() {
             </div>
 
             {savedDiscount && (
-              <div className="p-4 rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 mt-4">
+              <div className="p-4 rounded-md bg-green-100 dark:bg-green-900 border border-green-200 dark:border-green-800 mt-4">
                 <p className="text-green-700 dark:text-green-300 font-medium">
                   Discount saved successfully!
                 </p>
