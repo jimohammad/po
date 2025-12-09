@@ -4,33 +4,21 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { SalesOrderForm, type SalesFormData } from "@/components/SalesOrderForm";
-import { SalesReportingSection } from "@/components/SalesReportingSection";
 import { CustomerDialog } from "@/components/CustomerDialog";
-import { SalesOrderDetail } from "@/components/SalesOrderDetail";
-import type { Customer, Item, SalesOrderWithDetails } from "@shared/schema";
+import type { Customer, Item } from "@shared/schema";
 
 export default function SalesPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [customerDialogMode, setCustomerDialogMode] = useState<"add" | "edit">("add");
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<SalesOrderWithDetails | null>(null);
 
-  const { data: customers = [], isLoading: customersLoading } = useQuery<Customer[]>({
+  const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
-  const { data: items = [], isLoading: itemsLoading } = useQuery<Item[]>({
+  const { data: items = [] } = useQuery<Item[]>({
     queryKey: ["/api/items"],
-  });
-
-  const { data: orders = [], isLoading: ordersLoading } = useQuery<SalesOrderWithDetails[]>({
-    queryKey: ["/api/sales-orders"],
-  });
-
-  const { data: monthlyStats = [], isLoading: statsLoading } = useQuery<{ month: number; totalKwd: number; totalFx: number }[]>({
-    queryKey: ["/api/sales-stats/monthly"],
   });
 
   const createCustomerMutation = useMutation({
@@ -111,23 +99,6 @@ export default function SalesPage() {
     },
   });
 
-  const deleteSOMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/sales-orders/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sales-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sales-stats/monthly"] });
-      toast({ title: "Sales invoice deleted successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete sales invoice", variant: "destructive" });
-    },
-  });
-
-  const handleViewOrder = (order: SalesOrderWithDetails) => {
-    setSelectedOrder(order);
-    setDetailDialogOpen(true);
-  };
-
   const handleSubmitSO = async (data: SalesFormData) => {
     await createSOMutation.mutateAsync(data);
   };
@@ -144,18 +115,6 @@ export default function SalesPage() {
         />
       </section>
 
-      <section>
-        <SalesReportingSection
-          orders={orders}
-          monthlyStats={monthlyStats}
-          isLoading={ordersLoading}
-          isStatsLoading={statsLoading}
-          onViewOrder={handleViewOrder}
-          onDeleteOrder={(id) => deleteSOMutation.mutate(id)}
-          isAdmin={user?.role === "admin"}
-        />
-      </section>
-
       <CustomerDialog
         open={customerDialogOpen}
         onOpenChange={setCustomerDialogOpen}
@@ -164,12 +123,6 @@ export default function SalesPage() {
         onAdd={(data) => createCustomerMutation.mutate(data)}
         onUpdate={(id, data) => updateCustomerMutation.mutate({ id, data })}
         onDelete={(id) => deleteCustomerMutation.mutate(id)}
-      />
-
-      <SalesOrderDetail
-        open={detailDialogOpen}
-        onOpenChange={setDetailDialogOpen}
-        order={selectedOrder}
       />
     </div>
   );

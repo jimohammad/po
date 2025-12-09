@@ -1,33 +1,18 @@
-import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 import { PurchaseOrderForm, type FormData } from "@/components/PurchaseOrderForm";
-import { ReportingSection } from "@/components/ReportingSection";
-import { PurchaseOrderDetail } from "@/components/PurchaseOrderDetail";
-import type { Supplier, Item, PurchaseOrderWithDetails } from "@shared/schema";
+import type { Supplier, Item } from "@shared/schema";
 
 export default function Home() {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrderWithDetails | null>(null);
 
-  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery<Supplier[]>({
+  const { data: suppliers = [] } = useQuery<Supplier[]>({
     queryKey: ["/api/suppliers"],
   });
 
-  const { data: items = [], isLoading: itemsLoading } = useQuery<Item[]>({
+  const { data: items = [] } = useQuery<Item[]>({
     queryKey: ["/api/items"],
-  });
-
-  const { data: orders = [], isLoading: ordersLoading } = useQuery<PurchaseOrderWithDetails[]>({
-    queryKey: ["/api/purchase-orders"],
-  });
-
-  const { data: monthlyStats = [], isLoading: statsLoading } = useQuery<{ month: number; totalKwd: number; totalFx: number }[]>({
-    queryKey: ["/api/stats/monthly"],
   });
 
   const createPOMutation = useMutation({
@@ -105,23 +90,6 @@ export default function Home() {
     },
   });
 
-  const deletePOMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/purchase-orders/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/purchase-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats/monthly"] });
-      toast({ title: "Purchase order deleted successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete purchase order", variant: "destructive" });
-    },
-  });
-
-  const handleViewOrder = (order: PurchaseOrderWithDetails) => {
-    setSelectedOrder(order);
-    setDetailDialogOpen(true);
-  };
-
   const handleSubmitPO = async (data: FormData) => {
     await createPOMutation.mutateAsync(data);
   };
@@ -136,24 +104,6 @@ export default function Home() {
           isSubmitting={createPOMutation.isPending}
         />
       </section>
-
-      <section>
-        <ReportingSection
-          orders={orders}
-          monthlyStats={monthlyStats}
-          isLoading={ordersLoading}
-          isStatsLoading={statsLoading}
-          onViewOrder={handleViewOrder}
-          onDeleteOrder={(id) => deletePOMutation.mutate(id)}
-          isAdmin={user?.role === "admin"}
-        />
-      </section>
-
-      <PurchaseOrderDetail
-        open={detailDialogOpen}
-        onOpenChange={setDetailDialogOpen}
-        order={selectedOrder}
-      />
     </div>
   );
 }
