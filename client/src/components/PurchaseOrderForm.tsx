@@ -176,34 +176,11 @@ export function PurchaseOrderForm({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Purchase Date</Label>
-              <Input
-                type="date"
-                value={purchaseDate}
-                onChange={(e) => setPurchaseDate(e.target.value)}
-                required
-                data-testid="input-purchase-date"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Invoice Number</Label>
-              <Input
-                type="text"
-                placeholder="e.g. INV-2025-001"
-                value={invoiceNumber}
-                onChange={(e) => setInvoiceNumber(e.target.value)}
-                data-testid="input-invoice-number"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Supplier</Label>
-            <div className="flex gap-2 flex-wrap">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-xs font-medium text-muted-foreground">Supplier</Label>
               <Select value={supplierId || "none"} onValueChange={(val) => setSupplierId(val === "none" ? "" : val)}>
-                <SelectTrigger className="flex-1 min-w-[180px]" data-testid="select-supplier">
+                <SelectTrigger className="w-full" data-testid="select-supplier">
                   <SelectValue placeholder="-- Select supplier --" />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,6 +192,26 @@ export function PurchaseOrderForm({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Date</Label>
+              <Input
+                type="date"
+                value={purchaseDate}
+                onChange={(e) => setPurchaseDate(e.target.value)}
+                required
+                data-testid="input-purchase-date"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Supplier Invoice Number</Label>
+              <Input
+                type="text"
+                placeholder="e.g. INV-2025-001"
+                value={invoiceNumber}
+                onChange={(e) => setInvoiceNumber(e.target.value)}
+                data-testid="input-invoice-number"
+              />
             </div>
           </div>
 
