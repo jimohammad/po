@@ -95,7 +95,7 @@ export interface IStorage {
   getItemLastPricing(itemName: string): Promise<{ priceKwd: string | null; fxCurrency: string | null } | null>;
   bulkUpdateItems(updates: { id: number; item: Partial<InsertItem> }[]): Promise<Item[]>;
 
-  getPurchaseOrders(): Promise<PurchaseOrderWithDetails[]>;
+  getPurchaseOrders(options?: { limit?: number; offset?: number }): Promise<{ data: PurchaseOrderWithDetails[]; total: number }>;
   getPurchaseOrder(id: number): Promise<PurchaseOrderWithDetails | undefined>;
   createPurchaseOrder(po: InsertPurchaseOrder, lineItems: Omit<InsertLineItem, 'purchaseOrderId'>[]): Promise<PurchaseOrderWithDetails>;
   updatePurchaseOrder(id: number, po: Partial<InsertPurchaseOrder>, lineItems?: Omit<InsertLineItem, 'purchaseOrderId'>[]): Promise<PurchaseOrderWithDetails | undefined>;
@@ -110,7 +110,7 @@ export interface IStorage {
   updateCustomer(id: number, customer: InsertCustomer): Promise<Customer | undefined>;
   deleteCustomer(id: number): Promise<{ deleted: boolean; error?: string }>;
 
-  getSalesOrders(): Promise<SalesOrderWithDetails[]>;
+  getSalesOrders(options?: { limit?: number; offset?: number }): Promise<{ data: SalesOrderWithDetails[]; total: number }>;
   getSalesOrder(id: number): Promise<SalesOrderWithDetails | undefined>;
   createSalesOrder(so: InsertSalesOrder, lineItems: Omit<InsertSalesLineItem, 'salesOrderId'>[]): Promise<SalesOrderWithDetails>;
   deleteSalesOrder(id: number): Promise<boolean>;
@@ -118,7 +118,7 @@ export interface IStorage {
   getSalesMonthlyStats(year?: number): Promise<{ month: number; totalKwd: number; totalFx: number }[]>;
 
   // Payment Module
-  getPayments(): Promise<PaymentWithDetails[]>;
+  getPayments(options?: { limit?: number; offset?: number }): Promise<{ data: PaymentWithDetails[]; total: number }>;
   getPayment(id: number): Promise<PaymentWithDetails | undefined>;
   createPayment(payment: InsertPayment): Promise<PaymentWithDetails>;
   deletePayment(id: number): Promise<boolean>;
@@ -324,15 +324,20 @@ export class DatabaseStorage implements IStorage {
     return updatedItems;
   }
 
-  async getPurchaseOrders(): Promise<PurchaseOrderWithDetails[]> {
+  async getPurchaseOrders(options?: { limit?: number; offset?: number }): Promise<{ data: PurchaseOrderWithDetails[]; total: number }> {
+    const [countResult] = await db.select({ count: sql<number>`count(*)::int` }).from(purchaseOrders);
+    const total = countResult.count;
+    
     const pos = await db.query.purchaseOrders.findMany({
       with: {
         supplier: true,
         lineItems: true,
       },
       orderBy: [desc(purchaseOrders.purchaseDate), desc(purchaseOrders.id)],
+      limit: options?.limit,
+      offset: options?.offset,
     });
-    return pos;
+    return { data: pos, total };
   }
 
   async getPurchaseOrder(id: number): Promise<PurchaseOrderWithDetails | undefined> {
@@ -446,15 +451,20 @@ export class DatabaseStorage implements IStorage {
     return { deleted: result.length > 0 };
   }
 
-  async getSalesOrders(): Promise<SalesOrderWithDetails[]> {
+  async getSalesOrders(options?: { limit?: number; offset?: number }): Promise<{ data: SalesOrderWithDetails[]; total: number }> {
+    const [countResult] = await db.select({ count: sql<number>`count(*)::int` }).from(salesOrders);
+    const total = countResult.count;
+    
     const orders = await db.query.salesOrders.findMany({
       with: {
         customer: true,
         lineItems: true,
       },
       orderBy: [desc(salesOrders.saleDate), desc(salesOrders.id)],
+      limit: options?.limit,
+      offset: options?.offset,
     });
-    return orders;
+    return { data: orders, total };
   }
 
   async getSalesOrder(id: number): Promise<SalesOrderWithDetails | undefined> {
@@ -507,15 +517,20 @@ export class DatabaseStorage implements IStorage {
 
   // ==================== PAYMENT MODULE ====================
 
-  async getPayments(): Promise<PaymentWithDetails[]> {
+  async getPayments(options?: { limit?: number; offset?: number }): Promise<{ data: PaymentWithDetails[]; total: number }> {
+    const [countResult] = await db.select({ count: sql<number>`count(*)::int` }).from(payments);
+    const total = countResult.count;
+    
     const paymentList = await db.query.payments.findMany({
       with: {
         customer: true,
         supplier: true,
       },
       orderBy: [desc(payments.paymentDate), desc(payments.id)],
+      limit: options?.limit,
+      offset: options?.offset,
     });
-    return paymentList;
+    return { data: paymentList, total };
   }
 
   async getPayment(id: number): Promise<PaymentWithDetails | undefined> {

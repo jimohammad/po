@@ -178,8 +178,10 @@ export async function registerRoutes(
 
   app.get("/api/purchase-orders", isAuthenticated, async (req, res) => {
     try {
-      const orders = await storage.getPurchaseOrders();
-      res.json(orders);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+      const result = await storage.getPurchaseOrders({ limit, offset });
+      res.json(result);
     } catch (error) {
       console.error("Error fetching purchase orders:", error);
       res.status(500).json({ error: "Failed to fetch purchase orders" });
@@ -330,7 +332,8 @@ export async function registerRoutes(
 
   app.get("/api/sales-orders/next-invoice-number", isAuthenticated, async (req, res) => {
     try {
-      const orders = await storage.getSalesOrders();
+      const result = await storage.getSalesOrders();
+      const orders = result.data;
       const prefix = `SI-2026-`;
       
       // Find the highest invoice number for the current year
@@ -354,8 +357,10 @@ export async function registerRoutes(
 
   app.get("/api/sales-orders", isAuthenticated, async (req, res) => {
     try {
-      const orders = await storage.getSalesOrders();
-      res.json(orders);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+      const result = await storage.getSalesOrders({ limit, offset });
+      res.json(result);
     } catch (error) {
       console.error("Error fetching sales orders:", error);
       res.status(500).json({ error: "Failed to fetch sales orders" });
@@ -441,8 +446,10 @@ export async function registerRoutes(
 
   app.get("/api/payments", isAuthenticated, async (req, res) => {
     try {
-      const paymentList = await storage.getPayments();
-      res.json(paymentList);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+      const result = await storage.getPayments({ limit, offset });
+      res.json(result);
     } catch (error) {
       console.error("Error fetching payments:", error);
       res.status(500).json({ error: "Failed to fetch payments" });

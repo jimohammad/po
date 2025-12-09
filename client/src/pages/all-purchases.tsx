@@ -31,8 +31,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Search, Eye, Trash2, FileText, Package } from "lucide-react";
+import { Loader2, Search, Eye, Trash2, FileText, Package, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
+
+const PAGE_SIZE = 50;
 
 interface PurchaseOrderLineItem {
   id: number;
@@ -61,10 +63,20 @@ export default function AllPurchasesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  };
 
-  const { data: purchaseOrders = [], isLoading } = useQuery<PurchaseOrder[]>({
-    queryKey: ["/api/purchase-orders"],
+  const { data: purchaseData, isLoading } = useQuery<{ data: PurchaseOrder[]; total: number }>({
+    queryKey: ["/api/purchase-orders", { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }],
   });
+  
+  const purchaseOrders = purchaseData?.data ?? [];
+  const totalOrders = purchaseData?.total ?? 0;
+  const totalPages = Math.ceil(totalOrders / PAGE_SIZE);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -119,7 +131,7 @@ export default function AllPurchasesPage() {
             <Input
               placeholder="Search invoices..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-8"
               data-testid="input-search-purchases"
             />
@@ -189,6 +201,39 @@ export default function AllPurchasesPage() {
               </TableBody>
             </Table>
           </ScrollArea>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                Showing {((page - 1) * PAGE_SIZE) + 1} to {Math.min(page * PAGE_SIZE, totalOrders)} of {totalOrders} invoices
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  data-testid="button-prev-page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="text-sm px-2">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  data-testid="button-next-page"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

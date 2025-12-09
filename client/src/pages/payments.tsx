@@ -42,9 +42,13 @@ import {
   Building2,
   ArrowDownLeft,
   ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import type { PaymentWithDetails, Customer, Supplier, PaymentType, PaymentDirection } from "@shared/schema";
 import { PAYMENT_TYPES, PAYMENT_DIRECTIONS } from "@shared/schema";
+
+const PAGE_SIZE = 50;
 
 export default function PaymentsPage() {
   const { toast } = useToast();
@@ -57,6 +61,22 @@ export default function PaymentsPage() {
   const [directionFilter, setDirectionFilter] = useState<string>("all");
   const [selectedPayment, setSelectedPayment] = useState<PaymentWithDetails | null>(null);
   const [paymentToDelete, setPaymentToDelete] = useState<PaymentWithDetails | null>(null);
+  const [page, setPage] = useState(1);
+  
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setPage(1);
+  };
+  
+  const handlePaymentTypeFilterChange = (value: string) => {
+    setPaymentTypeFilter(value);
+    setPage(1);
+  };
+  
+  const handleDirectionFilterChange = (value: string) => {
+    setDirectionFilter(value);
+    setPage(1);
+  };
   
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [direction, setDirection] = useState<PaymentDirection>("IN");
@@ -67,9 +87,13 @@ export default function PaymentsPage() {
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
 
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery<PaymentWithDetails[]>({
-    queryKey: ["/api/payments"],
+  const { data: paymentsData, isLoading: paymentsLoading } = useQuery<{ data: PaymentWithDetails[]; total: number }>({
+    queryKey: ["/api/payments", { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }],
   });
+  
+  const payments = paymentsData?.data ?? [];
+  const totalPayments = paymentsData?.total ?? 0;
+  const totalPages = Math.ceil(totalPayments / PAGE_SIZE);
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -248,12 +272,12 @@ export default function PaymentsPage() {
               <Input
                 placeholder="Search by customer/supplier, reference..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-9"
                 data-testid="input-search-payments"
               />
             </div>
-            <Select value={directionFilter} onValueChange={setDirectionFilter}>
+            <Select value={directionFilter} onValueChange={handleDirectionFilterChange}>
               <SelectTrigger className="w-[140px]" data-testid="select-filter-direction">
                 <SelectValue placeholder="Direction" />
               </SelectTrigger>
@@ -263,7 +287,7 @@ export default function PaymentsPage() {
                 <SelectItem value="OUT">Payment OUT</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
+            <Select value={paymentTypeFilter} onValueChange={handlePaymentTypeFilterChange}>
               <SelectTrigger className="w-[140px]" data-testid="select-filter-payment-type">
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
@@ -398,6 +422,39 @@ export default function PaymentsPage() {
                   </tfoot>
                 </table>
               </div>
+              
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {((page - 1) * PAGE_SIZE) + 1} to {Math.min(page * PAGE_SIZE, totalPayments)} of {totalPayments} payments
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      data-testid="button-prev-page"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <span className="text-sm px-2">
+                      Page {page} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      data-testid="button-next-page"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
