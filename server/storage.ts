@@ -1255,7 +1255,32 @@ export class DatabaseStorage implements IStorage {
     }
 
     const result = await db.execute(sql`
-      WITH all_transactions AS (
+      WITH opening_balance AS (
+        -- Opening balance for this customer
+        SELECT 
+          0 as id,
+          COALESCE(effective_date, '2000-01-01'::date) as date,
+          'opening' as type,
+          'Opening Balance' as reference,
+          'Opening Balance' as description,
+          CASE 
+            WHEN CAST(balance_amount AS DECIMAL) > 0 THEN CAST(balance_amount AS DECIMAL)::float
+            ELSE 0::float
+          END as debit,
+          CASE 
+            WHEN CAST(balance_amount AS DECIMAL) < 0 THEN ABS(CAST(balance_amount AS DECIMAL))::float
+            ELSE 0::float
+          END as credit,
+          '2000-01-01 00:00:00'::timestamp as created_at
+        FROM opening_balances
+        WHERE party_type = 'customer' AND party_id = ${customerId}
+      ),
+      all_transactions AS (
+        -- Opening balance entry (if exists)
+        SELECT * FROM opening_balance
+        
+        UNION ALL
+        
         -- Sales to this customer (they owe us - debit)
         SELECT 
           id,
