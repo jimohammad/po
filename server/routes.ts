@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSupplierSchema, insertItemSchema, insertPurchaseOrderSchema, insertLineItemSchema, insertCustomerSchema, insertSalesOrderSchema, insertSalesLineItemSchema, insertPaymentSchema, PAYMENT_TYPES, PAYMENT_DIRECTIONS, insertExpenseCategorySchema, insertExpenseSchema, insertAccountTransferSchema, insertReturnSchema, insertReturnLineItemSchema, insertUserRoleAssignmentSchema, ROLE_TYPES, MODULE_NAMES } from "@shared/schema";
+import { insertSupplierSchema, insertItemSchema, insertPurchaseOrderSchema, insertLineItemSchema, insertCustomerSchema, insertSalesOrderSchema, insertSalesLineItemSchema, insertPaymentSchema, PAYMENT_TYPES, PAYMENT_DIRECTIONS, insertExpenseCategorySchema, insertExpenseSchema, insertAccountTransferSchema, insertReturnSchema, insertReturnLineItemSchema, insertUserRoleAssignmentSchema, insertDiscountSchema, ROLE_TYPES, MODULE_NAMES } from "@shared/schema";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { setupAuth, isAuthenticated, isAdmin } from "./replitAuth";
 
@@ -1024,6 +1024,84 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching user permissions:", error);
       res.status(500).json({ error: "Failed to fetch user permissions" });
+    }
+  });
+
+  // ==================== DISCOUNT ROUTES ====================
+
+  app.get("/api/discounts", isAuthenticated, async (req, res) => {
+    try {
+      const discounts = await storage.getDiscounts();
+      res.json(discounts);
+    } catch (error) {
+      console.error("Error fetching discounts:", error);
+      res.status(500).json({ error: "Failed to fetch discounts" });
+    }
+  });
+
+  app.get("/api/discounts/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid discount ID" });
+      }
+      const discount = await storage.getDiscount(id);
+      if (!discount) {
+        return res.status(404).json({ error: "Discount not found" });
+      }
+      res.json(discount);
+    } catch (error) {
+      console.error("Error fetching discount:", error);
+      res.status(500).json({ error: "Failed to fetch discount" });
+    }
+  });
+
+  app.post("/api/discounts", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const parsed = insertDiscountSchema.safeParse({
+        ...req.body,
+        createdBy: userId,
+      });
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.message });
+      }
+      const discount = await storage.createDiscount(parsed.data);
+      res.status(201).json(discount);
+    } catch (error) {
+      console.error("Error creating discount:", error);
+      res.status(500).json({ error: "Failed to create discount" });
+    }
+  });
+
+  app.delete("/api/discounts/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid discount ID" });
+      }
+      const deleted = await storage.deleteDiscount(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Discount not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting discount:", error);
+      res.status(500).json({ error: "Failed to delete discount" });
+    }
+  });
+
+  app.get("/api/invoices-for-customer/:customerId", isAuthenticated, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      if (isNaN(customerId)) {
+        return res.status(400).json({ error: "Invalid customer ID" });
+      }
+      const invoices = await storage.getInvoicesForCustomer(customerId);
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching invoices for customer:", error);
+      res.status(500).json({ error: "Failed to fetch invoices" });
     }
   });
 

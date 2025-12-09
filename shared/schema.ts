@@ -418,6 +418,7 @@ export const MODULE_NAMES = [
   "items",
   "parties",
   "reports",
+  "discount",
   "settings"
 ] as const;
 export type ModuleName = typeof MODULE_NAMES[number];
@@ -443,3 +444,35 @@ export const userRoleAssignments = pgTable("user_role_assignments", {
 export const insertUserRoleAssignmentSchema = createInsertSchema(userRoleAssignments).omit({ id: true, createdAt: true });
 export type InsertUserRoleAssignment = z.infer<typeof insertUserRoleAssignmentSchema>;
 export type UserRoleAssignment = typeof userRoleAssignments.$inferSelect;
+
+// ==================== DISCOUNT MODULE ====================
+
+export const discounts = pgTable("discounts", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  customerId: integer("customer_id").references(() => customers.id).notNull(),
+  salesOrderId: integer("sales_order_id").references(() => salesOrders.id).notNull(),
+  discountAmount: numeric("discount_amount", { precision: 12, scale: 3 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+});
+
+export const discountsRelations = relations(discounts, ({ one }) => ({
+  customer: one(customers, {
+    fields: [discounts.customerId],
+    references: [customers.id],
+  }),
+  salesOrder: one(salesOrders, {
+    fields: [discounts.salesOrderId],
+    references: [salesOrders.id],
+  }),
+}));
+
+export const insertDiscountSchema = createInsertSchema(discounts).omit({ id: true, createdAt: true });
+export type InsertDiscount = z.infer<typeof insertDiscountSchema>;
+export type Discount = typeof discounts.$inferSelect;
+
+export type DiscountWithDetails = Discount & {
+  customer: Customer;
+  salesOrder: SalesOrder;
+};

@@ -16,6 +16,7 @@ import {
   returnLineItems,
   rolePermissions,
   userRoleAssignments,
+  discounts,
   ACCOUNT_NAMES,
   ROLE_TYPES,
   MODULE_NAMES,
@@ -59,6 +60,9 @@ import {
   type InsertRolePermission,
   type UserRoleAssignment,
   type InsertUserRoleAssignment,
+  type Discount,
+  type InsertDiscount,
+  type DiscountWithDetails,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
@@ -151,6 +155,13 @@ export interface IStorage {
   updateUserRoleAssignment(id: number, assignment: InsertUserRoleAssignment): Promise<UserRoleAssignment | undefined>;
   deleteUserRoleAssignment(id: number): Promise<boolean>;
   getRoleForEmail(email: string): Promise<string>;
+
+  // Discount Module
+  getDiscounts(): Promise<DiscountWithDetails[]>;
+  getDiscount(id: number): Promise<DiscountWithDetails | undefined>;
+  createDiscount(discount: InsertDiscount): Promise<DiscountWithDetails>;
+  deleteDiscount(id: number): Promise<boolean>;
+  getInvoicesForCustomer(customerId: number): Promise<{ id: number; invoiceNumber: string; totalKwd: string }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1087,6 +1098,57 @@ export class DatabaseStorage implements IStorage {
     const [assignment] = await db.select().from(userRoleAssignments)
       .where(eq(userRoleAssignments.email, email.toLowerCase()));
     return assignment?.role || "user";
+  }
+
+  // ==================== DISCOUNT MODULE ====================
+
+  async getDiscounts(): Promise<DiscountWithDetails[]> {
+    const result = await db.query.discounts.findMany({
+      with: {
+        customer: true,
+        salesOrder: true,
+      },
+      orderBy: [desc(discounts.createdAt)],
+    });
+    return result as DiscountWithDetails[];
+  }
+
+  async getDiscount(id: number): Promise<DiscountWithDetails | undefined> {
+    const result = await db.query.discounts.findFirst({
+      where: eq(discounts.id, id),
+      with: {
+        customer: true,
+        salesOrder: true,
+      },
+    });
+    return result as DiscountWithDetails | undefined;
+  }
+
+  async createDiscount(discount: InsertDiscount): Promise<DiscountWithDetails> {
+    const [newDiscount] = await db.insert(discounts).values(discount).returning();
+    const result = await this.getDiscount(newDiscount.id);
+    return result!;
+  }
+
+  async deleteDiscount(id: number): Promise<boolean> {
+    const result = await db.delete(discounts).where(eq(discounts.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getInvoicesForCustomer(customerId: number): Promise<{ id: number; invoiceNumber: string; totalKwd: string }[]> {
+    const orders = await db.select({
+      id: salesOrders.id,
+      invoiceNumber: salesOrders.invoiceNumber,
+      totalKwd: salesOrders.totalKwd,
+    }).from(salesOrders)
+      .where(eq(salesOrders.customerId, customerId))
+      .orderBy(desc(salesOrders.invoiceDate));
+    
+    return orders.map(o => ({
+      id: o.id,
+      invoiceNumber: o.invoiceNumber || `INV-${o.id}`,
+      totalKwd: o.totalKwd || "0",
+    }));
   }
 }
 
