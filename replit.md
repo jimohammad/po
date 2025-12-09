@@ -23,6 +23,7 @@ The system is designed as an enterprise productivity tool with a focus on effici
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Always publish the app after any core change.
 
 ## System Architecture
 
