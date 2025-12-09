@@ -48,42 +48,62 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
+interface MyPermissions {
+  role: string;
+  modules: string[];
+}
+
 function AppSidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
+  
+  const { data: permissions, isLoading: permissionsLoading } = useQuery<MyPermissions>({
+    queryKey: ["/api/my-permissions"],
+  });
+
+  const canAccess = (moduleName: string) => {
+    if (permissionsLoading || !permissions) return false;
+    return permissions.modules.includes(moduleName);
+  };
   
   const mainMenuItems = [
     {
       title: "Purchases",
       url: "/",
       icon: ShoppingCart,
+      module: "purchases",
     },
     {
       title: "Sales",
       url: "/sales",
       icon: TrendingUp,
+      module: "sales",
     },
     {
       title: "Payments",
       url: "/payments",
       icon: CreditCard,
+      module: "payments",
     },
     {
       title: "Returns",
       url: "/returns",
       icon: RotateCcw,
+      module: "returns",
     },
     {
       title: "Expenses",
       url: "/expenses",
       icon: Receipt,
+      module: "expenses",
     },
     {
       title: "Accounts",
       url: "/accounts",
       icon: Wallet,
+      module: "accounts",
     },
-  ];
+  ].filter(item => canAccess(item.module));
 
   const itemMasterSubItems = [
     { title: "View Items", url: "/items" },
@@ -129,6 +149,11 @@ function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Modules</SidebarGroupLabel>
           <SidebarGroupContent>
+            {permissionsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
             <SidebarMenu>
               {mainMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
@@ -144,104 +169,113 @@ function AppSidebar() {
                 </SidebarMenuItem>
               ))}
 
-              <Collapsible defaultOpen={location.startsWith("/items")} className="group/collapsible">
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={location.startsWith("/items")}>
-                      <Package className="h-4 w-4" />
-                      <span>Item Master</span>
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {itemMasterSubItems.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.url}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={location === subItem.url}
-                          >
-                            <Link href={subItem.url} data-testid={`link-${subItem.title.toLowerCase().replace(" ", "-")}`}>
-                              {subItem.title === "Bulk Edit" && <Edit3 className="h-3 w-3" />}
-                              {subItem.title}
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
+              {canAccess("items") && (
+                <Collapsible defaultOpen={location.startsWith("/items")} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={location.startsWith("/items")}>
+                        <Package className="h-4 w-4" />
+                        <span>Item Master</span>
+                        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {itemMasterSubItems.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.url}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location === subItem.url}
+                            >
+                              <Link href={subItem.url} data-testid={`link-${subItem.title.toLowerCase().replace(" ", "-")}`}>
+                                {subItem.title === "Bulk Edit" && <Edit3 className="h-3 w-3" />}
+                                {subItem.title}
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={location === "/parties"}
-                >
-                  <Link href="/parties" data-testid="link-party-master">
-                    <Users className="h-4 w-4" />
-                    <span>Party Master</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <Collapsible defaultOpen={location.startsWith("/reports")} className="group/collapsible">
+              {canAccess("parties") && (
                 <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={location.startsWith("/reports")}>
-                      <FileBarChart className="h-4 w-4" />
-                      <span>Reports</span>
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {reportsSubItems.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.url}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={location === subItem.url}
-                          >
-                            <Link href={subItem.url} data-testid={`link-${subItem.title.toLowerCase().replace(" ", "-")}`}>
-                              {subItem.title === "Party Statement" && <FileText className="h-3 w-3" />}
-                              {subItem.title}
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location === "/parties"}
+                  >
+                    <Link href="/parties" data-testid="link-party-master">
+                      <Users className="h-4 w-4" />
+                      <span>Party Master</span>
+                    </Link>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
-              </Collapsible>
+              )}
 
-              <Collapsible defaultOpen={location.startsWith("/settings")} className="group/collapsible">
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={location.startsWith("/settings")}>
-                      <Settings className="h-4 w-4" />
-                      <span>Settings</span>
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {settingsSubItems.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.url}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={location === subItem.url}
-                          >
-                            <Link href={subItem.url} data-testid={`link-${subItem.title.toLowerCase().replace(" ", "-")}`}>
-                              {subItem.title}
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
+              {canAccess("reports") && (
+                <Collapsible defaultOpen={location.startsWith("/reports")} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={location.startsWith("/reports")}>
+                        <FileBarChart className="h-4 w-4" />
+                        <span>Reports</span>
+                        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {reportsSubItems.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.url}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location === subItem.url}
+                            >
+                              <Link href={subItem.url} data-testid={`link-${subItem.title.toLowerCase().replace(" ", "-")}`}>
+                                {subItem.title === "Party Statement" && <FileText className="h-3 w-3" />}
+                                {subItem.title}
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
+
+              {canAccess("settings") && (
+                <Collapsible defaultOpen={location.startsWith("/settings")} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={location.startsWith("/settings")}>
+                        <Settings className="h-4 w-4" />
+                        <span>Settings</span>
+                        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {settingsSubItems.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.url}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location === subItem.url}
+                            >
+                              <Link href={subItem.url} data-testid={`link-${subItem.title.toLowerCase().replace(" ", "-")}`}>
+                                {subItem.title}
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
             </SidebarMenu>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
