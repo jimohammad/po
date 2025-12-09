@@ -44,8 +44,19 @@ export function SalesLineItemRow({
     onChange(item.id, "quantity", qty);
   };
 
-  const handlePriceChange = (value: string) => {
-    onChange(item.id, "priceKwd", value);
+  const handleItemChange = (itemName: string) => {
+    onChange(item.id, "itemName", itemName === "none" ? "" : itemName);
+    
+    if (itemName && itemName !== "none") {
+      const selectedItem = items.find((itm) => itm.name === itemName);
+      if (selectedItem?.sellingPriceKwd) {
+        onChange(item.id, "priceKwd", selectedItem.sellingPriceKwd);
+      } else {
+        onChange(item.id, "priceKwd", "");
+      }
+    } else {
+      onChange(item.id, "priceKwd", "");
+    }
   };
 
   const validateImei = (imei: string): string | null => {
@@ -103,7 +114,7 @@ export function SalesLineItemRow({
         <div className="flex-1 min-w-[150px]">
           <Select
             value={item.itemName || "none"}
-            onValueChange={(val) => onChange(item.id, "itemName", val === "none" ? "" : val)}
+            onValueChange={handleItemChange}
           >
             <SelectTrigger className="w-full text-sm" data-testid={`select-sales-item-${index}`}>
               <SelectValue placeholder="Select item" />
@@ -134,12 +145,10 @@ export function SalesLineItemRow({
         
         <div className="w-28">
           <Input
-            type="number"
-            min="0"
-            step="0.001"
-            value={item.priceKwd}
-            onChange={(e) => handlePriceChange(e.target.value)}
-            className="text-center text-sm"
+            type="text"
+            readOnly
+            value={item.priceKwd ? `${item.priceKwd}` : ""}
+            className="text-center text-sm bg-muted/50"
             placeholder="KWD"
             data-testid={`input-sales-price-${index}`}
           />
