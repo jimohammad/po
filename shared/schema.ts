@@ -604,3 +604,75 @@ export type StockTransferWithDetails = StockTransfer & {
   toBranch: Branch;
   lineItems: StockTransferLineItem[];
 };
+
+// ==================== OPENING BALANCES MODULE ====================
+
+export const inventoryAdjustments = pgTable("inventory_adjustments", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  itemId: integer("item_id").references(() => items.id).notNull(),
+  branchId: integer("branch_id").references(() => branches.id).notNull(),
+  quantity: integer("quantity").notNull(),
+  unitCostKwd: numeric("unit_cost_kwd", { precision: 12, scale: 3 }),
+  effectiveDate: date("effective_date").notNull(),
+  adjustmentType: text("adjustment_type").default("opening").notNull(), // 'opening' | 'manual'
+  notes: text("notes"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_inv_adj_item").on(table.itemId),
+  index("idx_inv_adj_branch").on(table.branchId),
+  index("idx_inv_adj_date").on(table.effectiveDate),
+]);
+
+export const inventoryAdjustmentsRelations = relations(inventoryAdjustments, ({ one }) => ({
+  item: one(items, {
+    fields: [inventoryAdjustments.itemId],
+    references: [items.id],
+  }),
+  branch: one(branches, {
+    fields: [inventoryAdjustments.branchId],
+    references: [branches.id],
+  }),
+}));
+
+export const insertInventoryAdjustmentSchema = createInsertSchema(inventoryAdjustments).omit({ id: true, createdAt: true });
+export type InsertInventoryAdjustment = z.infer<typeof insertInventoryAdjustmentSchema>;
+export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;
+
+export type InventoryAdjustmentWithDetails = InventoryAdjustment & {
+  item: Item;
+  branch: Branch;
+};
+
+export const openingBalances = pgTable("opening_balances", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  partyType: text("party_type").notNull(), // 'customer' | 'supplier'
+  partyId: integer("party_id").notNull(),
+  branchId: integer("branch_id").references(() => branches.id),
+  balanceAmount: numeric("balance_amount", { precision: 12, scale: 3 }).notNull(), // positive = they owe us, negative = we owe them
+  effectiveDate: date("effective_date").notNull(),
+  notes: text("notes"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_ob_party_type").on(table.partyType),
+  index("idx_ob_party_id").on(table.partyId),
+  index("idx_ob_branch").on(table.branchId),
+  index("idx_ob_date").on(table.effectiveDate),
+]);
+
+export const openingBalancesRelations = relations(openingBalances, ({ one }) => ({
+  branch: one(branches, {
+    fields: [openingBalances.branchId],
+    references: [branches.id],
+  }),
+}));
+
+export const insertOpeningBalanceSchema = createInsertSchema(openingBalances).omit({ id: true, createdAt: true });
+export type InsertOpeningBalance = z.infer<typeof insertOpeningBalanceSchema>;
+export type OpeningBalance = typeof openingBalances.$inferSelect;
+
+export type OpeningBalanceWithDetails = OpeningBalance & {
+  branch?: Branch;
+  partyName?: string;
+};
