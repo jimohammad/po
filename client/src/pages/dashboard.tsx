@@ -145,95 +145,93 @@ export default function DashboardPage() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card data-testid="card-stock-amount">
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Stock Amount</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+        <div className="space-y-4">
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+            <Card data-testid="card-stock-amount" className="p-0">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Stock Amount</CardTitle>
+                <Package className="h-3.5 w-3.5 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-stock-amount">
-                  {formatCurrency(stats?.stockAmount || 0)} KWD
+              <CardContent className="p-3 pt-0">
+                <div className="text-lg font-bold" data-testid="text-stock-amount">
+                  {formatCurrency(stats?.stockAmount || 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">Total inventory value</p>
+                <p className="text-[10px] text-muted-foreground">KWD</p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-total-credit">
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Credit</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-600" />
+            <Card data-testid="card-total-credit" className="p-0">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Total Credit</CardTitle>
+                <TrendingUp className="h-3.5 w-3.5 text-green-600" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600" data-testid="text-total-credit">
-                  {formatCurrency(stats?.totalCredit || 0)} KWD
+              <CardContent className="p-3 pt-0">
+                <div className="text-lg font-bold text-green-600" data-testid="text-total-credit">
+                  {formatCurrency(stats?.totalCredit || 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">All incoming payments</p>
+                <p className="text-[10px] text-muted-foreground">KWD</p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-total-debit">
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Debit</CardTitle>
-                <TrendingDown className="h-4 w-4 text-red-600" />
+            <Card data-testid="card-total-debit" className="p-0">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Total Debit</CardTitle>
+                <TrendingDown className="h-3.5 w-3.5 text-red-600" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600" data-testid="text-total-debit">
-                  {formatCurrency(stats?.totalDebit || 0)} KWD
+              <CardContent className="p-3 pt-0">
+                <div className="text-lg font-bold text-red-600" data-testid="text-total-debit">
+                  {formatCurrency(stats?.totalDebit || 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">All outgoing payments</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card data-testid="card-cash-balance">
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Cash</CardTitle>
-                <Wallet className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-cash-balance">
-                  {formatCurrency(stats?.cashBalance || 0)} KWD
-                </div>
-                <p className="text-xs text-muted-foreground">Cash in hand</p>
+                <p className="text-[10px] text-muted-foreground">KWD</p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-bank-accounts">
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Bank Accounts</CardTitle>
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+            <Card data-testid="card-cash-balance" className="p-0">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Cash</CardTitle>
+                <Wallet className="h-3.5 w-3.5 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-bank-accounts">
-                  {formatCurrency(stats?.bankAccountsBalance || 0)} KWD
+              <CardContent className="p-3 pt-0">
+                <div className="text-lg font-bold" data-testid="text-cash-balance">
+                  {formatCurrency(stats?.cashBalance || 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">NBK, CBK, Knet, Wamd</p>
+                <p className="text-[10px] text-muted-foreground">KWD</p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-monthly-purchases">
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Monthly Purchases</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <Card data-testid="card-bank-accounts" className="p-0">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Bank Accounts</CardTitle>
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-monthly-purchases">
-                  {formatCurrency(stats?.monthlyPurchases || 0)} KWD
+              <CardContent className="p-3 pt-0">
+                <div className="text-lg font-bold" data-testid="text-bank-accounts">
+                  {formatCurrency(stats?.bankAccountsBalance || 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">{currentMonthName} {currentDate.getFullYear()}</p>
+                <p className="text-[10px] text-muted-foreground">KWD</p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-monthly-purchases" className="p-0">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Purchases</CardTitle>
+                <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                <div className="text-lg font-bold" data-testid="text-monthly-purchases">
+                  {formatCurrency(stats?.monthlyPurchases || 0)}
+                </div>
+                <p className="text-[10px] text-muted-foreground">{currentMonthName}</p>
               </CardContent>
             </Card>
           </div>
 
           <Card data-testid="card-sales-comparison">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 p-4 pb-2">
               <div>
-                <CardTitle className="text-lg font-semibold">Sales Comparison</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {lastMonthName} vs {currentMonthName} {currentDate.getFullYear()}
+                <CardTitle className="text-sm font-semibold">Sales Comparison</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  {lastMonthName} vs {currentMonthName}
                 </p>
               </div>
               {salesChange !== null && (
@@ -245,44 +243,46 @@ export default function DashboardPage() {
                 </Badge>
               )}
             </CardHeader>
-            <CardContent>
-              <div className="h-64">
+            <CardContent className="p-4 pt-0">
+              <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesComparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <BarChart data={salesComparisonData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis 
                       dataKey="name" 
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 11 }}
                       className="text-muted-foreground"
                     />
                     <YAxis 
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 11 }}
                       tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
                       className="text-muted-foreground"
+                      width={40}
                     />
                     <Tooltip 
                       formatter={(value: number) => [`${formatCurrency(value)} KWD`, "Sales"]}
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--card))', 
                         border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
+                        borderRadius: '6px',
+                        fontSize: '12px'
                       }}
                     />
-                    <Bar dataKey="sales" radius={[8, 8, 0, 0]}>
+                    <Bar dataKey="sales" radius={[6, 6, 0, 0]}>
                       <Cell fill="hsl(var(--muted-foreground))" />
                       <Cell fill="hsl(var(--primary))" />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">{lastMonthName} Sales</p>
-                  <p className="text-xl font-bold">{formatCurrency(stats?.lastMonthSales || 0)} KWD</p>
+                  <p className="text-xs text-muted-foreground">{lastMonthName}</p>
+                  <p className="text-base font-bold">{formatCurrency(stats?.lastMonthSales || 0)} KWD</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">{currentMonthName} Sales</p>
-                  <p className="text-xl font-bold text-primary">{formatCurrency(stats?.monthlySales || 0)} KWD</p>
+                  <p className="text-xs text-muted-foreground">{currentMonthName}</p>
+                  <p className="text-base font-bold text-primary">{formatCurrency(stats?.monthlySales || 0)} KWD</p>
                 </div>
               </div>
             </CardContent>
