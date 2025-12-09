@@ -47,6 +47,9 @@ export const items = pgTable("items", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   code: text("code"),
   name: text("name").notNull().unique(),
+  purchasePriceKwd: numeric("purchase_price_kwd", { precision: 12, scale: 3 }),
+  fxCurrency: text("fx_currency"),
+  sellingPriceKwd: numeric("selling_price_kwd", { precision: 12, scale: 3 }),
 });
 
 export const insertItemSchema = createInsertSchema(items).omit({ id: true });

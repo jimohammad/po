@@ -62,6 +62,8 @@ export interface IStorage {
   createItem(item: InsertItem): Promise<Item>;
   updateItem(id: number, item: InsertItem): Promise<Item | undefined>;
   deleteItem(id: number): Promise<boolean>;
+  getItemLastPricing(itemName: string): Promise<{ priceKwd: string | null; fxCurrency: string | null } | null>;
+  bulkUpdateItems(updates: { id: number; item: Partial<InsertItem> }[]): Promise<Item[]>;
 
   getPurchaseOrders(): Promise<PurchaseOrderWithDetails[]>;
   getPurchaseOrder(id: number): Promise<PurchaseOrderWithDetails | undefined>;
@@ -211,6 +213,35 @@ export class DatabaseStorage implements IStorage {
   async deleteItem(id: number): Promise<boolean> {
     const result = await db.delete(items).where(eq(items.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getItemLastPricing(itemName: string): Promise<{ priceKwd: string | null; fxCurrency: string | null } | null> {
+    const result = await db
+      .select({
+        priceKwd: purchaseOrderLineItems.priceKwd,
+        fxCurrency: purchaseOrders.fxCurrency,
+      })
+      .from(purchaseOrderLineItems)
+      .innerJoin(purchaseOrders, eq(purchaseOrderLineItems.purchaseOrderId, purchaseOrders.id))
+      .where(eq(purchaseOrderLineItems.itemName, itemName))
+      .orderBy(desc(purchaseOrders.purchaseDate), desc(purchaseOrders.id))
+      .limit(1);
+    
+    if (result.length === 0) {
+      return null;
+    }
+    return result[0];
+  }
+
+  async bulkUpdateItems(updates: { id: number; item: Partial<InsertItem> }[]): Promise<Item[]> {
+    const updatedItems: Item[] = [];
+    for (const update of updates) {
+      const [updated] = await db.update(items).set(update.item).where(eq(items.id, update.id)).returning();
+      if (updated) {
+        updatedItems.push(updated);
+      }
+    }
+    return updatedItems;
   }
 
   async getPurchaseOrders(): Promise<PurchaseOrderWithDetails[]> {
