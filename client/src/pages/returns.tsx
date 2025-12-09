@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -51,8 +51,23 @@ const returnFormSchema = z.object({
   returnType: z.enum(["purchase_return", "sale_return"]),
   customerId: z.string().optional(),
   supplierId: z.string().optional(),
-  reason: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    if (data.returnType === "sale_return") {
+      return data.customerId && data.customerId.length > 0;
+    }
+    return true;
+  },
+  { message: "Customer is required for sale returns", path: ["customerId"] }
+).refine(
+  (data) => {
+    if (data.returnType === "purchase_return") {
+      return data.supplierId && data.supplierId.length > 0;
+    }
+    return true;
+  },
+  { message: "Supplier is required for purchase returns", path: ["supplierId"] }
+);
 
 type ReturnFormValues = z.infer<typeof returnFormSchema>;
 
@@ -75,6 +90,8 @@ export default function ReturnsPage() {
   const [imeiDialogLineIndex, setImeiDialogLineIndex] = useState<number | null>(null);
   const [newImei, setNewImei] = useState("");
   const [imeiError, setImeiError] = useState("");
+  const customerSelectRef = useRef<HTMLButtonElement>(null);
+  const supplierSelectRef = useRef<HTMLButtonElement>(null);
 
   const { data: returns = [], isLoading } = useQuery<ReturnWithDetails[]>({
     queryKey: ["/api/returns"],
@@ -92,6 +109,16 @@ export default function ReturnsPage() {
     queryKey: ["/api/items"],
   });
 
+  const generateReturnNumber = (): string => {
+    const existingNumbers = returns
+      .map(r => r.returnNumber)
+      .filter(n => n && n.startsWith("Ret-"))
+      .map(n => parseInt(n!.replace("Ret-", "")))
+      .filter(n => !isNaN(n));
+    const maxNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 10000;
+    return `Ret-${maxNumber + 1}`;
+  };
+
   const form = useForm<ReturnFormValues>({
     resolver: zodResolver(returnFormSchema),
     defaultValues: {
@@ -100,20 +127,22 @@ export default function ReturnsPage() {
       returnType: "sale_return",
       customerId: "",
       supplierId: "",
-      reason: "",
     },
   });
 
   const createReturnMutation = useMutation({
     mutationFn: async (data: ReturnFormValues) => {
+      const validLineItems = lineItems.filter(item => item.itemName);
+      if (validLineItems.length === 0) {
+        throw new Error("At least one line item is required");
+      }
       const payload = {
         returnDate: data.returnDate,
         returnNumber: data.returnNumber,
         returnType: data.returnType,
         customerId: data.returnType === "sale_return" && data.customerId ? parseInt(data.customerId) : null,
         supplierId: data.returnType === "purchase_return" && data.supplierId ? parseInt(data.supplierId) : null,
-        reason: data.reason || null,
-        lineItems: lineItems.filter(item => item.itemName).map(item => ({
+        lineItems: validLineItems.map(item => ({
           itemName: item.itemName,
           quantity: item.quantity,
           priceKwd: item.priceKwd,
@@ -147,6 +176,22 @@ export default function ReturnsPage() {
       toast({ title: "Failed to delete return", description: error?.message || "Unknown error", variant: "destructive" });
     },
   });
+
+  const handleDialogOpen = (open: boolean) => {
+    setDialogOpen(open);
+    if (open) {
+      const newReturnNumber = generateReturnNumber();
+      form.setValue("returnNumber", newReturnNumber);
+      form.setValue("returnType", returnType);
+      setTimeout(() => {
+        if (returnType === "sale_return") {
+          customerSelectRef.current?.focus();
+        } else {
+          supplierSelectRef.current?.focus();
+        }
+      }, 100);
+    }
+  };
 
   const handleTypeToggle = (checked: boolean) => {
     const newType = checked ? "purchase_return" : "sale_return";
@@ -280,7 +325,7 @@ export default function ReturnsPage() {
           <Label className="text-sm font-medium">Purchase Return</Label>
         </div>
         
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={handleDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-new-return">
               <Plus className="h-4 w-4 mr-2" />
@@ -314,7 +359,7 @@ export default function ReturnsPage() {
                       <FormItem>
                         <FormLabel>Return Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="RET-001" {...field} data-testid="input-return-number" />
+                          <Input {...field} readOnly className="bg-muted" data-testid="input-return-number" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -331,7 +376,7 @@ export default function ReturnsPage() {
                         <FormLabel>Customer</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger data-testid="select-customer">
+                            <SelectTrigger ref={customerSelectRef} data-testid="select-customer">
                               <SelectValue placeholder="Select customer" />
                             </SelectTrigger>
                           </FormControl>
@@ -356,7 +401,7 @@ export default function ReturnsPage() {
                         <FormLabel>Supplier</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger data-testid="select-supplier">
+                            <SelectTrigger ref={supplierSelectRef} data-testid="select-supplier">
                               <SelectValue placeholder="Select supplier" />
                             </SelectTrigger>
                           </FormControl>
@@ -373,20 +418,6 @@ export default function ReturnsPage() {
                     )}
                   />
                 )}
-
-                <FormField
-                  control={form.control}
-                  name="reason"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reason (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter reason for return" {...field} data-testid="input-reason" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-4">
@@ -442,7 +473,8 @@ export default function ReturnsPage() {
                             <TableCell>
                               <Input
                                 value={item.priceKwd}
-                                onChange={(e) => updateLineItem(index, "priceKwd", e.target.value)}
+                                readOnly
+                                className="bg-muted"
                                 data-testid={`input-price-${index}`}
                               />
                             </TableCell>
@@ -602,7 +634,6 @@ export default function ReturnsPage() {
                   <TableHead>Return No.</TableHead>
                   <TableHead>{returnType === "sale_return" ? "Customer" : "Supplier"}</TableHead>
                   <TableHead>Items</TableHead>
-                  <TableHead>Reason</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -634,7 +665,6 @@ export default function ReturnsPage() {
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{ret.reason || "-"}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
