@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, RotateCcw, Save, Loader2, AlertTriangle } from "lucide-react";
+import { Plus, RotateCcw, Save, Loader2, AlertTriangle, Share2, Printer } from "lucide-react";
 import { SalesLineItemRow, type SalesLineItemData } from "./SalesLineItemRow";
 import type { Customer, Item } from "@shared/schema";
 
@@ -262,7 +262,85 @@ export function SalesOrderForm({
             </Alert>
           )}
 
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button 
+              type="button"
+              variant="outline"
+              onClick={() => {
+                const customerName = selectedCustomer?.name || "Customer";
+                const items = lineItems.filter(li => li.itemName).map(li => 
+                  `${li.itemName} x${li.quantity} @ ${li.priceKwd} KWD = ${li.totalKwd} KWD`
+                ).join("\n");
+                const message = encodeURIComponent(
+                  `Sales Invoice\n` +
+                  `Date: ${saleDate}\n` +
+                  `Invoice: ${invoiceNumber || "N/A"}\n` +
+                  `Customer: ${customerName}\n\n` +
+                  `Items:\n${items}\n\n` +
+                  `Total: ${totalKwd} KWD`
+                );
+                window.open(`https://wa.me/?text=${message}`, "_blank");
+              }}
+              data-testid="button-whatsapp-sales"
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              WhatsApp
+            </Button>
+            <Button 
+              type="button"
+              variant="outline"
+              onClick={() => {
+                const printWindow = window.open("", "_blank");
+                if (printWindow) {
+                  const customerName = selectedCustomer?.name || "Customer";
+                  const itemRows = lineItems.filter(li => li.itemName).map(li => 
+                    `<tr><td>${li.itemName}</td><td>${li.quantity}</td><td>${li.priceKwd}</td><td>${li.totalKwd}</td></tr>`
+                  ).join("");
+                  printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                      <title>Sales Invoice</title>
+                      <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .header { text-align: center; margin-bottom: 20px; }
+                        .company { font-size: 24px; font-weight: bold; }
+                        .title { font-size: 18px; margin-top: 10px; }
+                        .details { margin: 20px 0; }
+                        .row { display: flex; justify-content: space-between; padding: 4px 0; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background: #f5f5f5; }
+                        .total { font-size: 18px; font-weight: bold; margin-top: 20px; text-align: right; }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="header">
+                        <div class="company">Iqbal Electronics Co. WLL</div>
+                        <div class="title">Sales Invoice</div>
+                      </div>
+                      <div class="details">
+                        <div class="row"><span>Date:</span><span>${saleDate}</span></div>
+                        <div class="row"><span>Invoice:</span><span>${invoiceNumber || "N/A"}</span></div>
+                        <div class="row"><span>Customer:</span><span>${customerName}</span></div>
+                      </div>
+                      <table>
+                        <thead><tr><th>Item</th><th>Qty</th><th>Price (KWD)</th><th>Total (KWD)</th></tr></thead>
+                        <tbody>${itemRows}</tbody>
+                      </table>
+                      <div class="total">Total: ${totalKwd} KWD</div>
+                    </body>
+                    </html>
+                  `);
+                  printWindow.document.close();
+                  printWindow.print();
+                }
+              }}
+              data-testid="button-print-sales"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print
+            </Button>
             <Button 
               type="submit" 
               disabled={isSubmitting || !canSubmit}

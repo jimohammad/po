@@ -20,6 +20,7 @@ import UserRolesPage from "@/pages/user-roles";
 import ExpensesPage from "@/pages/expenses";
 import AccountsPage from "@/pages/accounts";
 import DiscountPage from "@/pages/discount";
+import ExportImeiPage from "@/pages/export-imei";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent } from "lucide-react";
@@ -122,6 +123,7 @@ function AppSidebar() {
     { title: "Party Statement", url: "/reports/party-statement" },
     { title: "Account Statement", url: "/reports/account-statement" },
     { title: "Item Report", url: "/reports/item-report" },
+    { title: "Export IMEI", url: "/reports/export-imei" },
   ];
 
   const settingsSubItems = [
@@ -392,6 +394,7 @@ function AuthenticatedLayout() {
               <Route path="/reports/party-statement" component={PartyStatementPage} />
               <Route path="/reports/account-statement" component={AccountStatementPage} />
               <Route path="/reports/item-report" component={ItemReportPage} />
+              <Route path="/reports/export-imei" component={ExportImeiPage} />
               <Route path="/settings/user-roles" component={UserRolesPage} />
               <Route component={NotFound} />
             </Switch>

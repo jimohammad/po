@@ -1105,5 +1105,24 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== EXPORT IMEI ROUTE ====================
+
+  app.get("/api/export-imei", isAuthenticated, async (req, res) => {
+    try {
+      const filters = {
+        customerId: req.query.customerId ? parseInt(req.query.customerId as string) : undefined,
+        itemName: req.query.itemName && req.query.itemName !== "all" ? req.query.itemName as string : undefined,
+        invoiceNumber: req.query.invoiceNumber as string | undefined,
+        dateFrom: req.query.dateFrom as string | undefined,
+        dateTo: req.query.dateTo as string | undefined,
+      };
+      const records = await storage.getExportImei(filters);
+      res.json(records);
+    } catch (error) {
+      console.error("Error fetching IMEI records:", error);
+      res.status(500).json({ error: "Failed to fetch IMEI records" });
+    }
+  });
+
   return httpServer;
 }

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, RotateCcw, Save, Loader2 } from "lucide-react";
+import { Plus, RotateCcw, Save, Loader2, Share2, Printer } from "lucide-react";
 import { LineItemRow, type LineItemData } from "./LineItemRow";
 import { CurrencyToggle } from "./CurrencyToggle";
 import { FileUploadField } from "./FileUploadField";
@@ -338,28 +338,110 @@ export function PurchaseOrderForm({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-4 pt-2">
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
             <p className="text-[11px] text-muted-foreground">
               Note: Files are securely stored in cloud storage.
             </p>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-primary"
-              data-testid="button-save-record"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Record
-                </>
-              )}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  const supplierName = suppliers.find(s => s.id.toString() === supplierId)?.name || "Supplier";
+                  const items = lineItems.filter(li => li.itemName).map(li => 
+                    `${li.itemName} x${li.quantity} @ ${li.priceKwd} KWD = ${li.totalKwd} KWD`
+                  ).join("\n");
+                  const message = encodeURIComponent(
+                    `Purchase Order\n` +
+                    `Date: ${purchaseDate}\n` +
+                    `Invoice: ${invoiceNumber || "N/A"}\n` +
+                    `Supplier: ${supplierName}\n\n` +
+                    `Items:\n${items}\n\n` +
+                    `Total: ${totals.totalKwd} KWD` +
+                    (totals.totalFx ? `\nFX Total: ${totals.totalFx} ${fxCurrency}` : "")
+                  );
+                  window.open(`https://wa.me/?text=${message}`, "_blank");
+                }}
+                data-testid="button-whatsapp-purchase"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                WhatsApp
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  const printWindow = window.open("", "_blank");
+                  if (printWindow) {
+                    const supplierName = suppliers.find(s => s.id.toString() === supplierId)?.name || "Supplier";
+                    const itemRows = lineItems.filter(li => li.itemName).map(li => 
+                      `<tr><td>${li.itemName}</td><td>${li.quantity}</td><td>${li.priceKwd}</td><td>${li.totalKwd}</td></tr>`
+                    ).join("");
+                    printWindow.document.write(`
+                      <!DOCTYPE html>
+                      <html>
+                      <head>
+                        <title>Purchase Order</title>
+                        <style>
+                          body { font-family: Arial, sans-serif; padding: 20px; }
+                          .header { text-align: center; margin-bottom: 20px; }
+                          .company { font-size: 24px; font-weight: bold; }
+                          .title { font-size: 18px; margin-top: 10px; }
+                          .details { margin: 20px 0; }
+                          .row { display: flex; justify-content: space-between; padding: 4px 0; }
+                          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                          th { background: #f5f5f5; }
+                          .total { font-size: 18px; font-weight: bold; margin-top: 20px; text-align: right; }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="header">
+                          <div class="company">Iqbal Electronics Co. WLL</div>
+                          <div class="title">Purchase Order</div>
+                        </div>
+                        <div class="details">
+                          <div class="row"><span>Date:</span><span>${purchaseDate}</span></div>
+                          <div class="row"><span>Invoice:</span><span>${invoiceNumber || "N/A"}</span></div>
+                          <div class="row"><span>Supplier:</span><span>${supplierName}</span></div>
+                        </div>
+                        <table>
+                          <thead><tr><th>Item</th><th>Qty</th><th>Price (KWD)</th><th>Total (KWD)</th></tr></thead>
+                          <tbody>${itemRows}</tbody>
+                        </table>
+                        <div class="total">Total: ${totals.totalKwd} KWD</div>
+                        ${totals.totalFx ? `<div class="total">FX Total: ${totals.totalFx} ${fxCurrency}</div>` : ""}
+                      </body>
+                      </html>
+                    `);
+                    printWindow.document.close();
+                    printWindow.print();
+                  }
+                }}
+                data-testid="button-print-purchase"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-primary"
+                data-testid="button-save-record"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Record
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </CardContent>

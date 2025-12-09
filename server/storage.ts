@@ -162,6 +162,9 @@ export interface IStorage {
   createDiscount(discount: InsertDiscount): Promise<DiscountWithDetails>;
   deleteDiscount(id: number): Promise<boolean>;
   getInvoicesForCustomer(customerId: number): Promise<{ id: number; invoiceNumber: string; totalKwd: string }[]>;
+
+  // Export IMEI
+  getExportImei(filters: { customerId?: number; itemName?: string; invoiceNumber?: string; dateFrom?: string; dateTo?: string }): Promise<{ imei: string; itemName: string; customerName: string; invoiceNumber: string; saleDate: string }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1149,6 +1152,61 @@ export class DatabaseStorage implements IStorage {
       invoiceNumber: o.invoiceNumber || `INV-${o.id}`,
       totalKwd: o.totalKwd || "0",
     }));
+  }
+
+  // ==================== EXPORT IMEI ====================
+
+  async getExportImei(filters: { customerId?: number; itemName?: string; invoiceNumber?: string; dateFrom?: string; dateTo?: string }): Promise<{ imei: string; itemName: string; customerName: string; invoiceNumber: string; saleDate: string }[]> {
+    const conditions = [];
+    
+    if (filters.customerId && filters.customerId > 0) {
+      conditions.push(eq(salesOrders.customerId, filters.customerId));
+    }
+    if (filters.itemName) {
+      conditions.push(eq(salesOrderLineItems.itemName, filters.itemName));
+    }
+    if (filters.invoiceNumber) {
+      conditions.push(sql`${salesOrders.invoiceNumber} ILIKE ${'%' + filters.invoiceNumber + '%'}`);
+    }
+    if (filters.dateFrom) {
+      conditions.push(gte(salesOrders.invoiceDate, filters.dateFrom));
+    }
+    if (filters.dateTo) {
+      conditions.push(lte(salesOrders.invoiceDate, filters.dateTo));
+    }
+
+    const query = db.select({
+      imeiNumbers: salesOrderLineItems.imeiNumbers,
+      itemName: salesOrderLineItems.itemName,
+      customerName: customers.name,
+      invoiceNumber: salesOrders.invoiceNumber,
+      saleDate: salesOrders.invoiceDate,
+    })
+    .from(salesOrderLineItems)
+    .innerJoin(salesOrders, eq(salesOrderLineItems.salesOrderId, salesOrders.id))
+    .innerJoin(customers, eq(salesOrders.customerId, customers.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(salesOrders.invoiceDate));
+
+    const results = await query;
+
+    const flattened: { imei: string; itemName: string; customerName: string; invoiceNumber: string; saleDate: string }[] = [];
+    
+    for (const row of results) {
+      if (row.imeiNumbers && row.imeiNumbers.length > 0) {
+        for (const imei of row.imeiNumbers) {
+          flattened.push({
+            imei,
+            itemName: row.itemName,
+            customerName: row.customerName,
+            invoiceNumber: row.invoiceNumber || "",
+            saleDate: row.saleDate || "",
+          });
+        }
+      }
+    }
+
+    return flattened;
   }
 }
 
