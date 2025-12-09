@@ -93,7 +93,11 @@ export const purchaseOrders = pgTable("purchase_orders", {
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_po_branch").on(table.branchId),
+  index("idx_po_date").on(table.purchaseDate),
+  index("idx_po_supplier").on(table.supplierId),
+]);
 
 export const purchaseOrdersRelations = relations(purchaseOrders, ({ one, many }) => ({
   supplier: one(suppliers, {
@@ -119,7 +123,10 @@ export const purchaseOrderLineItems = pgTable("purchase_order_line_items", {
   priceKwd: numeric("price_kwd", { precision: 12, scale: 3 }),
   fxPrice: numeric("fx_price", { precision: 12, scale: 2 }),
   totalKwd: numeric("total_kwd", { precision: 12, scale: 3 }),
-});
+}, (table) => [
+  index("idx_po_line_item").on(table.itemName),
+  index("idx_po_line_order").on(table.purchaseOrderId),
+]);
 
 export const purchaseOrderLineItemsRelations = relations(purchaseOrderLineItems, ({ one }) => ({
   purchaseOrder: one(purchaseOrders, {
@@ -146,7 +153,9 @@ export const customers = pgTable("customers", {
   email: text("email"),
   creditLimit: numeric("credit_limit", { precision: 12, scale: 3 }),
   branchId: integer("branch_id").references(() => branches.id),
-});
+}, (table) => [
+  index("idx_customer_branch").on(table.branchId),
+]);
 
 export const customersRelations = relations(customers, ({ many }) => ({
   salesOrders: many(salesOrders),
@@ -173,7 +182,11 @@ export const salesOrders = pgTable("sales_orders", {
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_so_branch").on(table.branchId),
+  index("idx_so_date").on(table.saleDate),
+  index("idx_so_customer").on(table.customerId),
+]);
 
 export const salesOrdersRelations = relations(salesOrders, ({ one, many }) => ({
   customer: one(customers, {
@@ -199,7 +212,10 @@ export const salesOrderLineItems = pgTable("sales_order_line_items", {
   priceKwd: numeric("price_kwd", { precision: 12, scale: 3 }),
   totalKwd: numeric("total_kwd", { precision: 12, scale: 3 }),
   imeiNumbers: text("imei_numbers").array(),
-});
+}, (table) => [
+  index("idx_so_line_item").on(table.itemName),
+  index("idx_so_line_order").on(table.salesOrderId),
+]);
 
 export const salesOrderLineItemsRelations = relations(salesOrderLineItems, ({ one }) => ({
   salesOrder: one(salesOrders, {
@@ -238,7 +254,12 @@ export const payments = pgTable("payments", {
   branchId: integer("branch_id").references(() => branches.id),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_payment_branch").on(table.branchId),
+  index("idx_payment_date").on(table.paymentDate),
+  index("idx_payment_customer").on(table.customerId),
+  index("idx_payment_supplier").on(table.supplierId),
+]);
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
   customer: one(customers, {
@@ -273,7 +294,9 @@ export const accounts = pgTable("accounts", {
   name: text("name").notNull(),
   balance: numeric("balance", { precision: 12, scale: 3 }).default("0"),
   branchId: integer("branch_id").references(() => branches.id),
-});
+}, (table) => [
+  index("idx_account_branch").on(table.branchId),
+]);
 
 export const insertAccountSchema = createInsertSchema(accounts).omit({ id: true });
 export type InsertAccount = z.infer<typeof insertAccountSchema>;
@@ -335,7 +358,10 @@ export const expenses = pgTable("expenses", {
   branchId: integer("branch_id").references(() => branches.id),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_expense_branch").on(table.branchId),
+  index("idx_expense_date").on(table.expenseDate),
+]);
 
 export const expensesRelations = relations(expenses, ({ one }) => ({
   category: one(expenseCategories, {
@@ -378,7 +404,11 @@ export const returns = pgTable("returns", {
   branchId: integer("branch_id").references(() => branches.id),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_return_branch").on(table.branchId),
+  index("idx_return_date").on(table.returnDate),
+  index("idx_return_type").on(table.returnType),
+]);
 
 export const returnsRelations = relations(returns, ({ one, many }) => ({
   customer: one(customers, {
@@ -407,7 +437,10 @@ export const returnLineItems = pgTable("return_line_items", {
   priceKwd: numeric("price_kwd", { precision: 12, scale: 3 }),
   totalKwd: numeric("total_kwd", { precision: 12, scale: 3 }),
   imeiNumbers: text("imei_numbers").array(),
-});
+}, (table) => [
+  index("idx_return_line_item").on(table.itemName),
+  index("idx_return_line_return").on(table.returnId),
+]);
 
 export const returnLineItemsRelations = relations(returnLineItems, ({ one }) => ({
   return: one(returns, {
@@ -512,7 +545,11 @@ export const stockTransfers = pgTable("stock_transfers", {
   notes: text("notes"),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_transfer_from_branch").on(table.fromBranchId),
+  index("idx_transfer_to_branch").on(table.toBranchId),
+  index("idx_transfer_date").on(table.transferDate),
+]);
 
 export const stockTransfersRelations = relations(stockTransfers, ({ one, many }) => ({
   fromBranch: one(branches, {
@@ -535,7 +572,10 @@ export const stockTransferLineItems = pgTable("stock_transfer_line_items", {
   stockTransferId: integer("stock_transfer_id").references(() => stockTransfers.id, { onDelete: "cascade" }).notNull(),
   itemName: text("item_name").notNull(),
   quantity: integer("quantity").default(1),
-});
+}, (table) => [
+  index("idx_transfer_line_item").on(table.itemName),
+  index("idx_transfer_line_transfer").on(table.stockTransferId),
+]);
 
 export const stockTransferLineItemsRelations = relations(stockTransferLineItems, ({ one }) => ({
   stockTransfer: one(stockTransfers, {
