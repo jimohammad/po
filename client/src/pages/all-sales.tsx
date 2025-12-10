@@ -79,12 +79,18 @@ export default function AllSalesPage() {
       return await apiRequest("DELETE", `/api/sales-orders/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sales-orders"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return typeof key === 'string' && key.startsWith('/api/sales-orders');
+        }
+      });
       toast({ title: "Sales invoice deleted successfully" });
       setDeleteId(null);
     },
     onError: (error: Error) => {
       toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+      setDeleteId(null);
     },
   });
 
