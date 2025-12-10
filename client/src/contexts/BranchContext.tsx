@@ -44,40 +44,42 @@ export function BranchProvider({ children }: { children: ReactNode }) {
     enabled: !!user && !authLoading, // Only fetch after user is authenticated
   });
 
+  // Only fetch default branch after permissions are loaded and we know user doesn't have assigned branch
   const { data: defaultBranch } = useQuery<Branch | null>({
     queryKey: ["/api/branches/default"],
-    enabled: currentBranchId === null && !permissions?.assignedBranchId,
+    enabled: !!user && !authLoading && !permissionsLoading && currentBranchId === null && !permissions?.assignedBranchId,
   });
 
-  // Don't wait for permissions to load - just wait for branches
-  const isLoading = branchesLoading;
+  // Wait for both branches and permissions before showing content
+  const isLoading = branchesLoading || (authLoading) || (!!user && permissionsLoading);
   const isLockedToBranch = !!permissions?.assignedBranchId;
 
-  // If user has an assigned branch, lock them to it
+  // If user has an assigned branch, lock them to it (runs after permissions load)
   useEffect(() => {
-    if (permissions?.assignedBranchId) {
+    if (!authLoading && !permissionsLoading && permissions?.assignedBranchId) {
       setCurrentBranchIdState(permissions.assignedBranchId);
       localStorage.setItem("selectedBranchId", permissions.assignedBranchId.toString());
     }
-  }, [permissions?.assignedBranchId]);
+  }, [authLoading, permissionsLoading, permissions?.assignedBranchId]);
 
-  // Fallback to default branch if no assigned branch
+  // Fallback to default branch if no assigned branch (only after permissions fully loaded)
   useEffect(() => {
-    if (!permissions?.assignedBranchId && currentBranchId === null && defaultBranch) {
+    if (!authLoading && !permissionsLoading && !permissions?.assignedBranchId && currentBranchId === null && defaultBranch) {
       setCurrentBranchIdState(defaultBranch.id);
       localStorage.setItem("selectedBranchId", defaultBranch.id.toString());
     }
-  }, [defaultBranch, currentBranchId, permissions?.assignedBranchId]);
+  }, [authLoading, permissionsLoading, defaultBranch, currentBranchId, permissions?.assignedBranchId]);
 
+  // Final fallback to first branch (only after permissions fully loaded)
   useEffect(() => {
-    if (!permissions?.assignedBranchId && currentBranchId === null && branches.length > 0 && !defaultBranch) {
+    if (!authLoading && !permissionsLoading && !permissions?.assignedBranchId && currentBranchId === null && branches.length > 0 && !defaultBranch) {
       const defaultBr = branches.find((b) => b.isDefault === 1) || branches[0];
       if (defaultBr) {
         setCurrentBranchIdState(defaultBr.id);
         localStorage.setItem("selectedBranchId", defaultBr.id.toString());
       }
     }
-  }, [branches, currentBranchId, defaultBranch, permissions?.assignedBranchId]);
+  }, [authLoading, permissionsLoading, branches, currentBranchId, defaultBranch, permissions?.assignedBranchId]);
 
   const setCurrentBranchId = (branchId: number) => {
     // Don't allow changing branch if user is locked to a specific branch
