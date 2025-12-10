@@ -115,13 +115,16 @@ export default function PaymentsPage() {
       reference: string | null;
       notes: string | null;
     }) => {
-      return apiRequest("POST", "/api/payments", data);
+      const response = await apiRequest("POST", "/api/payments", data);
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (savedPayment: PaymentWithDetails) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
       toast({ title: "Payment recorded successfully" });
       resetForm();
       setShowForm(false);
+      // Auto-print the receipt immediately
+      handlePrintPayment(savedPayment);
     },
     onError: (error: Error) => {
       toast({ title: "Failed to record payment", description: error.message, variant: "destructive" });
