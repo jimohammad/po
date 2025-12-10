@@ -33,6 +33,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Search, Eye, Trash2, FileText, Package, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
+import { usePasswordProtection } from "@/components/PasswordConfirmDialog";
 
 const PAGE_SIZE = 50;
 
@@ -64,6 +65,7 @@ export default function AllPurchasesPage() {
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
+  const { requestPasswordConfirmation, PasswordDialog } = usePasswordProtection();
   
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -316,7 +318,12 @@ export default function AllPurchasesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              onClick={() => {
+                if (deleteId) {
+                  setDeleteId(null);
+                  requestPasswordConfirmation(() => deleteMutation.mutate(deleteId));
+                }
+              }}
               className="bg-destructive text-destructive-foreground"
             >
               {deleteMutation.isPending ? (
@@ -328,6 +335,8 @@ export default function AllPurchasesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {PasswordDialog}
     </div>
   );
 }
