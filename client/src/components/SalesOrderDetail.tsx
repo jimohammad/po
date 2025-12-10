@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Printer, Smartphone } from "lucide-react";
+import { Printer, Smartphone, FileDown } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
 import type { SalesOrderWithDetails } from "@shared/schema";
@@ -489,6 +489,477 @@ export function SalesOrderDetail({
     printWindow.document.close();
   };
 
+  const handleDownloadPDF = () => {
+    const pdfWindow = window.open("", "_blank");
+    if (!pdfWindow) return;
+
+    const subtotal = order.lineItems.reduce((sum, item) => sum + (parseFloat(item.totalKwd || "0")), 0);
+
+    pdfWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Invoice ${order.invoiceNumber || order.id} - Iqbal Electronics</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            
+            body { 
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+              background: #fff;
+              color: #1a1a2e;
+              line-height: 1.5;
+              font-size: 13px;
+            }
+            
+            .invoice-container {
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 40px;
+            }
+            
+            .invoice-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              margin-bottom: 40px;
+              padding-bottom: 30px;
+              border-bottom: 3px solid #1a1a2e;
+            }
+            
+            .company-info h1 {
+              font-size: 28px;
+              font-weight: 700;
+              color: #1a1a2e;
+              margin-bottom: 8px;
+              letter-spacing: -0.5px;
+            }
+            
+            .company-info p {
+              color: #64748b;
+              font-size: 12px;
+              line-height: 1.6;
+            }
+            
+            .invoice-title-box {
+              text-align: right;
+            }
+            
+            .invoice-badge {
+              display: inline-block;
+              background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+              color: #fff;
+              padding: 8px 24px;
+              font-size: 14px;
+              font-weight: 600;
+              letter-spacing: 2px;
+              text-transform: uppercase;
+              border-radius: 4px;
+              margin-bottom: 12px;
+            }
+            
+            .invoice-number {
+              font-size: 24px;
+              font-weight: 700;
+              color: #1a1a2e;
+              margin-bottom: 4px;
+            }
+            
+            .invoice-date {
+              color: #64748b;
+              font-size: 13px;
+            }
+            
+            .info-section {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 40px;
+              margin-bottom: 40px;
+            }
+            
+            .info-block h3 {
+              font-size: 10px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 1.5px;
+              color: #94a3b8;
+              margin-bottom: 12px;
+            }
+            
+            .info-block .name {
+              font-size: 18px;
+              font-weight: 600;
+              color: #1a1a2e;
+              margin-bottom: 4px;
+            }
+            
+            .info-block .details {
+              color: #64748b;
+              font-size: 13px;
+            }
+            
+            .items-section {
+              margin-bottom: 30px;
+            }
+            
+            .items-table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            
+            .items-table thead tr {
+              background: #f8fafc;
+            }
+            
+            .items-table th {
+              padding: 14px 16px;
+              text-align: left;
+              font-size: 10px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              color: #64748b;
+              border-bottom: 2px solid #e2e8f0;
+            }
+            
+            .items-table th:last-child,
+            .items-table th:nth-child(3),
+            .items-table th:nth-child(4) {
+              text-align: right;
+            }
+            
+            .items-table td {
+              padding: 16px;
+              border-bottom: 1px solid #f1f5f9;
+              vertical-align: top;
+            }
+            
+            .items-table td:last-child,
+            .items-table td:nth-child(3),
+            .items-table td:nth-child(4) {
+              text-align: right;
+            }
+            
+            .item-name {
+              font-weight: 500;
+              color: #1a1a2e;
+            }
+            
+            .item-imei {
+              font-size: 11px;
+              color: #94a3b8;
+              margin-top: 4px;
+              font-family: 'SF Mono', Monaco, monospace;
+            }
+            
+            .item-qty {
+              font-weight: 500;
+              color: #1a1a2e;
+            }
+            
+            .item-price {
+              color: #64748b;
+            }
+            
+            .item-total {
+              font-weight: 600;
+              color: #1a1a2e;
+            }
+            
+            .totals-section {
+              display: flex;
+              justify-content: flex-end;
+              margin-bottom: 40px;
+            }
+            
+            .totals-box {
+              width: 280px;
+            }
+            
+            .totals-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 10px 0;
+              border-bottom: 1px solid #f1f5f9;
+            }
+            
+            .totals-row.grand-total {
+              background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+              color: #fff;
+              padding: 16px 20px;
+              margin-top: 10px;
+              border-radius: 6px;
+              border: none;
+            }
+            
+            .totals-label {
+              color: #64748b;
+              font-size: 13px;
+            }
+            
+            .totals-value {
+              font-weight: 600;
+              font-size: 13px;
+            }
+            
+            .grand-total .totals-label {
+              color: rgba(255,255,255,0.8);
+              font-size: 12px;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            
+            .grand-total .totals-value {
+              font-size: 20px;
+              font-weight: 700;
+            }
+            
+            .footer-section {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 40px;
+              padding-top: 30px;
+              border-top: 1px solid #e2e8f0;
+            }
+            
+            .payment-info h4,
+            .notes-section h4 {
+              font-size: 10px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 1.5px;
+              color: #94a3b8;
+              margin-bottom: 12px;
+            }
+            
+            .payment-info p {
+              color: #64748b;
+              font-size: 12px;
+              line-height: 1.8;
+            }
+            
+            .thank-you-section {
+              text-align: center;
+              margin-top: 50px;
+              padding: 30px;
+              background: #f8fafc;
+              border-radius: 8px;
+            }
+            
+            .thank-you-section h3 {
+              font-size: 18px;
+              font-weight: 600;
+              color: #1a1a2e;
+              margin-bottom: 8px;
+            }
+            
+            .thank-you-section p {
+              color: #64748b;
+              font-size: 13px;
+            }
+            
+            .signature-section {
+              margin-top: 50px;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 60px;
+            }
+            
+            .signature-box {
+              text-align: center;
+            }
+            
+            .signature-line {
+              border-top: 1px solid #1a1a2e;
+              padding-top: 10px;
+              margin-top: 50px;
+            }
+            
+            .signature-label {
+              font-size: 11px;
+              color: #64748b;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            
+            .pdf-instructions {
+              text-align: center;
+              padding: 20px;
+              background: #fef3c7;
+              border: 2px solid #f59e0b;
+              border-radius: 8px;
+              margin-bottom: 20px;
+              font-size: 14px;
+              color: #92400e;
+            }
+            
+            .pdf-instructions strong {
+              display: block;
+              font-size: 16px;
+              margin-bottom: 8px;
+            }
+            
+            .pdf-instructions .shortcut {
+              display: inline-block;
+              background: #fff;
+              border: 1px solid #d97706;
+              padding: 4px 12px;
+              border-radius: 4px;
+              font-family: monospace;
+              font-weight: 600;
+              margin: 4px;
+            }
+            
+            @media print {
+              .pdf-instructions { display: none !important; }
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              .invoice-container { padding: 20px; }
+              .invoice-badge { background: #1a1a2e !important; -webkit-print-color-adjust: exact; }
+              .grand-total { background: #1a1a2e !important; -webkit-print-color-adjust: exact; }
+            }
+            
+            @page { margin: 0.5cm; }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-instructions">
+            <strong>Save Invoice as PDF</strong>
+            Press <span class="shortcut">Ctrl + P</span> (Windows) or <span class="shortcut">Cmd + P</span> (Mac)<br>
+            Then select <strong>"Save as PDF"</strong> or <strong>"Microsoft Print to PDF"</strong> as the destination.
+          </div>
+          <div class="invoice-container">
+            <div class="invoice-header">
+              <div class="company-info">
+                <h1>Iqbal Electronics</h1>
+                <p>
+                  Co. WLL<br>
+                  Kuwait City, Kuwait<br>
+                  info@iqbalelectronics.com
+                </p>
+              </div>
+              <div class="invoice-title-box">
+                <div class="invoice-badge">Invoice</div>
+                <div class="invoice-number">${order.invoiceNumber || `INV-${order.id}`}</div>
+                <div class="invoice-date">${formatDate(order.saleDate)}</div>
+              </div>
+            </div>
+            
+            <div class="info-section">
+              <div class="info-block">
+                <h3>Bill To</h3>
+                <div class="name">${order.customer?.name || "Walk-in Customer"}</div>
+                <div class="details">
+                  ${order.customer?.phone ? `Phone: ${order.customer.phone}` : ""}
+                </div>
+              </div>
+              <div class="info-block" style="text-align: right;">
+                <h3>Invoice Details</h3>
+                <div class="details">
+                  <strong>Invoice No:</strong> ${order.invoiceNumber || `INV-${order.id}`}<br>
+                  <strong>Date:</strong> ${formatDate(order.saleDate)}<br>
+                  ${order.deliveryDate ? `<strong>Delivery:</strong> ${formatDate(order.deliveryDate)}` : ""}
+                </div>
+              </div>
+            </div>
+            
+            <div class="items-section">
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;">#</th>
+                    <th>Description</th>
+                    <th style="width: 80px;">Qty</th>
+                    <th style="width: 120px;">Unit Price</th>
+                    <th style="width: 120px;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${order.lineItems.map((item, index) => `
+                    <tr>
+                      <td>${String(index + 1).padStart(2, '0')}</td>
+                      <td>
+                        <div class="item-name">${item.itemName}</div>
+                        ${item.imeiNumbers && item.imeiNumbers.length > 0 
+                          ? `<div class="item-imei">IMEI: ${item.imeiNumbers.join(", ")}</div>` 
+                          : ""}
+                      </td>
+                      <td class="item-qty">${item.quantity}</td>
+                      <td class="item-price">${formatNumber(item.priceKwd, 3)} KWD</td>
+                      <td class="item-total">${formatNumber(item.totalKwd, 3)} KWD</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="totals-section">
+              <div class="totals-box">
+                ${order.customerId ? `
+                <div class="totals-row">
+                  <span class="totals-label">Previous Balance</span>
+                  <span class="totals-value">${(balanceData?.previousBalance || 0).toFixed(3)} KWD</span>
+                </div>
+                ` : ''}
+                <div class="totals-row">
+                  <span class="totals-label">Invoice Amount</span>
+                  <span class="totals-value">${subtotal.toFixed(3)} KWD</span>
+                </div>
+                <div class="totals-row grand-total">
+                  <span class="totals-label">Current Balance</span>
+                  <span class="totals-value">${order.customerId ? (balanceData?.currentBalance || 0).toFixed(3) : formatNumber(order.totalKwd, 3)} KWD</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="footer-section">
+              <div class="payment-info">
+                <h4>Payment Information</h4>
+                <p>
+                  Payment is due upon receipt.<br>
+                  Accepted: Cash, Bank Transfer, Knet
+                </p>
+              </div>
+              <div class="notes-section">
+                <h4>Terms & Conditions</h4>
+                <p style="color: #64748b; font-size: 11px; line-height: 1.6;">
+                  Goods once sold cannot be returned or exchanged.<br>
+                  Warranty as per manufacturer terms.
+                </p>
+              </div>
+            </div>
+            
+            <div class="thank-you-section">
+              <h3>Thank You for Your Business!</h3>
+              <p>We appreciate your trust in Iqbal Electronics. For any queries, please contact us.</p>
+            </div>
+            
+            <div class="signature-section">
+              <div class="signature-box">
+                <div class="signature-line">
+                  <div class="signature-label">Authorized Signature</div>
+                </div>
+              </div>
+              <div class="signature-box">
+                <div class="signature-line">
+                  <div class="signature-label">Customer Signature</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <script>
+            window.onload = function() { 
+              setTimeout(function() { window.print(); }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+
+    pdfWindow.document.close();
+  };
+
   const handleWhatsAppShare = () => {
     const lineItemsText = order.lineItems.map((item, index) => {
       let text = `${index + 1}. ${item.itemName} - Qty: ${item.quantity} - ${formatNumber(item.totalKwd, 3)} KWD`;
@@ -530,6 +1001,15 @@ Thank you for your business!`;
             >
               <Printer className="h-4 w-4 mr-1" />
               Print
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadPDF}
+              data-testid="button-download-pdf"
+            >
+              <FileDown className="h-4 w-4 mr-1" />
+              PDF
             </Button>
             <Button
               variant="outline"
