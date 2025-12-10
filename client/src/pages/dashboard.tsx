@@ -166,7 +166,7 @@ export default function DashboardPage() {
 
             <Card data-testid="card-total-credit" className="p-0">
               <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Total Credit</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground">Total Receivables</CardTitle>
                 <TrendingUp className="h-3.5 w-3.5 text-green-600" />
               </CardHeader>
               <CardContent className="p-3 pt-0">
@@ -179,7 +179,7 @@ export default function DashboardPage() {
 
             <Card data-testid="card-total-debit" className="p-0">
               <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Total Debit</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground">Total Payables</CardTitle>
                 <TrendingDown className="h-3.5 w-3.5 text-red-600" />
               </CardHeader>
               <CardContent className="p-3 pt-0">
@@ -192,7 +192,7 @@ export default function DashboardPage() {
 
             <Card data-testid="card-cash-balance" className="p-0">
               <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Cash</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground">Cash in Hand</CardTitle>
                 <Wallet className="h-3.5 w-3.5 text-muted-foreground" />
               </CardHeader>
               <CardContent className="p-3 pt-0">
