@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useBranch } from "@/contexts/BranchContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,7 @@ function generateItemId() {
 
 export default function PODraftForm({ editingPO, onClose }: PODraftFormProps) {
   const { toast } = useToast();
+  const { currentBranch } = useBranch();
   
   const [poNumber, setPoNumber] = useState("");
   const [poDate, setPoDate] = useState(new Date().toISOString().split("T")[0]);
@@ -186,6 +188,7 @@ export default function PODraftForm({ editingPO, onClose }: PODraftFormProps) {
       poNumber,
       poDate,
       supplierId: supplierId ? parseInt(supplierId) : null,
+      branchId: currentBranch?.id || null,
       totalKwd: totals.totalKwd,
       fxCurrency,
       fxRate: fxRate || null,

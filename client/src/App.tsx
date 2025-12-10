@@ -58,6 +58,7 @@ const CustomerStatementPage = lazy(() => import("@/pages/customer-statement"));
 const StockTransfersPage = lazy(() => import("@/pages/stock-transfers"));
 const BranchesPage = lazy(() => import("@/pages/branches"));
 const OpeningBalancesPage = lazy(() => import("@/pages/opening-balances"));
+const PurchaseOrdersPage = lazy(() => import("@/pages/purchase-orders"));
 const Landing = lazy(() => import("@/pages/landing"));
 const PublicStatementPage = lazy(() => import("@/pages/public-statement"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -159,6 +160,7 @@ function AppSidebar() {
   ].filter(item => canAccess(item.module));
 
   const purchasesSubItems = [
+    { title: "Purchase Orders", url: "/purchases/orders" },
     { title: "All Purchases", url: "/purchases/all" },
   ];
 
@@ -264,8 +266,8 @@ function AppSidebar() {
                               asChild
                               isActive={location === subItem.url}
                             >
-                              <Link href={subItem.url} data-testid={`link-${subItem.title.toLowerCase().replace(" ", "-")}`}>
-                                All
+                              <Link href={subItem.url} data-testid={`link-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                                {subItem.title}
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
@@ -551,6 +553,7 @@ function AuthenticatedLayout() {
               <Switch>
                 <Route path="/" component={DashboardPage} />
                 <Route path="/purchases" component={Home} />
+                <Route path="/purchases/orders" component={PurchaseOrdersPage} />
                 <Route path="/purchases/all" component={AllPurchasesPage} />
                 <Route path="/sales" component={SalesPage} />
                 <Route path="/sales/all" component={AllSalesPage} />

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useBranch } from "@/contexts/BranchContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,6 +96,7 @@ const getStatusVariant = (status: string): "default" | "secondary" | "outline" |
 
 export default function PurchaseOrdersPage() {
   const { toast } = useToast();
+  const { currentBranch } = useBranch();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedPO, setSelectedPO] = useState<PurchaseOrderDraft | null>(null);
@@ -105,8 +107,21 @@ export default function PurchaseOrdersPage() {
   const [convertInvoiceNumber, setConvertInvoiceNumber] = useState("");
   const [convertGrnDate, setConvertGrnDate] = useState("");
 
+  const buildQueryUrl = () => {
+    const params = new URLSearchParams();
+    if (statusFilter !== "all") params.set("status", statusFilter);
+    if (currentBranch?.id) params.set("branchId", currentBranch.id.toString());
+    const queryString = params.toString();
+    return queryString ? `/api/purchase-order-drafts?${queryString}` : "/api/purchase-order-drafts";
+  };
+
   const { data: purchaseOrderDrafts = [], isLoading } = useQuery<PurchaseOrderDraft[]>({
-    queryKey: ["/api/purchase-order-drafts", statusFilter !== "all" ? { status: statusFilter } : {}],
+    queryKey: ["/api/purchase-order-drafts", { status: statusFilter, branchId: currentBranch?.id }],
+    queryFn: async () => {
+      const res = await fetch(buildQueryUrl(), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch purchase order drafts");
+      return res.json();
+    },
   });
 
   const deleteMutation = useMutation({
