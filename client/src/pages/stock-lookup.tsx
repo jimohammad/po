@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Package, Loader2, ArrowUpDown, TrendingUp, TrendingDown, Box } from "lucide-react";
+import { Search, Package, Loader2, ArrowUpDown, TrendingUp, TrendingDown, Box, Download, FileText } from "lucide-react";
 
 interface StockBalanceItem {
   itemName: string;
@@ -82,6 +82,105 @@ export default function StockLookupPage() {
     </Button>
   );
 
+  const handleExportExcel = () => {
+    if (filteredAndSortedStock.length === 0) return;
+    
+    const headers = ["Item Name", "Purchased", "Sold", "Opening Stock", "Balance", "Status"];
+    const rows = filteredAndSortedStock.map(item => {
+      const status = item.balance <= 0 ? "Out of Stock" : item.balance <= 5 ? "Low Stock" : "In Stock";
+      return [item.itemName, item.purchased, item.sold, item.openingStock, item.balance, status];
+    });
+    const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `stock-report-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = () => {
+    if (filteredAndSortedStock.length === 0) return;
+    
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      const rows = filteredAndSortedStock.map(item => {
+        const status = item.balance <= 0 ? "Out of Stock" : item.balance <= 5 ? "Low Stock" : "In Stock";
+        return `<tr>
+          <td style="padding: 8px; border: 1px solid #ddd;">${item.itemName}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${item.purchased.toLocaleString()}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${item.sold.toLocaleString()}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${item.openingStock.toLocaleString()}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold;">${item.balance.toLocaleString()}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${status}</td>
+        </tr>`;
+      }).join("");
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Stock Report - ${new Date().toLocaleDateString()}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { margin-bottom: 5px; }
+            .subtitle { color: #666; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th { padding: 10px 8px; border: 1px solid #ddd; background: #f5f5f5; text-align: left; }
+            th.right { text-align: right; }
+            th.center { text-align: center; }
+            .summary { margin-bottom: 20px; display: flex; gap: 20px; }
+            .summary-item { padding: 10px 15px; background: #f9f9f9; border-radius: 4px; }
+            .summary-label { font-size: 12px; color: #666; }
+            .summary-value { font-size: 18px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>Stock Report</h1>
+          <p class="subtitle">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          <div class="summary">
+            <div class="summary-item">
+              <div class="summary-label">Total Items</div>
+              <div class="summary-value">${totalItems}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Total Stock</div>
+              <div class="summary-value">${totalBalance.toLocaleString()}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Low Stock</div>
+              <div class="summary-value">${lowStockItems}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Out of Stock</div>
+              <div class="summary-value">${outOfStockItems}</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item Name</th>
+                <th class="right">Purchased</th>
+                <th class="right">Sold</th>
+                <th class="right">Opening</th>
+                <th class="right">Balance</th>
+                <th class="center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+          <script>window.onload = function() { window.print(); }</script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -93,6 +192,26 @@ export default function StockLookupPage() {
           <p className="text-muted-foreground text-sm mt-1">
             View and search available stock
           </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button 
+            variant="outline" 
+            onClick={handleExportExcel}
+            disabled={stockBalance.length === 0}
+            data-testid="button-export-excel"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleExportPDF}
+            disabled={stockBalance.length === 0}
+            data-testid="button-export-pdf"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
         </div>
       </div>
 
