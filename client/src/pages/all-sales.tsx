@@ -31,7 +31,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Search, Eye, Trash2, Receipt, ShoppingBag, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Search, Eye, Trash2, Receipt, ShoppingBag, ChevronLeft, ChevronRight, Printer, FileDown } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import { format } from "date-fns";
 import { usePasswordProtection } from "@/components/PasswordConfirmDialog";
 
@@ -112,6 +113,181 @@ export default function AllSalesPage() {
       minimumFractionDigits: 3,
       maximumFractionDigits: 3,
     }).format(num);
+  };
+
+  const escapeHtml = (text: string | null | undefined): string => {
+    if (!text) return "-";
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
+  const handlePrintInvoice = () => {
+    if (!selectedSO) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const lineItemsHtml = selectedSO.lineItems.map(item => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.itemName)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unitPrice)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px; color: #6b7280;">${item.imeiNumbers?.length ? item.imeiNumbers.map(imei => escapeHtml(imei)).join(", ") : "-"}</td>
+      </tr>
+    `).join("");
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Invoice - ${escapeHtml(selectedSO.invoiceNumber) || "No Number"}</title>
+          <style>
+            body { font-family: Inter, system-ui, sans-serif; padding: 20px; }
+            .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+            .company { font-size: 24px; font-weight: bold; color: #0f172a; }
+            .invoice-title { font-size: 14px; color: #64748b; text-transform: uppercase; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+            .info-item { font-size: 14px; }
+            .info-label { color: #64748b; margin-right: 4px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-size: 12px; text-transform: uppercase; }
+            .total { font-size: 18px; font-weight: bold; text-align: right; }
+            @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="company">Iqbal Electronics</div>
+              <div style="color: #64748b; font-size: 12px;">Kuwait</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="invoice-title">Sales Invoice</div>
+              <div style="font-size: 18px; font-weight: bold;">${escapeHtml(selectedSO.invoiceNumber)}</div>
+            </div>
+          </div>
+          <div class="info-grid">
+            <div class="info-item"><span class="info-label">Date:</span> ${format(new Date(selectedSO.saleDate), "dd/MM/yyyy")}</div>
+            <div class="info-item"><span class="info-label">Customer:</span> ${escapeHtml(selectedSO.customer?.name)}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align: center;">Qty</th>
+                <th style="text-align: right;">Unit Price</th>
+                <th>IMEI Numbers</th>
+              </tr>
+            </thead>
+            <tbody>${lineItemsHtml}</tbody>
+          </table>
+          <div class="total">Total: ${formatCurrency(selectedSO.totalKwd)} KWD</div>
+          <script>window.onload = function() { setTimeout(function() { window.print(); }, 300); }</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handleDownloadPDF = () => {
+    if (!selectedSO) return;
+    const pdfWindow = window.open("", "_blank");
+    if (!pdfWindow) return;
+
+    const lineItemsHtmlPdf = selectedSO.lineItems.map(item => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.itemName)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unitPrice)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px; color: #6b7280;">${item.imeiNumbers?.length ? item.imeiNumbers.map(imei => escapeHtml(imei)).join(", ") : "-"}</td>
+      </tr>
+    `).join("");
+
+    pdfWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Invoice - ${escapeHtml(selectedSO.invoiceNumber) || "No Number"}</title>
+          <style>
+            body { font-family: Inter, system-ui, sans-serif; padding: 20px; }
+            .pdf-instructions { text-align: center; padding: 16px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; margin-bottom: 20px; }
+            .pdf-instructions strong { display: block; font-size: 16px; margin-bottom: 8px; color: #92400e; }
+            .pdf-instructions span { color: #92400e; }
+            .shortcut { display: inline-block; background: #fff; border: 1px solid #d97706; padding: 4px 12px; border-radius: 4px; font-family: monospace; font-weight: 600; margin: 4px; }
+            .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+            .company { font-size: 24px; font-weight: bold; color: #0f172a; }
+            .invoice-title { font-size: 14px; color: #64748b; text-transform: uppercase; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+            .info-item { font-size: 14px; }
+            .info-label { color: #64748b; margin-right: 4px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-size: 12px; text-transform: uppercase; }
+            .total { font-size: 18px; font-weight: bold; text-align: right; }
+            @media print { .pdf-instructions { display: none !important; } body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-instructions">
+            <strong>Save Invoice as PDF</strong>
+            <span>Press <span class="shortcut">Ctrl + P</span> (Windows) or <span class="shortcut">Cmd + P</span> (Mac)<br>
+            Then select <strong>"Save as PDF"</strong> as the destination.</span>
+          </div>
+          <div class="header">
+            <div>
+              <div class="company">Iqbal Electronics</div>
+              <div style="color: #64748b; font-size: 12px;">Kuwait</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="invoice-title">Sales Invoice</div>
+              <div style="font-size: 18px; font-weight: bold;">${escapeHtml(selectedSO.invoiceNumber)}</div>
+            </div>
+          </div>
+          <div class="info-grid">
+            <div class="info-item"><span class="info-label">Date:</span> ${format(new Date(selectedSO.saleDate), "dd/MM/yyyy")}</div>
+            <div class="info-item"><span class="info-label">Customer:</span> ${escapeHtml(selectedSO.customer?.name)}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align: center;">Qty</th>
+                <th style="text-align: right;">Unit Price</th>
+                <th>IMEI Numbers</th>
+              </tr>
+            </thead>
+            <tbody>${lineItemsHtmlPdf}</tbody>
+          </table>
+          <div class="total">Total: ${formatCurrency(selectedSO.totalKwd)} KWD</div>
+          <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); }</script>
+        </body>
+      </html>
+    `);
+    pdfWindow.document.close();
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!selectedSO) return;
+    const lineItemsText = selectedSO.lineItems.map((item, index) => 
+      `${index + 1}. ${item.itemName} - Qty: ${item.quantity} - ${formatCurrency(item.unitPrice)} KWD${item.imeiNumbers?.length ? `\n   IMEI: ${item.imeiNumbers.join(", ")}` : ""}`
+    ).join("\n");
+
+    const message = `*Iqbal Electronics - Sales Invoice*
+
+Invoice No: ${selectedSO.invoiceNumber || "-"}
+Date: ${format(new Date(selectedSO.saleDate), "dd/MM/yyyy")}
+Customer: ${selectedSO.customer?.name || "-"}
+
+*Items:*
+${lineItemsText}
+
+*Total: ${formatCurrency(selectedSO.totalKwd)} KWD*
+
+Thank you for your business!`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   if (isLoading) {
@@ -243,11 +419,41 @@ export default function AllSalesPage() {
 
       <Dialog open={!!selectedSO} onOpenChange={() => setSelectedSO(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between gap-4">
             <DialogTitle className="flex items-center gap-2">
               <ShoppingBag className="h-5 w-5" />
               Sales Invoice Details
             </DialogTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrintInvoice}
+                data-testid="button-print-invoice"
+              >
+                <Printer className="h-4 w-4 mr-1" />
+                Print
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadPDF}
+                data-testid="button-download-pdf"
+              >
+                <FileDown className="h-4 w-4 mr-1" />
+                PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleWhatsAppShare}
+                className="text-green-600 hover:text-green-700"
+                data-testid="button-whatsapp-share"
+              >
+                <SiWhatsapp className="h-4 w-4 mr-1" />
+                Share
+              </Button>
+            </div>
           </DialogHeader>
           {selectedSO && (
             <div className="space-y-4">
