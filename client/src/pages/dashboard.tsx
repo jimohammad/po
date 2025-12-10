@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Package, DollarSign, TrendingUp, TrendingDown, ShoppingCart, Search, Loader2, ArrowRight, Wallet, Building2 } from "lucide-react";
+import Sparkline from "@/components/Sparkline";
 
 const LazySalesChart = lazy(() => import("@/components/SalesChart"));
 
@@ -17,6 +18,8 @@ interface DashboardStats {
   monthlySales: number;
   lastMonthSales: number;
   monthlyPurchases: number;
+  salesTrend: number[];
+  purchasesTrend: number[];
 }
 
 interface SearchResult {
@@ -222,7 +225,41 @@ export default function DashboardPage() {
                 <div className="text-lg font-bold" data-testid="text-monthly-purchases">
                   {formatCurrency(stats?.monthlyPurchases || 0)}
                 </div>
-                <p className="text-[10px] text-muted-foreground">{currentMonthName}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] text-muted-foreground">{currentMonthName}</p>
+                  {stats?.purchasesTrend && stats.purchasesTrend.length > 0 && (
+                    <div className="w-16">
+                      <Sparkline data={stats.purchasesTrend} color="hsl(var(--secondary))" height={20} />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
+            <Card data-testid="card-monthly-sales" className="p-0">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+                <div>
+                  <CardTitle className="text-xs font-medium text-muted-foreground">This Month Sales</CardTitle>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Last 7 days trend</p>
+                </div>
+                <DollarSign className="h-4 w-4 text-secondary" />
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <div className="text-xl font-bold" data-testid="text-monthly-sales">
+                      {formatCurrency(stats?.monthlySales || 0)}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">KWD in {currentMonthName}</p>
+                  </div>
+                  {stats?.salesTrend && stats.salesTrend.length > 0 && (
+                    <div className="flex-1 max-w-32">
+                      <Sparkline data={stats.salesTrend} color="hsl(var(--primary))" height={32} />
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>

@@ -187,7 +187,7 @@ export interface IStorage {
   getExportImei(filters: { customerId?: number; itemName?: string; invoiceNumber?: string; dateFrom?: string; dateTo?: string }): Promise<{ imei: string; itemName: string; customerName: string; invoiceNumber: string; saleDate: string }[]>;
 
   // Dashboard
-  getDashboardStats(): Promise<{ totalStock: number; totalCash: number; monthlySales: number; monthlyPurchases: number }>;
+  getDashboardStats(): Promise<{ stockAmount: number; totalCredit: number; totalDebit: number; cashBalance: number; bankAccountsBalance: number; monthlySales: number; lastMonthSales: number; monthlyPurchases: number; salesTrend: number[]; purchasesTrend: number[] }>;
   globalSearch(query: string): Promise<{ type: string; id: number; title: string; subtitle: string; url: string }[]>;
 
   // Branches
@@ -1428,7 +1428,9 @@ export class DatabaseStorage implements IStorage {
     bankAccountsBalance: number;
     monthlySales: number; 
     lastMonthSales: number;
-    monthlyPurchases: number 
+    monthlyPurchases: number;
+    salesTrend: number[];
+    purchasesTrend: number[];
   }> {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
@@ -1591,7 +1593,51 @@ export class DatabaseStorage implements IStorage {
     `);
     const monthlyPurchases = (purchasesResult.rows[0] as { total: number })?.total || 0;
 
-    return { stockAmount, totalCredit, totalDebit, cashBalance, bankAccountsBalance, monthlySales, lastMonthSales, monthlyPurchases };
+    // Get 7-day sales trend
+    const salesTrendResult = await db.execute(sql`
+      SELECT 
+        date_trunc('day', sale_date)::date as day,
+        COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+      FROM sales_orders
+      WHERE sale_date >= CURRENT_DATE - INTERVAL '6 days'
+      GROUP BY date_trunc('day', sale_date)
+      ORDER BY day
+    `);
+    const salesTrendMap = new Map<string, number>();
+    for (const row of salesTrendResult.rows as { day: string; total: number }[]) {
+      salesTrendMap.set(row.day, row.total);
+    }
+    const salesTrend: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      salesTrend.push(salesTrendMap.get(dateStr) || 0);
+    }
+
+    // Get 7-day purchases trend
+    const purchasesTrendResult = await db.execute(sql`
+      SELECT 
+        date_trunc('day', purchase_date)::date as day,
+        COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+      FROM purchase_orders
+      WHERE purchase_date >= CURRENT_DATE - INTERVAL '6 days'
+      GROUP BY date_trunc('day', purchase_date)
+      ORDER BY day
+    `);
+    const purchasesTrendMap = new Map<string, number>();
+    for (const row of purchasesTrendResult.rows as { day: string; total: number }[]) {
+      purchasesTrendMap.set(row.day, row.total);
+    }
+    const purchasesTrend: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      purchasesTrend.push(purchasesTrendMap.get(dateStr) || 0);
+    }
+
+    return { stockAmount, totalCredit, totalDebit, cashBalance, bankAccountsBalance, monthlySales, lastMonthSales, monthlyPurchases, salesTrend, purchasesTrend };
   }
 
   async globalSearch(query: string): Promise<{ type: string; id: number; title: string; subtitle: string; url: string }[]> {

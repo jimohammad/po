@@ -7,9 +7,15 @@
 ## Typography System
 
 **Font Family**: 
-- Primary: Source Sans Pro (from HTML5 UP Landed template), fallback to Helvetica and system fonts
-- Font weights: 300 (light), 400 (regular), 600 (semi-bold), 700 (bold)
+- Primary: Outfit (modern geometric sans-serif), fallback to system fonts
+- Font weights: 300 (light), 400 (regular), 500 (medium), 600 (semi-bold), 700 (bold)
 - Monospace: `"SF Mono", Monaco, "Cascadia Code"` for invoice numbers, amounts
+
+**Color Theme**: Deep Blue & Gold
+- Primary: Deep navy blue (HSL 222, 47%, 25% light / 45% dark)
+- Secondary/Accent: Gold (HSL 45, 93%, 47% light / 52% dark)
+- Sidebar: Dark navy (HSL 222, 47%, 14%) with gold accents
+- Background: Subtle blue-gray tint for depth
 
 **Hierarchy**:
 - Page Headers: `text-2xl md:text-3xl font-bold` (Purchase Order Register)
