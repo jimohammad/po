@@ -119,7 +119,8 @@ export default function PaymentsPage() {
       return response.json();
     },
     onSuccess: (savedPayment: PaymentWithDetails) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "/api/payments" });
+      setPage(1);
       toast({ title: "Payment recorded successfully" });
       resetForm();
       setShowForm(false);
@@ -136,7 +137,7 @@ export default function PaymentsPage() {
       return apiRequest("DELETE", `/api/payments/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "/api/payments" });
       toast({ title: "Payment deleted successfully" });
       setPaymentToDelete(null);
     },
