@@ -1446,6 +1446,37 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getCustomerCurrentBalance(customerId: number): Promise<number> {
+    const result = await db.execute(sql`
+      WITH opening_balance AS (
+        SELECT COALESCE(CAST(balance_amount AS DECIMAL), 0)::float as balance
+        FROM opening_balances
+        WHERE party_type = 'customer' AND party_id = ${customerId}
+        LIMIT 1
+      ),
+      all_sales AS (
+        SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+        FROM sales_orders WHERE customer_id = ${customerId}
+      ),
+      all_payments AS (
+        SELECT COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::float as total
+        FROM payments WHERE customer_id = ${customerId} AND direction = 'IN'
+      ),
+      all_returns AS (
+        SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+        FROM returns WHERE customer_id = ${customerId} AND return_type = 'sale_return'
+      )
+      SELECT (
+        COALESCE((SELECT balance FROM opening_balance), 0) +
+        COALESCE((SELECT total FROM all_sales), 0) -
+        COALESCE((SELECT total FROM all_payments), 0) -
+        COALESCE((SELECT total FROM all_returns), 0)
+      )::float as balance
+    `);
+    const row = result.rows[0] as { balance: number } | undefined;
+    return row?.balance || 0;
+  }
+
   // ==================== EXPORT IMEI ====================
 
   async getExportImei(filters: { customerId?: number; itemName?: string; invoiceNumber?: string; dateFrom?: string; dateTo?: string }): Promise<{ imei: string; itemName: string; customerName: string; invoiceNumber: string; saleDate: string }[]> {

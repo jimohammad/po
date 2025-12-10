@@ -275,6 +275,21 @@ export async function registerRoutes(
     }
   });
 
+  // Get customer's current balance
+  app.get("/api/customers/:id/balance", isAuthenticated, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      if (isNaN(customerId)) {
+        return res.status(400).json({ error: "Invalid customer ID" });
+      }
+      const balance = await storage.getCustomerCurrentBalance(customerId);
+      res.json({ balance });
+    } catch (error) {
+      console.error("Error fetching customer balance:", error);
+      res.status(500).json({ error: "Failed to fetch customer balance" });
+    }
+  });
+
   app.post("/api/customers", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const parsed = insertCustomerSchema.safeParse(req.body);

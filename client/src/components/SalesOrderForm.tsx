@@ -74,6 +74,12 @@ export function SalesOrderForm({
     return customers.find(c => c.id === parseInt(customerId)) || null;
   }, [customerId, customers]);
 
+  // Fetch customer balance when a customer is selected
+  const { data: customerBalance } = useQuery<{ balance: number }>({
+    queryKey: ["/api/customers", customerId, "balance"],
+    enabled: !!customerId,
+  });
+
   const creditLimitInfo = useMemo(() => {
     if (!selectedCustomer) return { hasLimit: false, limit: 0, exceeded: false };
     
@@ -347,7 +353,13 @@ export function SalesOrderForm({
                         <thead><tr><th>Item</th><th>Qty</th><th>Price (KWD)</th><th>Total (KWD)</th></tr></thead>
                         <tbody>${itemRows}</tbody>
                       </table>
-                      <div class="total">Total: ${totalKwd} KWD</div>
+                      <div class="totals-section" style="margin-top: 20px; text-align: right;">
+                        ${customerId ? `<div style="padding: 4px 0;"><span>Previous Balance:</span> <span style="font-weight: 500;">${(customerBalance?.balance || 0).toFixed(3)} KWD</span></div>` : ''}
+                        <div style="padding: 4px 0;"><span>Invoice Amount:</span> <span style="font-weight: 500;">${totalKwd} KWD</span></div>
+                        <div style="padding: 12px; margin-top: 8px; background: #1a1a2e; color: white; border-radius: 6px;">
+                          <span>Current Balance:</span> <span style="font-size: 18px; font-weight: bold;">${customerId ? ((customerBalance?.balance || 0) + parseFloat(totalKwd)).toFixed(3) : totalKwd} KWD</span>
+                        </div>
+                      </div>
                     </body>
                     </html>
                   `);
