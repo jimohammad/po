@@ -48,7 +48,7 @@ interface SalesOrder {
   id: number;
   saleDate: string;
   invoiceNumber: string | null;
-  totalAmount: string;
+  totalKwd: string | null;
   customer: { id: number; name: string } | null;
   lineItems: SalesOrderLineItem[];
   createdAt: string | null;
@@ -169,7 +169,7 @@ export default function AllSalesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(so.totalAmount)}
+                        {formatCurrency(so.totalKwd)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -258,7 +258,7 @@ export default function AllSalesPage() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Total KWD:</span>{" "}
-                  <span className="font-medium">{formatCurrency(selectedSO.totalAmount)}</span>
+                  <span className="font-medium">{formatCurrency(selectedSO.totalKwd)}</span>
                 </div>
               </div>
               <div>
