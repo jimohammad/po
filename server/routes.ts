@@ -1205,6 +1205,31 @@ export async function registerRoutes(
     }
   });
 
+  // Get customer balance for a specific sale order (for invoice printing)
+  app.get("/api/customer-balance-for-sale/:saleOrderId", isAuthenticated, async (req, res) => {
+    try {
+      const saleOrderId = parseInt(req.params.saleOrderId);
+      if (isNaN(saleOrderId)) {
+        return res.status(400).json({ error: "Invalid sale order ID" });
+      }
+
+      const saleOrder = await storage.getSalesOrder(saleOrderId);
+      if (!saleOrder) {
+        return res.status(404).json({ error: "Sale order not found" });
+      }
+
+      if (!saleOrder.customerId) {
+        return res.json({ previousBalance: 0, currentBalance: 0 });
+      }
+
+      const balance = await storage.getCustomerBalanceForSale(saleOrder.customerId, saleOrderId);
+      res.json(balance);
+    } catch (error) {
+      console.error("Error fetching customer balance for sale:", error);
+      res.status(500).json({ error: "Failed to fetch customer balance" });
+    }
+  });
+
   // ==================== EXPORT IMEI ROUTE ====================
 
   app.get("/api/export-imei", isAuthenticated, async (req, res) => {

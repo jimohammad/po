@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Printer, Smartphone } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
+import { useQuery } from "@tanstack/react-query";
 import type { SalesOrderWithDetails } from "@shared/schema";
 
 interface SalesOrderDetailProps {
@@ -17,6 +18,11 @@ export function SalesOrderDetail({
   onOpenChange,
   order,
 }: SalesOrderDetailProps) {
+  const { data: balanceData } = useQuery<{ previousBalance: number; currentBalance: number }>({
+    queryKey: ["/api/customer-balance-for-sale", order?.id],
+    enabled: open && !!order?.id && !!order?.customerId,
+  });
+
   if (!order) return null;
 
   const formatDate = (dateStr: string | null) => {
@@ -415,13 +421,19 @@ export function SalesOrderDetail({
             <!-- Totals -->
             <div class="totals-section">
               <div class="totals-box">
+                ${order.customerId ? `
                 <div class="totals-row">
-                  <span class="totals-label">Subtotal</span>
+                  <span class="totals-label">Previous Balance</span>
+                  <span class="totals-value">${(balanceData?.previousBalance || 0).toFixed(3)} KWD</span>
+                </div>
+                ` : ''}
+                <div class="totals-row">
+                  <span class="totals-label">Invoice Amount</span>
                   <span class="totals-value">${subtotal.toFixed(3)} KWD</span>
                 </div>
                 <div class="totals-row grand-total">
-                  <span class="totals-label">Total Due</span>
-                  <span class="totals-value">${formatNumber(order.totalKwd, 3)} KWD</span>
+                  <span class="totals-label">Current Balance</span>
+                  <span class="totals-value">${order.customerId ? (balanceData?.currentBalance || 0).toFixed(3) : formatNumber(order.totalKwd, 3)} KWD</span>
                 </div>
               </div>
             </div>

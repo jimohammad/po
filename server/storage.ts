@@ -1392,6 +1392,60 @@ export class DatabaseStorage implements IStorage {
     return result.rows as { id: number; date: string; type: string; reference: string; description: string; debit: number; credit: number; balance: number }[];
   }
 
+  async getCustomerBalanceForSale(customerId: number, saleOrderId: number): Promise<{ previousBalance: number; currentBalance: number }> {
+    const result = await db.execute(sql`
+      WITH opening_balance AS (
+        SELECT 
+          COALESCE(CAST(balance_amount AS DECIMAL), 0)::float as balance
+        FROM opening_balances
+        WHERE party_type = 'customer' AND party_id = ${customerId}
+        LIMIT 1
+      ),
+      target_sale AS (
+        SELECT id, sale_date, created_at, COALESCE(CAST(total_kwd AS DECIMAL), 0)::float as amount
+        FROM sales_orders 
+        WHERE id = ${saleOrderId}
+      ),
+      sales_before AS (
+        SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+        FROM sales_orders
+        WHERE customer_id = ${customerId}
+          AND (sale_date < (SELECT sale_date FROM target_sale)
+               OR (sale_date = (SELECT sale_date FROM target_sale) AND created_at < (SELECT created_at FROM target_sale)))
+      ),
+      payments_before AS (
+        SELECT COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::float as total
+        FROM payments
+        WHERE customer_id = ${customerId} AND direction = 'IN'
+          AND (payment_date < (SELECT sale_date FROM target_sale)
+               OR (payment_date = (SELECT sale_date FROM target_sale) AND created_at < (SELECT created_at FROM target_sale)))
+      ),
+      returns_before AS (
+        SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+        FROM returns
+        WHERE customer_id = ${customerId} AND return_type = 'sale_return'
+          AND (return_date < (SELECT sale_date FROM target_sale)
+               OR (return_date = (SELECT sale_date FROM target_sale) AND created_at < (SELECT created_at FROM target_sale)))
+      )
+      SELECT 
+        (COALESCE((SELECT balance FROM opening_balance), 0) + 
+         COALESCE((SELECT total FROM sales_before), 0) - 
+         COALESCE((SELECT total FROM payments_before), 0) - 
+         COALESCE((SELECT total FROM returns_before), 0))::float as "previousBalance",
+        (COALESCE((SELECT balance FROM opening_balance), 0) + 
+         COALESCE((SELECT total FROM sales_before), 0) + 
+         COALESCE((SELECT amount FROM target_sale), 0) - 
+         COALESCE((SELECT total FROM payments_before), 0) - 
+         COALESCE((SELECT total FROM returns_before), 0))::float as "currentBalance"
+    `);
+    
+    const row = result.rows[0] as { previousBalance: number; currentBalance: number } | undefined;
+    return {
+      previousBalance: row?.previousBalance || 0,
+      currentBalance: row?.currentBalance || 0,
+    };
+  }
+
   // ==================== EXPORT IMEI ====================
 
   async getExportImei(filters: { customerId?: number; itemName?: string; invoiceNumber?: string; dateFrom?: string; dateTo?: string }): Promise<{ imei: string; itemName: string; customerName: string; invoiceNumber: string; saleDate: string }[]> {
