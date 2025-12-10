@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import { 
   suppliers, 
   items, 
@@ -2278,26 +2279,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setSetting(key: string, value: string): Promise<void> {
+    let valueToStore = value;
+    
+    if (key === 'transaction_password' && value) {
+      valueToStore = await bcrypt.hash(value, 10);
+    }
+    
     const existing = await this.getSetting(key);
     if (existing !== null) {
       await db.update(appSettings).set({
-        settingValue: value,
+        settingValue: valueToStore,
         updatedAt: new Date(),
       }).where(eq(appSettings.settingKey, key));
     } else {
       await db.insert(appSettings).values({
         settingKey: key,
-        settingValue: value,
+        settingValue: valueToStore,
       });
     }
   }
 
   async verifyTransactionPassword(password: string): Promise<boolean> {
-    const storedPassword = await this.getSetting('transaction_password');
-    if (!storedPassword) {
+    const storedHash = await this.getSetting('transaction_password');
+    if (!storedHash) {
       return true; // No password set, allow all operations
     }
-    return password === storedPassword;
+    if (!password) {
+      return false; // Password required but not provided
+    }
+    return await bcrypt.compare(password, storedHash);
   }
 }
 

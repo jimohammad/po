@@ -60,6 +60,7 @@ const BranchesPage = lazy(() => import("@/pages/branches"));
 const OpeningBalancesPage = lazy(() => import("@/pages/opening-balances"));
 const PurchaseOrdersPage = lazy(() => import("@/pages/purchase-orders"));
 const StockLookupPage = lazy(() => import("@/pages/stock-lookup"));
+const SecuritySettingsPage = lazy(() => import("@/pages/security-settings"));
 const Landing = lazy(() => import("@/pages/landing"));
 const PublicStatementPage = lazy(() => import("@/pages/public-statement"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -187,6 +188,7 @@ function AppSidebar() {
     { title: "User Roles", url: "/settings/user-roles" },
     { title: "Branches", url: "/settings/branches" },
     { title: "Opening Balances", url: "/settings/opening-balances" },
+    { title: "Security", url: "/settings/security" },
   ];
 
   const handleLogout = () => {
@@ -592,6 +594,7 @@ function AuthenticatedLayout() {
                 <Route path="/settings/user-roles" component={UserRolesPage} />
                 <Route path="/settings/branches" component={BranchesPage} />
                 <Route path="/settings/opening-balances" component={OpeningBalancesPage} />
+                <Route path="/settings/security" component={SecuritySettingsPage} />
                 <Route path="/stock-transfers" component={StockTransfersPage} />
                 <Route path="/stock-lookup" component={StockLookupPage} />
                 <Route component={NotFound} />
