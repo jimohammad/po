@@ -67,7 +67,7 @@ export default function AllSalesPage() {
   };
 
   const { data: salesData, isLoading } = useQuery<{ data: SalesOrder[]; total: number }>({
-    queryKey: ["/api/sales-orders", { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }],
+    queryKey: [`/api/sales-orders?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`],
   });
   
   const salesOrders = salesData?.data ?? [];
