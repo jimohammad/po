@@ -23,7 +23,9 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRight,
+  Calculator,
 } from "lucide-react";
+import { useBranch } from "@/contexts/BranchContext";
 
 type StockBalanceItem = {
   itemName: string;
@@ -49,11 +51,31 @@ type CustomerReportItem = {
   balance: number;
 };
 
+type ProfitLossReport = {
+  netSales: number;
+  saleReturns: number;
+  grossSales: number;
+  costOfGoodsSold: number;
+  grossProfit: number;
+  totalExpenses: number;
+  netProfit: number;
+  expensesByCategory: { category: string; amount: number }[];
+};
+
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState("stock");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [plStartDate, setPlStartDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [plEndDate, setPlEndDate] = useState(() => {
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  });
   const printRef = useRef<HTMLDivElement>(null);
+  const { selectedBranchId } = useBranch();
 
   const { data: stockBalance = [], isLoading: stockLoading } = useQuery<StockBalanceItem[]>({
     queryKey: ["/api/reports/stock-balance"],
@@ -72,6 +94,19 @@ export default function ReportsPage() {
 
   const { data: customerReport = [], isLoading: customerLoading } = useQuery<CustomerReportItem[]>({
     queryKey: ["/api/reports/customer-report"],
+  });
+
+  const plQueryKey = plStartDate && plEndDate 
+    ? `/api/reports/profit-loss?${new URLSearchParams({
+        startDate: plStartDate,
+        endDate: plEndDate,
+        ...(selectedBranchId && { branchId: selectedBranchId.toString() }),
+      }).toString()}`
+    : null;
+
+  const { data: profitLoss, isLoading: plLoading, refetch: refetchPL } = useQuery<ProfitLossReport>({
+    queryKey: [plQueryKey],
+    enabled: !!plQueryKey,
   });
 
   const formatAmount = (amount: number) => {
@@ -137,7 +172,7 @@ export default function ReportsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="no-print grid w-full grid-cols-3" data-testid="tabs-report-type">
+        <TabsList className="no-print grid w-full grid-cols-4" data-testid="tabs-report-type">
           <TabsTrigger value="stock" data-testid="tab-stock">
             <Package className="h-4 w-4 mr-2" />
             Available Stock
@@ -149,6 +184,10 @@ export default function ReportsPage() {
           <TabsTrigger value="customers" data-testid="tab-customers">
             <Users className="h-4 w-4 mr-2" />
             Customer Report
+          </TabsTrigger>
+          <TabsTrigger value="profitloss" data-testid="tab-profitloss">
+            <Calculator className="h-4 w-4 mr-2" />
+            Profit & Loss
           </TabsTrigger>
         </TabsList>
 
@@ -403,6 +442,171 @@ export default function ReportsPage() {
                         </TableRow>
                       </TableBody>
                     </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="profitloss" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Calculator className="h-5 w-5" />
+                  Profit & Loss Statement
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="no-print flex flex-wrap items-end gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="pl-start-date">From Date</Label>
+                    <Input
+                      id="pl-start-date"
+                      type="date"
+                      value={plStartDate}
+                      onChange={(e) => setPlStartDate(e.target.value)}
+                      className="w-40"
+                      data-testid="input-pl-start-date"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="pl-end-date">To Date</Label>
+                    <Input
+                      id="pl-end-date"
+                      type="date"
+                      value={plEndDate}
+                      onChange={(e) => setPlEndDate(e.target.value)}
+                      className="w-40"
+                      data-testid="input-pl-end-date"
+                    />
+                  </div>
+                  <Button onClick={() => refetchPL()} data-testid="button-refresh-pl">
+                    Refresh
+                  </Button>
+                </div>
+
+                {plLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : profitLoss ? (
+                  <div className="space-y-6">
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <Card className="p-0">
+                        <CardContent className="p-4">
+                          <div className="text-sm text-muted-foreground">Gross Sales</div>
+                          <div className="text-xl font-bold" data-testid="text-gross-sales">
+                            {formatAmount(profitLoss.grossSales)} KWD
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <TrendingDown className="h-3 w-3 text-red-500" />
+                            Returns: {formatAmount(profitLoss.saleReturns)} KWD
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="p-0">
+                        <CardContent className="p-4">
+                          <div className="text-sm text-muted-foreground">Net Sales</div>
+                          <div className="text-xl font-bold text-green-600" data-testid="text-net-sales">
+                            {formatAmount(profitLoss.netSales)} KWD
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Gross Sales - Returns
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="p-0">
+                        <CardContent className="p-4">
+                          <div className="text-sm text-muted-foreground">Cost of Goods Sold</div>
+                          <div className="text-xl font-bold text-red-600" data-testid="text-cogs">
+                            {formatAmount(profitLoss.costOfGoodsSold)} KWD
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Purchases - Purchase Returns
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Card className="p-0">
+                        <CardContent className="p-4">
+                          <div className="text-sm text-muted-foreground">Gross Profit</div>
+                          <div className={`text-2xl font-bold ${profitLoss.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid="text-gross-profit">
+                            {formatAmount(profitLoss.grossProfit)} KWD
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Net Sales - COGS
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="p-0">
+                        <CardContent className="p-4">
+                          <div className="text-sm text-muted-foreground">Operating Expenses</div>
+                          <div className="text-2xl font-bold text-orange-600" data-testid="text-total-expenses">
+                            {formatAmount(profitLoss.totalExpenses)} KWD
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Total from all categories
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <Card className="border-2 border-primary/20">
+                      <CardContent className="p-4 text-center">
+                        <div className="text-sm text-muted-foreground">Net Profit / (Loss)</div>
+                        <div className={`text-3xl font-bold ${profitLoss.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid="text-net-profit">
+                          {profitLoss.netProfit >= 0 ? '' : '('}{formatAmount(Math.abs(profitLoss.netProfit))}{profitLoss.netProfit >= 0 ? '' : ')'} KWD
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Gross Profit - Operating Expenses
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {profitLoss.expensesByCategory.length > 0 && (
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm">Expenses Breakdown</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="rounded-md border">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Category</TableHead>
+                                  <TableHead className="text-right">Amount (KWD)</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {profitLoss.expensesByCategory.map((expense, index) => (
+                                  <TableRow key={index} data-testid={`row-expense-${index}`}>
+                                    <TableCell>{expense.category}</TableCell>
+                                    <TableCell className="text-right font-mono">
+                                      {formatAmount(expense.amount)}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                                <TableRow className="bg-muted/50 font-semibold">
+                                  <TableCell>Total Expenses</TableCell>
+                                  <TableCell className="text-right font-mono">
+                                    {formatAmount(profitLoss.totalExpenses)}
+                                  </TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Select a date range and click Refresh to generate the report
                   </div>
                 )}
               </CardContent>

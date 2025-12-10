@@ -1247,6 +1247,26 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== PROFIT AND LOSS ROUTE ====================
+
+  app.get("/api/reports/profit-loss", isAuthenticated, async (req, res) => {
+    try {
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+      const branchId = req.query.branchId ? parseInt(req.query.branchId as string) : undefined;
+
+      if (!startDate || !endDate) {
+        return res.status(400).json({ error: "Start date and end date are required" });
+      }
+
+      const report = await storage.getProfitAndLoss(startDate, endDate, branchId);
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching P&L report:", error);
+      res.status(500).json({ error: "Failed to fetch profit and loss report" });
+    }
+  });
+
   // ==================== BRANCH ROUTES ====================
 
   app.get("/api/branches", isAuthenticated, async (req, res) => {

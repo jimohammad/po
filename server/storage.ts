@@ -189,6 +189,18 @@ export interface IStorage {
   // Dashboard
   getDashboardStats(): Promise<{ stockAmount: number; totalCredit: number; totalDebit: number; cashBalance: number; bankAccountsBalance: number; monthlySales: number; lastMonthSales: number; monthlyPurchases: number; salesTrend: number[]; purchasesTrend: number[] }>;
   globalSearch(query: string): Promise<{ type: string; id: number; title: string; subtitle: string; url: string }[]>;
+  
+  // Profit and Loss
+  getProfitAndLoss(startDate: string, endDate: string, branchId?: number): Promise<{
+    netSales: number;
+    saleReturns: number;
+    grossSales: number;
+    costOfGoodsSold: number;
+    grossProfit: number;
+    totalExpenses: number;
+    netProfit: number;
+    expensesByCategory: { category: string; amount: number }[];
+  }>;
 
   // Branches
   getBranches(): Promise<Branch[]>;
@@ -1711,6 +1723,100 @@ export class DatabaseStorage implements IStorage {
     }
 
     return results.slice(0, 20);
+  }
+
+  // ==================== PROFIT AND LOSS ====================
+
+  async getProfitAndLoss(startDate: string, endDate: string, branchId?: number): Promise<{
+    netSales: number;
+    saleReturns: number;
+    grossSales: number;
+    costOfGoodsSold: number;
+    grossProfit: number;
+    totalExpenses: number;
+    netProfit: number;
+    expensesByCategory: { category: string; amount: number }[];
+  }> {
+    const branchFilter = branchId ? sql`AND branch_id = ${branchId}` : sql``;
+    
+    // Get gross sales (total sales in date range)
+    const salesResult = await db.execute(sql`
+      SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+      FROM sales_orders
+      WHERE sale_date >= ${startDate} AND sale_date <= ${endDate}
+      ${branchFilter}
+    `);
+    const grossSales = (salesResult.rows[0] as { total: number })?.total || 0;
+
+    // Get sale returns in date range
+    const saleReturnsResult = await db.execute(sql`
+      SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+      FROM returns
+      WHERE return_type = 'sale' 
+      AND return_date >= ${startDate} AND return_date <= ${endDate}
+      ${branchFilter}
+    `);
+    const saleReturns = (saleReturnsResult.rows[0] as { total: number })?.total || 0;
+
+    // Net Sales = Gross Sales - Sale Returns
+    const netSales = grossSales - saleReturns;
+
+    // Get purchases in date range (COGS component)
+    const purchasesResult = await db.execute(sql`
+      SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+      FROM purchase_orders
+      WHERE purchase_date >= ${startDate} AND purchase_date <= ${endDate}
+      ${branchFilter}
+    `);
+    const purchases = (purchasesResult.rows[0] as { total: number })?.total || 0;
+
+    // Get purchase returns in date range
+    const purchaseReturnsResult = await db.execute(sql`
+      SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+      FROM returns
+      WHERE return_type = 'purchase' 
+      AND return_date >= ${startDate} AND return_date <= ${endDate}
+      ${branchFilter}
+    `);
+    const purchaseReturns = (purchaseReturnsResult.rows[0] as { total: number })?.total || 0;
+
+    // Cost of Goods Sold = Purchases - Purchase Returns
+    // Note: For simplicity, we're using purchases method rather than inventory-based COGS
+    const costOfGoodsSold = purchases - purchaseReturns;
+
+    // Gross Profit = Net Sales - COGS
+    const grossProfit = netSales - costOfGoodsSold;
+
+    // Get total expenses by category in date range
+    const expensesResult = await db.execute(sql`
+      SELECT 
+        COALESCE(ec.name, 'Uncategorized') as category,
+        COALESCE(SUM(CAST(e.amount AS DECIMAL)), 0)::float as amount
+      FROM expenses e
+      LEFT JOIN expense_categories ec ON e.category_id = ec.id
+      WHERE e.expense_date >= ${startDate} AND e.expense_date <= ${endDate}
+      ${branchId ? sql`AND e.branch_id = ${branchId}` : sql``}
+      GROUP BY ec.name
+      ORDER BY amount DESC
+    `);
+    const expensesByCategory = expensesResult.rows as { category: string; amount: number }[];
+
+    // Total expenses
+    const totalExpenses = expensesByCategory.reduce((sum, e) => sum + e.amount, 0);
+
+    // Net Profit = Gross Profit - Total Expenses
+    const netProfit = grossProfit - totalExpenses;
+
+    return {
+      netSales,
+      saleReturns,
+      grossSales,
+      costOfGoodsSold,
+      grossProfit,
+      totalExpenses,
+      netProfit,
+      expensesByCategory,
+    };
   }
 
   // ==================== BRANCHES ====================
