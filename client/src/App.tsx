@@ -543,12 +543,6 @@ function AuthenticatedLayout() {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <BranchSelectorHeader />
-              <Badge variant="secondary" className="text-xs font-normal">
-                Database
-              </Badge>
-              <Badge variant="secondary" className="text-xs font-normal">
-                PDF / JPG / PNG
-              </Badge>
               <ThemeToggle />
             </div>
           </header>
