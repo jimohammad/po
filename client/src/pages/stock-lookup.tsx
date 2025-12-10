@@ -88,10 +88,10 @@ export default function StockLookupPage() {
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
             <Package className="h-6 w-6" />
-            Stock Lookup
+            Stock
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Quick search and view of available stock
+            View and search available stock
           </p>
         </div>
       </div>

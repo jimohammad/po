@@ -238,7 +238,7 @@ function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
-              {/* Stock Lookup - quick access */}
+              {/* Stock - quick access */}
               {canAccess("reports") && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
@@ -247,7 +247,7 @@ function AppSidebar() {
                   >
                     <Link href="/stock-lookup" data-testid="link-stock-lookup">
                       <Package className="h-4 w-4" />
-                      <span>Stock Lookup</span>
+                      <span>Stock</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -536,7 +536,7 @@ function AuthenticatedLayout() {
       case "/stock-transfers":
         return "Stock Transfers";
       case "/stock-lookup":
-        return "Stock Lookup";
+        return "Stock";
       default:
         return "";
     }
