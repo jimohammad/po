@@ -118,8 +118,9 @@ export default function PaymentsPage() {
       const response = await apiRequest("POST", "/api/payments", data);
       return response.json();
     },
-    onSuccess: (savedPayment: PaymentWithDetails) => {
-      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "/api/payments" });
+    onSuccess: async (savedPayment: PaymentWithDetails) => {
+      await queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "/api/payments" });
+      await queryClient.refetchQueries({ predicate: (query) => query.queryKey[0] === "/api/payments" });
       setPage(1);
       toast({ title: "Payment recorded successfully" });
       resetForm();
