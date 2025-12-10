@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,9 +38,14 @@ export function SalesOrderForm({
   isSubmitting,
   isAdmin = false,
 }: SalesOrderFormProps) {
+  const customerSelectRef = useRef<HTMLButtonElement>(null);
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [customerId, setCustomerId] = useState<string>("");
+
+  useEffect(() => {
+    setTimeout(() => customerSelectRef.current?.focus(), 100);
+  }, []);
 
   // Fetch next invoice number on mount
   const { data: nextInvoiceData } = useQuery<{ invoiceNumber: string }>({
@@ -181,7 +186,7 @@ export function SalesOrderForm({
               <Label htmlFor="customer">Customer</Label>
               <div className="flex gap-2">
                 <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger className="flex-1" data-testid="select-customer">
+                  <SelectTrigger ref={customerSelectRef} className="flex-1" data-testid="select-customer">
                     <SelectValue placeholder="Select customer" />
                   </SelectTrigger>
                   <SelectContent>
