@@ -493,37 +493,53 @@ export class DatabaseStorage implements IStorage {
   // ==================== SALES MODULE ====================
 
   async getCustomers(): Promise<Customer[]> {
-    // Return parties with partyType='customer' from suppliers table
-    // Map supplier fields to customer structure for compatibility
+    // Get customers from both sources:
+    // 1. Original customers table
+    // 2. Parties with partyType='customer' from suppliers table
+    
+    const existingCustomers = await db.select().from(customers).orderBy(customers.name);
+    
     const customerParties = await db.select().from(suppliers)
       .where(eq(suppliers.partyType, 'customer'))
       .orderBy(suppliers.name);
     
-    return customerParties.map(party => ({
-      id: party.id,
+    const mappedParties = customerParties.map(party => ({
+      id: party.id + 100000, // Offset ID to avoid conflicts
       name: party.name,
       phone: party.phone,
       email: null,
       creditLimit: party.creditLimit,
       branchId: null,
     })) as Customer[];
+    
+    // Combine both lists and sort by name
+    return [...existingCustomers, ...mappedParties].sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
-    // Fetch customer from suppliers table where partyType='customer'
-    const [party] = await db.select().from(suppliers)
-      .where(and(eq(suppliers.id, id), eq(suppliers.partyType, 'customer')));
+    // Check if ID is from suppliers table (offset by 100000)
+    if (id >= 100000) {
+      const actualId = id - 100000;
+      const [party] = await db.select().from(suppliers)
+        .where(and(eq(suppliers.id, actualId), eq(suppliers.partyType, 'customer')));
+      
+      if (!party) return undefined;
+      
+      return {
+        id: party.id + 100000,
+        name: party.name,
+        phone: party.phone,
+        email: null,
+        creditLimit: party.creditLimit,
+        branchId: null,
+      } as Customer;
+    }
     
-    if (!party) return undefined;
-    
-    return {
-      id: party.id,
-      name: party.name,
-      phone: party.phone,
-      email: null,
-      creditLimit: party.creditLimit,
-      branchId: null,
-    } as Customer;
+    // Otherwise fetch from customers table
+    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
+    return customer || undefined;
   }
 
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
