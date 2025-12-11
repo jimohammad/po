@@ -227,6 +227,28 @@ export async function registerRoutes(
         },
         lineItems || []
       );
+
+      // Process IMEI events for purchased items
+      if (lineItems && lineItems.length > 0) {
+        for (const lineItem of lineItems) {
+          if (lineItem.imeiNumbers && lineItem.imeiNumbers.length > 0) {
+            try {
+              await storage.processImeiFromPurchase(
+                lineItem.imeiNumbers,
+                lineItem.itemName,
+                order.id,
+                orderData.supplierId,
+                orderData.purchaseDate,
+                lineItem.priceKwd,
+                orderData.branchId || null,
+                userId
+              );
+            } catch (imeiError) {
+              console.error("Error processing IMEI for purchase:", imeiError);
+            }
+          }
+        }
+      }
       
       res.status(201).json(order);
     } catch (error) {
@@ -421,6 +443,28 @@ export async function registerRoutes(
         },
         lineItems || []
       );
+
+      // Process IMEI events for sold items
+      if (lineItems && lineItems.length > 0) {
+        for (const lineItem of lineItems) {
+          if (lineItem.imeiNumbers && lineItem.imeiNumbers.length > 0) {
+            try {
+              await storage.processImeiFromSale(
+                lineItem.imeiNumbers,
+                lineItem.itemName,
+                order.id,
+                orderData.customerId,
+                orderData.saleDate,
+                lineItem.priceKwd,
+                orderData.branchId || null,
+                userId
+              );
+            } catch (imeiError) {
+              console.error("Error processing IMEI for sale:", imeiError);
+            }
+          }
+        }
+      }
       
       res.status(201).json(order);
     } catch (error) {
@@ -903,10 +947,11 @@ export async function registerRoutes(
   app.post("/api/returns", isAuthenticated, async (req: any, res) => {
     try {
       const { lineItems, ...returnData } = req.body;
+      const userId = req.user?.claims?.sub;
       
       const returnParsed = insertReturnSchema.safeParse({
         ...returnData,
-        createdBy: req.user?.claims?.sub,
+        createdBy: userId,
       });
       
       if (!returnParsed.success) {
@@ -923,6 +968,28 @@ export async function registerRoutes(
       }));
       
       const newReturn = await storage.createReturn(returnParsed.data, parsedLineItems);
+
+      // Process IMEI events for returned items
+      if (parsedLineItems && parsedLineItems.length > 0) {
+        for (const lineItem of parsedLineItems) {
+          if (lineItem.imeiNumbers && lineItem.imeiNumbers.length > 0) {
+            try {
+              await storage.processImeiFromReturn(
+                lineItem.imeiNumbers,
+                returnData.returnType,
+                newReturn.id,
+                returnData.customerId || null,
+                returnData.supplierId || null,
+                returnData.branchId || null,
+                userId
+              );
+            } catch (imeiError) {
+              console.error("Error processing IMEI for return:", imeiError);
+            }
+          }
+        }
+      }
+
       res.status(201).json(newReturn);
     } catch (error) {
       console.error("Error creating return:", error);
