@@ -503,9 +503,10 @@ export class DatabaseStorage implements IStorage {
       id: party.id,
       name: party.name,
       phone: party.phone,
-      address: party.address,
+      email: null,
       creditLimit: party.creditLimit,
-    }));
+      branchId: null,
+    })) as Customer[];
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
@@ -519,9 +520,10 @@ export class DatabaseStorage implements IStorage {
       id: party.id,
       name: party.name,
       phone: party.phone,
-      address: party.address,
+      email: null,
       creditLimit: party.creditLimit,
-    };
+      branchId: null,
+    } as Customer;
   }
 
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
