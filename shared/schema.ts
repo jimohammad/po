@@ -123,6 +123,7 @@ export const purchaseOrderLineItems = pgTable("purchase_order_line_items", {
   priceKwd: numeric("price_kwd", { precision: 12, scale: 3 }),
   fxPrice: numeric("fx_price", { precision: 12, scale: 2 }),
   totalKwd: numeric("total_kwd", { precision: 12, scale: 3 }),
+  imeiNumbers: text("imei_numbers").array(),
 }, (table) => [
   index("idx_po_line_item").on(table.itemName),
   index("idx_po_line_order").on(table.purchaseOrderId),
@@ -767,3 +768,151 @@ export const appSettings = pgTable("app_settings", {
 export const insertAppSettingSchema = createInsertSchema(appSettings).omit({ id: true, updatedAt: true });
 export type InsertAppSetting = z.infer<typeof insertAppSettingSchema>;
 export type AppSetting = typeof appSettings.$inferSelect;
+
+// ==================== IMEI TRACKING MODULE ====================
+
+export const IMEI_STATUS = ["in_stock", "sold", "returned", "transferred", "defective", "warranty"] as const;
+export type ImeiStatus = typeof IMEI_STATUS[number];
+
+export const IMEI_EVENT_TYPES = [
+  "purchased",      // IMEI received from supplier
+  "stocked",        // Added to inventory
+  "sold",           // Sold to customer
+  "sale_returned",  // Customer returned the device
+  "purchase_returned", // Returned to supplier
+  "transferred_out", // Transferred to another branch
+  "transferred_in",  // Received from another branch
+  "warranty_claim",  // Sent for warranty service
+  "warranty_received", // Received back from warranty
+  "marked_defective", // Marked as defective
+  "adjusted"         // Manual adjustment
+] as const;
+export type ImeiEventType = typeof IMEI_EVENT_TYPES[number];
+
+// Main IMEI inventory table - tracks current state of each IMEI
+export const imeiInventory = pgTable("imei_inventory", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  imei: text("imei").notNull().unique(),
+  itemName: text("item_name").notNull(),
+  itemId: integer("item_id").references(() => items.id),
+  status: text("status").default("in_stock").notNull(),
+  currentBranchId: integer("current_branch_id").references(() => branches.id),
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id),
+  purchaseDate: date("purchase_date"),
+  purchasePriceKwd: numeric("purchase_price_kwd", { precision: 12, scale: 3 }),
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  salesOrderId: integer("sales_order_id").references(() => salesOrders.id),
+  saleDate: date("sale_date"),
+  salePriceKwd: numeric("sale_price_kwd", { precision: 12, scale: 3 }),
+  customerId: integer("customer_id").references(() => customers.id),
+  warrantyEndDate: date("warranty_end_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_imei_imei").on(table.imei),
+  index("idx_imei_item").on(table.itemName),
+  index("idx_imei_status").on(table.status),
+  index("idx_imei_branch").on(table.currentBranchId),
+  index("idx_imei_po").on(table.purchaseOrderId),
+  index("idx_imei_so").on(table.salesOrderId),
+]);
+
+export const imeiInventoryRelations = relations(imeiInventory, ({ one, many }) => ({
+  item: one(items, {
+    fields: [imeiInventory.itemId],
+    references: [items.id],
+  }),
+  currentBranch: one(branches, {
+    fields: [imeiInventory.currentBranchId],
+    references: [branches.id],
+  }),
+  purchaseOrder: one(purchaseOrders, {
+    fields: [imeiInventory.purchaseOrderId],
+    references: [purchaseOrders.id],
+  }),
+  salesOrder: one(salesOrders, {
+    fields: [imeiInventory.salesOrderId],
+    references: [salesOrders.id],
+  }),
+  supplier: one(suppliers, {
+    fields: [imeiInventory.supplierId],
+    references: [suppliers.id],
+  }),
+  customer: one(customers, {
+    fields: [imeiInventory.customerId],
+    references: [customers.id],
+  }),
+  events: many(imeiEvents),
+}));
+
+export const insertImeiInventorySchema = createInsertSchema(imeiInventory).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertImeiInventory = z.infer<typeof insertImeiInventorySchema>;
+export type ImeiInventory = typeof imeiInventory.$inferSelect;
+
+// IMEI events table - tracks full lifecycle/history of each IMEI
+export const imeiEvents = pgTable("imei_events", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  imeiId: integer("imei_id").references(() => imeiInventory.id, { onDelete: "cascade" }).notNull(),
+  eventType: text("event_type").notNull(),
+  eventDate: timestamp("event_date").defaultNow().notNull(),
+  referenceType: text("reference_type"), // 'purchase_order' | 'sales_order' | 'return' | 'transfer' | 'manual'
+  referenceId: integer("reference_id"),
+  fromBranchId: integer("from_branch_id").references(() => branches.id),
+  toBranchId: integer("to_branch_id").references(() => branches.id),
+  customerId: integer("customer_id").references(() => customers.id),
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  priceKwd: numeric("price_kwd", { precision: 12, scale: 3 }),
+  notes: text("notes"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_imei_event_imei").on(table.imeiId),
+  index("idx_imei_event_type").on(table.eventType),
+  index("idx_imei_event_date").on(table.eventDate),
+  index("idx_imei_event_ref").on(table.referenceType, table.referenceId),
+]);
+
+export const imeiEventsRelations = relations(imeiEvents, ({ one }) => ({
+  imei: one(imeiInventory, {
+    fields: [imeiEvents.imeiId],
+    references: [imeiInventory.id],
+  }),
+  fromBranch: one(branches, {
+    fields: [imeiEvents.fromBranchId],
+    references: [branches.id],
+  }),
+  toBranch: one(branches, {
+    fields: [imeiEvents.toBranchId],
+    references: [branches.id],
+  }),
+  customer: one(customers, {
+    fields: [imeiEvents.customerId],
+    references: [customers.id],
+  }),
+  supplier: one(suppliers, {
+    fields: [imeiEvents.supplierId],
+    references: [suppliers.id],
+  }),
+}));
+
+export const insertImeiEventSchema = createInsertSchema(imeiEvents).omit({ id: true, createdAt: true });
+export type InsertImeiEvent = z.infer<typeof insertImeiEventSchema>;
+export type ImeiEvent = typeof imeiEvents.$inferSelect;
+
+export type ImeiInventoryWithDetails = ImeiInventory & {
+  item?: Item | null;
+  currentBranch?: Branch | null;
+  purchaseOrder?: PurchaseOrder | null;
+  salesOrder?: SalesOrder | null;
+  supplier?: Supplier | null;
+  customer?: Customer | null;
+  events?: ImeiEventWithDetails[];
+};
+
+export type ImeiEventWithDetails = ImeiEvent & {
+  fromBranch?: Branch | null;
+  toBranch?: Branch | null;
+  customer?: Customer | null;
+  supplier?: Supplier | null;
+};
