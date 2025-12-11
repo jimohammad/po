@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation, Link } from "wouter";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -192,6 +192,22 @@ function AppSidebar() {
     { title: "Security", url: "/settings/security" },
   ];
 
+  // Track which menu is expanded (accordion pattern - only one at a time)
+  const getInitialExpandedMenu = () => {
+    if (location.startsWith("/purchases")) return "purchases";
+    if (location.startsWith("/sales")) return "sales";
+    if (location.startsWith("/items")) return "items";
+    if (location.startsWith("/reports")) return "reports";
+    if (location.startsWith("/settings")) return "settings";
+    return null;
+  };
+  
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(getInitialExpandedMenu);
+
+  const handleMenuToggle = (menuId: string) => {
+    setExpandedMenu(prev => prev === menuId ? null : menuId);
+  };
+
   const handleLogout = () => {
     window.location.href = "/api/logout";
   };
@@ -273,7 +289,7 @@ function AppSidebar() {
 
               {/* Purchase - second after Dashboard */}
               {canAccess("purchases") && (
-                <Collapsible defaultOpen={location.startsWith("/purchases")} className="group/collapsible">
+                <Collapsible open={expandedMenu === "purchases"} onOpenChange={() => handleMenuToggle("purchases")} className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton isActive={location.startsWith("/purchases")}>
@@ -314,7 +330,7 @@ function AppSidebar() {
 
               {/* Sales - third after Purchase */}
               {canAccess("sales") && (
-                <Collapsible defaultOpen={location.startsWith("/sales")} className="group/collapsible">
+                <Collapsible open={expandedMenu === "sales"} onOpenChange={() => handleMenuToggle("sales")} className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton isActive={location.startsWith("/sales")}>
@@ -369,7 +385,7 @@ function AppSidebar() {
               ))}
 
               {canAccess("items") && (
-                <Collapsible defaultOpen={location.startsWith("/items")} className="group/collapsible">
+                <Collapsible open={expandedMenu === "items"} onOpenChange={() => handleMenuToggle("items")} className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton isActive={location.startsWith("/items")}>
@@ -413,7 +429,7 @@ function AppSidebar() {
               )}
 
               {canAccess("reports") && (
-                <Collapsible defaultOpen={location.startsWith("/reports")} className="group/collapsible">
+                <Collapsible open={expandedMenu === "reports"} onOpenChange={() => handleMenuToggle("reports")} className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton isActive={location.startsWith("/reports")}>
@@ -443,7 +459,7 @@ function AppSidebar() {
               )}
 
               {canAccess("settings") && (
-                <Collapsible defaultOpen={location.startsWith("/settings")} className="group/collapsible">
+                <Collapsible open={expandedMenu === "settings"} onOpenChange={() => handleMenuToggle("settings")} className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton isActive={location.startsWith("/settings")}>
