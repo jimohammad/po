@@ -2736,7 +2736,7 @@ export class DatabaseStorage implements IStorage {
           unit_price,
           fifo_remaining as qty,
           fifo_remaining * unit_price as value,
-          EXTRACT(DAY FROM (CURRENT_DATE - received_date::date)) as age_days
+          (CURRENT_DATE - received_date::date) as age_days
         FROM stock_with_remaining
         WHERE fifo_remaining > 0
       )

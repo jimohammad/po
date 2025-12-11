@@ -353,12 +353,12 @@ export default function ReportsPage() {
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="agingSupplier">Supplier</Label>
-                    <Select value={agingSupplierId} onValueChange={setAgingSupplierId}>
+                    <Select value={agingSupplierId} onValueChange={(val) => setAgingSupplierId(val === "all" ? "" : val)}>
                       <SelectTrigger className="w-48" data-testid="select-aging-supplier">
                         <SelectValue placeholder="All Suppliers" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Suppliers</SelectItem>
+                        <SelectItem value="all">All Suppliers</SelectItem>
                         {suppliers.map((supplier) => (
                           <SelectItem key={supplier.id} value={supplier.id.toString()}>
                             {supplier.name}
