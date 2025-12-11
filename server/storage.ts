@@ -493,12 +493,35 @@ export class DatabaseStorage implements IStorage {
   // ==================== SALES MODULE ====================
 
   async getCustomers(): Promise<Customer[]> {
-    return await db.select().from(customers).orderBy(customers.name);
+    // Return parties with partyType='customer' from suppliers table
+    // Map supplier fields to customer structure for compatibility
+    const customerParties = await db.select().from(suppliers)
+      .where(eq(suppliers.partyType, 'customer'))
+      .orderBy(suppliers.name);
+    
+    return customerParties.map(party => ({
+      id: party.id,
+      name: party.name,
+      phone: party.phone,
+      address: party.address,
+      creditLimit: party.creditLimit,
+    }));
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
-    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
-    return customer || undefined;
+    // Fetch customer from suppliers table where partyType='customer'
+    const [party] = await db.select().from(suppliers)
+      .where(and(eq(suppliers.id, id), eq(suppliers.partyType, 'customer')));
+    
+    if (!party) return undefined;
+    
+    return {
+      id: party.id,
+      name: party.name,
+      phone: party.phone,
+      address: party.address,
+      creditLimit: party.creditLimit,
+    };
   }
 
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
