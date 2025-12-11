@@ -701,6 +701,29 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/reports/stock-aging", isAuthenticated, async (req, res) => {
+    try {
+      const { itemName, supplierId, branchId } = req.query;
+      const filters: { itemName?: string; supplierId?: number; branchId?: number } = {};
+      
+      if (itemName && typeof itemName === 'string') {
+        filters.itemName = itemName;
+      }
+      if (supplierId && !isNaN(parseInt(supplierId as string))) {
+        filters.supplierId = parseInt(supplierId as string);
+      }
+      if (branchId && !isNaN(parseInt(branchId as string))) {
+        filters.branchId = parseInt(branchId as string);
+      }
+      
+      const stockAging = await storage.getStockAging(filters);
+      res.json(stockAging);
+    } catch (error) {
+      console.error("Error fetching stock aging report:", error);
+      res.status(500).json({ error: "Failed to fetch stock aging report" });
+    }
+  });
+
   // ==================== ACCOUNTS MODULE ====================
 
   await storage.ensureDefaultAccounts();
