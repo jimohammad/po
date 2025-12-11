@@ -24,7 +24,16 @@ import {
   TrendingDown,
   ArrowRight,
   Calculator,
+  Clock,
+  Search,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useBranch } from "@/contexts/BranchContext";
 
 type StockBalanceItem = {
@@ -62,10 +71,44 @@ type ProfitLossReport = {
   expensesByCategory: { category: string; amount: number }[];
 };
 
+type StockAgingItem = {
+  itemName: string;
+  supplierName: string | null;
+  totalQty: number;
+  totalValue: number;
+  qty0to30: number;
+  value0to30: number;
+  qty31to60: number;
+  value31to60: number;
+  qty61to90: number;
+  value61to90: number;
+  qty90plus: number;
+  value90plus: number;
+  oldestDate: string | null;
+};
+
+type StockAgingReport = {
+  summary: {
+    bucket0to30: { quantity: number; value: number };
+    bucket31to60: { quantity: number; value: number };
+    bucket61to90: { quantity: number; value: number };
+    bucket90plus: { quantity: number; value: number };
+    total: { quantity: number; value: number };
+  };
+  details: StockAgingItem[];
+};
+
+type Supplier = {
+  id: number;
+  name: string;
+};
+
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState("stock");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [agingItemSearch, setAgingItemSearch] = useState("");
+  const [agingSupplierId, setAgingSupplierId] = useState<string>("");
   const [plStartDate, setPlStartDate] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -107,6 +150,20 @@ export default function ReportsPage() {
   const { data: profitLoss, isLoading: plLoading, refetch: refetchPL } = useQuery<ProfitLossReport>({
     queryKey: [plQueryKey],
     enabled: !!plQueryKey,
+  });
+
+  // Stock Aging queries
+  const { data: suppliers = [] } = useQuery<Supplier[]>({
+    queryKey: ["/api/suppliers"],
+  });
+
+  const stockAgingQueryParams = new URLSearchParams();
+  if (agingItemSearch) stockAgingQueryParams.set("itemName", agingItemSearch);
+  if (agingSupplierId) stockAgingQueryParams.set("supplierId", agingSupplierId);
+  const stockAgingQueryKey = `/api/reports/stock-aging${stockAgingQueryParams.toString() ? `?${stockAgingQueryParams.toString()}` : ""}`;
+
+  const { data: stockAging, isLoading: stockAgingLoading } = useQuery<StockAgingReport>({
+    queryKey: [stockAgingQueryKey],
   });
 
   const formatAmount = (amount: number) => {
@@ -172,10 +229,14 @@ export default function ReportsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="no-print grid w-full grid-cols-4" data-testid="tabs-report-type">
+        <TabsList className="no-print grid w-full grid-cols-5" data-testid="tabs-report-type">
           <TabsTrigger value="stock" data-testid="tab-stock">
             <Package className="h-4 w-4 mr-2" />
             Available Stock
+          </TabsTrigger>
+          <TabsTrigger value="stockaging" data-testid="tab-stockaging">
+            <Clock className="h-4 w-4 mr-2" />
+            Stock Aging
           </TabsTrigger>
           <TabsTrigger value="cashflow" data-testid="tab-cashflow">
             <Banknote className="h-4 w-4 mr-2" />
@@ -259,6 +320,210 @@ export default function ReportsPage() {
                         </TableRow>
                       </TableBody>
                     </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="stockaging" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock className="h-5 w-5" />
+                  Stock Aging Report
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Filters */}
+                <div className="no-print flex flex-wrap items-end gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="agingItemSearch">Item Name</Label>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="agingItemSearch"
+                        placeholder="Search items..."
+                        value={agingItemSearch}
+                        onChange={(e) => setAgingItemSearch(e.target.value)}
+                        className="w-48 pl-8"
+                        data-testid="input-aging-item-search"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="agingSupplier">Supplier</Label>
+                    <Select value={agingSupplierId} onValueChange={setAgingSupplierId}>
+                      <SelectTrigger className="w-48" data-testid="select-aging-supplier">
+                        <SelectValue placeholder="All Suppliers" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All Suppliers</SelectItem>
+                        {suppliers.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                            {supplier.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setAgingItemSearch("");
+                      setAgingSupplierId("");
+                    }}
+                    data-testid="button-clear-aging-filters"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+
+                {stockAgingLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : stockAging ? (
+                  <div className="space-y-6">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-5 gap-4">
+                      <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                        <CardContent className="p-4 text-center">
+                          <div className="text-sm text-muted-foreground">0-30 Days</div>
+                          <div className="text-2xl font-bold text-green-700 dark:text-green-400" data-testid="text-bucket-0-30-qty">
+                            {stockAging.summary.bucket0to30.quantity}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatAmount(stockAging.summary.bucket0to30.value)} KWD
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800">
+                        <CardContent className="p-4 text-center">
+                          <div className="text-sm text-muted-foreground">31-60 Days</div>
+                          <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-400" data-testid="text-bucket-31-60-qty">
+                            {stockAging.summary.bucket31to60.quantity}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatAmount(stockAging.summary.bucket31to60.value)} KWD
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800">
+                        <CardContent className="p-4 text-center">
+                          <div className="text-sm text-muted-foreground">61-90 Days</div>
+                          <div className="text-2xl font-bold text-orange-700 dark:text-orange-400" data-testid="text-bucket-61-90-qty">
+                            {stockAging.summary.bucket61to90.quantity}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatAmount(stockAging.summary.bucket61to90.value)} KWD
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800">
+                        <CardContent className="p-4 text-center">
+                          <div className="text-sm text-muted-foreground">90+ Days</div>
+                          <div className="text-2xl font-bold text-red-700 dark:text-red-400" data-testid="text-bucket-90-plus-qty">
+                            {stockAging.summary.bucket90plus.quantity}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatAmount(stockAging.summary.bucket90plus.value)} KWD
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="border-2 border-primary/20">
+                        <CardContent className="p-4 text-center">
+                          <div className="text-sm text-muted-foreground">Total</div>
+                          <div className="text-2xl font-bold" data-testid="text-total-qty">
+                            {stockAging.summary.total.quantity}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatAmount(stockAging.summary.total.value)} KWD
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Details Table */}
+                    {stockAging.details.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No stock aging data available
+                      </div>
+                    ) : (
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[20%]">Item Name</TableHead>
+                              <TableHead>Supplier</TableHead>
+                              <TableHead className="text-right">0-30 Days</TableHead>
+                              <TableHead className="text-right">31-60 Days</TableHead>
+                              <TableHead className="text-right">61-90 Days</TableHead>
+                              <TableHead className="text-right">90+ Days</TableHead>
+                              <TableHead className="text-right">Total Qty</TableHead>
+                              <TableHead className="text-right">Total Value</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {stockAging.details.map((item, index) => (
+                              <TableRow key={index} data-testid={`row-aging-${index}`}>
+                                <TableCell className="font-medium">{item.itemName}</TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  {item.supplierName || "-"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {item.qty0to30 > 0 ? (
+                                    <Badge variant="secondary" className="font-mono bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+                                      {item.qty0to30}
+                                    </Badge>
+                                  ) : "-"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {item.qty31to60 > 0 ? (
+                                    <Badge variant="secondary" className="font-mono bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
+                                      {item.qty31to60}
+                                    </Badge>
+                                  ) : "-"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {item.qty61to90 > 0 ? (
+                                    <Badge variant="secondary" className="font-mono bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300">
+                                      {item.qty61to90}
+                                    </Badge>
+                                  ) : "-"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {item.qty90plus > 0 ? (
+                                    <Badge variant="secondary" className="font-mono bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
+                                      {item.qty90plus}
+                                    </Badge>
+                                  ) : "-"}
+                                </TableCell>
+                                <TableCell className="text-right font-semibold">
+                                  {item.totalQty}
+                                </TableCell>
+                                <TableCell className="text-right font-mono">
+                                  {formatAmount(item.totalValue)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="bg-muted/50 font-semibold">
+                              <TableCell colSpan={2}>Total</TableCell>
+                              <TableCell className="text-right">{stockAging.summary.bucket0to30.quantity}</TableCell>
+                              <TableCell className="text-right">{stockAging.summary.bucket31to60.quantity}</TableCell>
+                              <TableCell className="text-right">{stockAging.summary.bucket61to90.quantity}</TableCell>
+                              <TableCell className="text-right">{stockAging.summary.bucket90plus.quantity}</TableCell>
+                              <TableCell className="text-right">{stockAging.summary.total.quantity}</TableCell>
+                              <TableCell className="text-right font-mono">{formatAmount(stockAging.summary.total.value)}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No stock aging data available
                   </div>
                 )}
               </CardContent>
