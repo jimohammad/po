@@ -57,6 +57,7 @@ export default function PartyMaster() {
       apiRequest("POST", "/api/suppliers", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({ title: "Party added successfully" });
       handleCloseDialog();
     },
@@ -70,6 +71,7 @@ export default function PartyMaster() {
       apiRequest("PUT", `/api/suppliers/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({ title: "Party updated successfully" });
       handleCloseDialog();
     },
@@ -89,6 +91,7 @@ export default function PartyMaster() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({ title: "Party deleted successfully" });
       setDeleteDialogOpen(false);
       setPartyToDelete(null);
