@@ -13,6 +13,7 @@ This is a **Purchase Order Register** system built for Iqbal Electronics Co. WLL
 - View monthly purchase statistics and reports
 - Filter and search historical purchase orders
 - Sales module with IMEI tracking and customer management
+- IMEI History module for complete device lifecycle tracking (purchase → stock → sale → return → warranty → transfer)
 - Payment module with IN/OUT direction tracking for cash flow
 - Returns module with toggle switch between Sale Returns (from customers) and Purchase Returns (to suppliers), including IMEI tracking
 - Reports module with Available Stock, Daily Cash Flow, and Customer Reports
