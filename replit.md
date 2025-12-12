@@ -24,6 +24,23 @@ This is a **Purchase Order Register** system built for Iqbal Electronics Co. WLL
 
 The system is designed as an enterprise productivity tool with a focus on efficient data entry workflows and comprehensive purchase tracking.
 
+## Future Enhancements (Phase 2)
+
+### Customer Portal (Planned for Post-Launch)
+**Status**: Deferred until after January 2026 go-live
+**Reason**: Adding external customer access requires:
+- Separate authentication system (current Replit Auth is for staff only)
+- Read-only API endpoints with dedicated rate limiting
+- Database query optimizations and caching layer (Redis)
+- Row-level security or tenant views for data isolation
+- Connection pool monitoring and read replicas for high traffic
+
+**Recommendation**: Evaluate 3-6 months after launch once baseline performance is established.
+
+### WhatsApp Business Integration (Pending)
+**Status**: Awaiting WhatsApp Business API access token
+**Account Details**: Facebook Business Manager Account ID: 816615727952157, Phone Number ID: 931389683383196
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
