@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -176,10 +177,9 @@ export default function PaymentsPage() {
   });
 
   const handleWhatsAppSend = (payment: PaymentWithDetails) => {
-    const phone = payment.direction === "IN" 
-      ? payment.customer?.phone 
-      : payment.supplier?.phone;
-    setWhatsAppPhone(phone || "");
+    // Only allow WhatsApp for incoming payments (from customers)
+    if (payment.direction !== "IN") return;
+    setWhatsAppPhone(payment.customer?.phone || "");
     setWhatsAppPayment(payment);
     setShowWhatsAppDialog(true);
   };
@@ -940,13 +940,25 @@ export default function PaymentsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showWhatsAppDialog} onOpenChange={setShowWhatsAppDialog}>
+      <Dialog 
+        open={showWhatsAppDialog} 
+        onOpenChange={(open) => {
+          setShowWhatsAppDialog(open);
+          if (!open) {
+            setWhatsAppPhone("");
+            setWhatsAppPayment(null);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <SiWhatsapp className="h-5 w-5 text-green-600" />
-              Send Payment Receipt via WhatsApp
+              Send Receipt via WhatsApp
             </DialogTitle>
+            <DialogDescription>
+              Send this payment receipt directly to the customer's WhatsApp
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -965,7 +977,7 @@ export default function PaymentsPage() {
             {whatsAppPayment && (
               <div className="p-3 rounded-md bg-muted/50 text-sm">
                 <p className="font-medium mb-1">
-                  {whatsAppPayment.direction === "IN" ? "Payment Received" : "Payment Made"}
+                  Payment from {whatsAppPayment.customer?.name || "Customer"}
                 </p>
                 <p className="text-muted-foreground">
                   Amount: {parseFloat(whatsAppPayment.amount).toFixed(3)} KWD
