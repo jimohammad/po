@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BranchProvider, useBranch } from "@/contexts/BranchContext";
 import { BranchSelector } from "@/components/BranchSelector";
-import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent, LayoutDashboard, ArrowLeftRight, Building2, Smartphone } from "lucide-react";
+import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent, LayoutDashboard, ArrowLeftRight, Building2, Smartphone, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +63,7 @@ const StockLookupPage = lazy(() => import("@/pages/stock-lookup"));
 const SecuritySettingsPage = lazy(() => import("@/pages/security-settings"));
 const ImeiHistoryPage = lazy(() => import("@/pages/imei-history"));
 const BackupPage = lazy(() => import("@/pages/backup"));
+const AIChatPage = lazy(() => import("@/pages/ai-chat"));
 const Landing = lazy(() => import("@/pages/landing"));
 const PublicStatementPage = lazy(() => import("@/pages/public-statement"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -284,6 +285,21 @@ function AppSidebar() {
                     <Link href="/imei-history" data-testid="link-imei-history">
                       <Smartphone className="h-4 w-4" />
                       <span>IMEI History</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {/* AI Chat - ask business questions */}
+              {canAccess("dashboard") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location === "/ai-chat"}
+                  >
+                    <Link href="/ai-chat" data-testid="link-ai-chat">
+                      <MessageCircle className="h-4 w-4" />
+                      <span>AI Assistant</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -573,6 +589,8 @@ function AuthenticatedLayout() {
         return "Stock Transfers";
       case "/stock-lookup":
         return "Stock";
+      case "/ai-chat":
+        return "AI Assistant";
       case "/settings/backup":
         return "Database Backup";
       default:
@@ -632,6 +650,7 @@ function AuthenticatedLayout() {
                 <Route path="/settings/opening-balances" component={OpeningBalancesPage} />
                 <Route path="/settings/security" component={SecuritySettingsPage} />
                 <Route path="/settings/backup" component={BackupPage} />
+                <Route path="/ai-chat" component={AIChatPage} />
                 <Route path="/stock-transfers" component={StockTransfersPage} />
                 <Route path="/stock-lookup" component={StockLookupPage} />
                 <Route path="/imei-history" component={ImeiHistoryPage} />
