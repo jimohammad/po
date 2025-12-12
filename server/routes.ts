@@ -475,9 +475,10 @@ export async function registerRoutes(
       }
       
       res.status(201).json(order);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating sales order:", error);
-      res.status(500).json({ error: "Failed to create sales order" });
+      const errorMessage = error?.message || "Failed to create sales order";
+      res.status(500).json({ error: errorMessage, details: String(error) });
     }
   });
 

@@ -94,8 +94,8 @@ export default function SalesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/sales-stats/monthly"] });
       toast({ title: "Sales invoice saved successfully" });
     },
-    onError: () => {
-      toast({ title: "Failed to save sales invoice", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: error.message || "Failed to save sales invoice", variant: "destructive" });
     },
   });
 
