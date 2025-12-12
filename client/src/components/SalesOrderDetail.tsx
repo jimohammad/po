@@ -1,10 +1,15 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Printer, Smartphone, FileDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Printer, Smartphone, FileDown, Send, Loader2 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { SalesOrderWithDetails } from "@shared/schema";
 
 interface SalesOrderDetailProps {
@@ -18,9 +23,35 @@ export function SalesOrderDetail({
   onOpenChange,
   order,
 }: SalesOrderDetailProps) {
+  const { toast } = useToast();
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  
   const { data: balanceData } = useQuery<{ previousBalance: number; currentBalance: number }>({
     queryKey: ["/api/customer-balance-for-sale", order?.id],
     enabled: open && !!order?.id && !!order?.customerId,
+  });
+
+  const sendWhatsAppMutation = useMutation({
+    mutationFn: async (data: { salesOrderId: number; phoneNumber: string }) => {
+      const res = await apiRequest("POST", "/api/whatsapp/send-invoice", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invoice Sent",
+        description: "Sales invoice has been sent via WhatsApp",
+      });
+      setShowWhatsAppDialog(false);
+      setPhoneNumber("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Send",
+        description: error.message || "Could not send invoice via WhatsApp",
+        variant: "destructive",
+      });
+    },
   });
 
   if (!order) return null;
@@ -960,31 +991,24 @@ export function SalesOrderDetail({
     pdfWindow.document.close();
   };
 
-  const handleWhatsAppShare = () => {
-    const lineItemsText = order.lineItems.map((item, index) => {
-      let text = `${index + 1}. ${item.itemName} - Qty: ${item.quantity} - ${formatNumber(item.totalKwd, 3)} KWD`;
-      if (item.imeiNumbers && item.imeiNumbers.length > 0) {
-        text += `\n   IMEI: ${item.imeiNumbers.join(", ")}`;
-      }
-      return text;
-    }).join("\n");
+  const handleWhatsAppSend = () => {
+    setPhoneNumber(order.customer?.phone || "");
+    setShowWhatsAppDialog(true);
+  };
 
-    const message = `*SALES INVOICE*
-Iqbal Electronics Co. WLL
-
-Invoice No: ${order.invoiceNumber || "—"}
-Date: ${formatDate(order.saleDate)}
-Customer: ${order.customer?.name || "—"}
-
-*Items:*
-${lineItemsText}
-
-*Total: ${formatNumber(order.totalKwd, 3)} KWD*
-
-Thank you for your business!`;
-
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/?text=${encodedMessage}`, "_blank");
+  const handleSendWhatsApp = () => {
+    if (!phoneNumber.trim()) {
+      toast({
+        title: "Phone Required",
+        description: "Please enter a phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+    sendWhatsAppMutation.mutate({
+      salesOrderId: order.id,
+      phoneNumber: phoneNumber.trim(),
+    });
   };
 
   return (
@@ -1014,12 +1038,12 @@ Thank you for your business!`;
             <Button
               variant="outline"
               size="sm"
-              onClick={handleWhatsAppShare}
-              className="text-green-600 hover:text-green-700"
+              onClick={handleWhatsAppSend}
+              className="text-green-600"
               data-testid="button-whatsapp-share"
             >
               <SiWhatsapp className="h-4 w-4 mr-1" />
-              Share
+              Send
             </Button>
           </div>
         </DialogHeader>
@@ -1113,6 +1137,66 @@ Thank you for your business!`;
           )}
         </div>
       </DialogContent>
+
+      <Dialog open={showWhatsAppDialog} onOpenChange={setShowWhatsAppDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <SiWhatsapp className="h-5 w-5 text-green-600" />
+              Send Invoice via WhatsApp
+            </DialogTitle>
+            <DialogDescription>
+              Send this invoice directly to the customer's WhatsApp
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="whatsapp-phone">Phone Number</Label>
+              <Input
+                id="whatsapp-phone"
+                placeholder="e.g., 96599123456"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                data-testid="input-whatsapp-phone"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the full phone number with country code (e.g., 965 for Kuwait)
+              </p>
+            </div>
+            <div className="p-3 rounded-md bg-muted/50 text-sm">
+              <p className="font-medium mb-1">Invoice: {order.invoiceNumber || `INV-${order.id}`}</p>
+              <p className="text-muted-foreground">Total: {formatNumber(order.totalKwd, 3)} KWD</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowWhatsAppDialog(false)}
+              data-testid="button-cancel-whatsapp"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendWhatsApp}
+              disabled={sendWhatsAppMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+              data-testid="button-confirm-whatsapp"
+            >
+              {sendWhatsAppMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Invoice
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

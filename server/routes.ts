@@ -2151,7 +2151,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Sales order ID and phone number are required" });
       }
 
-      const order = await storage.getSalesOrderWithDetails(salesOrderId);
+      const order = await storage.getSalesOrder(salesOrderId);
       if (!order) {
         return res.status(404).json({ error: "Sales order not found" });
       }
@@ -2178,7 +2178,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Payment ID and phone number are required" });
       }
 
-      const payment = await storage.getPaymentWithDetails(paymentId);
+      const payment = await storage.getPayment(paymentId);
       if (!payment) {
         return res.status(404).json({ error: "Payment not found" });
       }
