@@ -62,6 +62,7 @@ const PurchaseOrdersPage = lazy(() => import("@/pages/purchase-orders"));
 const StockLookupPage = lazy(() => import("@/pages/stock-lookup"));
 const SecuritySettingsPage = lazy(() => import("@/pages/security-settings"));
 const ImeiHistoryPage = lazy(() => import("@/pages/imei-history"));
+const BackupPage = lazy(() => import("@/pages/backup"));
 const Landing = lazy(() => import("@/pages/landing"));
 const PublicStatementPage = lazy(() => import("@/pages/public-statement"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -190,6 +191,7 @@ function AppSidebar() {
     { title: "Branches", url: "/settings/branches" },
     { title: "Opening Balances", url: "/settings/opening-balances" },
     { title: "Security", url: "/settings/security" },
+    { title: "Backup", url: "/settings/backup" },
   ];
 
   // Track which menu is expanded (accordion pattern - only one at a time)
@@ -571,6 +573,8 @@ function AuthenticatedLayout() {
         return "Stock Transfers";
       case "/stock-lookup":
         return "Stock";
+      case "/settings/backup":
+        return "Database Backup";
       default:
         return "";
     }
@@ -627,6 +631,7 @@ function AuthenticatedLayout() {
                 <Route path="/settings/branches" component={BranchesPage} />
                 <Route path="/settings/opening-balances" component={OpeningBalancesPage} />
                 <Route path="/settings/security" component={SecuritySettingsPage} />
+                <Route path="/settings/backup" component={BackupPage} />
                 <Route path="/stock-transfers" component={StockTransfersPage} />
                 <Route path="/stock-lookup" component={StockLookupPage} />
                 <Route path="/imei-history" component={ImeiHistoryPage} />

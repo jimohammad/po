@@ -1946,5 +1946,100 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== DATABASE BACKUP ====================
+
+  app.get("/api/backup/download", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const XLSX = await import("xlsx");
+      
+      // Fetch all data from important tables (using full data methods, no pagination)
+      const [
+        suppliers,
+        items,
+        customers,
+        purchaseOrders,
+        purchaseLineItems,
+        salesOrders,
+        salesLineItems,
+        payments,
+        expenses,
+        expenseCategories,
+        returns,
+        returnLineItems,
+        branches,
+        users,
+        stockTransfers,
+        accountTransfers,
+        openingBalances,
+        discounts,
+      ] = await Promise.all([
+        storage.getSuppliers(),
+        storage.getItems(),
+        storage.getCustomers(),
+        storage.getAllPurchaseOrders(),
+        storage.getAllPurchaseLineItems(),
+        storage.getAllSalesOrders(),
+        storage.getAllSalesLineItems(),
+        storage.getAllPayments(),
+        storage.getExpenses(),
+        storage.getExpenseCategories(),
+        storage.getReturns(),
+        storage.getAllReturnLineItems(),
+        storage.getBranches(),
+        storage.getAllUsers(),
+        storage.getStockTransfers(),
+        storage.getAccountTransfers(),
+        storage.getOpeningBalances(),
+        storage.getDiscounts(),
+      ]);
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+
+      // Add sheets for each table
+      const addSheet = (data: any[], name: string) => {
+        if (data && data.length > 0) {
+          const ws = XLSX.utils.json_to_sheet(data);
+          XLSX.utils.book_append_sheet(wb, ws, name.substring(0, 31)); // Excel sheet name limit
+        }
+      };
+
+      addSheet(branches, "Branches");
+      addSheet(users, "Users");
+      addSheet(suppliers, "Parties");
+      addSheet(items, "Items");
+      addSheet(customers, "Customers");
+      addSheet(purchaseOrders, "Purchases");
+      addSheet(purchaseLineItems, "Purchase_Lines");
+      addSheet(salesOrders, "Sales");
+      addSheet(salesLineItems, "Sales_Lines");
+      addSheet(payments, "Payments");
+      addSheet(expenses, "Expenses");
+      addSheet(expenseCategories, "Expense_Categories");
+      addSheet(returns, "Returns");
+      addSheet(returnLineItems, "Return_Lines");
+      addSheet(stockTransfers, "Stock_Transfers");
+      addSheet(accountTransfers, "Account_Transfers");
+      addSheet(openingBalances, "Opening_Balances");
+      addSheet(discounts, "Discounts");
+
+      // Generate buffer
+      const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+      // Generate filename with timestamp
+      const now = new Date();
+      const timestamp = now.toISOString().split("T")[0] + "_" + now.toTimeString().split(" ")[0].replace(/:/g, "-");
+      const filename = `ERP_Backup_${timestamp}.xlsx`;
+
+      // Send file
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error creating backup:", error);
+      res.status(500).json({ error: "Failed to create backup" });
+    }
+  });
+
   return httpServer;
 }

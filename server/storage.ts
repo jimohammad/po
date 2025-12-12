@@ -272,6 +272,15 @@ export interface IStorage {
   processImeiFromPurchase(imeiNumbers: string[], itemName: string, purchaseOrderId: number, supplierId: number | null, purchaseDate: string, priceKwd: string | null, branchId: number | null, createdBy: string | null): Promise<void>;
   processImeiFromSale(imeiNumbers: string[], itemName: string, salesOrderId: number, customerId: number | null, saleDate: string, priceKwd: string | null, branchId: number | null, createdBy: string | null): Promise<void>;
   processImeiFromReturn(imeiNumbers: string[], returnType: string, returnId: number, customerId: number | null, supplierId: number | null, branchId: number | null, createdBy: string | null): Promise<void>;
+
+  // Backup helpers (full data, no pagination)
+  getAllPurchaseLineItems(): Promise<LineItem[]>;
+  getAllSalesLineItems(): Promise<SalesLineItem[]>;
+  getAllReturnLineItems(): Promise<ReturnLineItem[]>;
+  getAllUsers(): Promise<User[]>;
+  getAllPurchaseOrders(): Promise<PurchaseOrder[]>;
+  getAllSalesOrders(): Promise<SalesOrder[]>;
+  getAllPayments(): Promise<Payment[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2839,6 +2848,36 @@ export class DatabaseStorage implements IStorage {
     }
 
     return { summary, details };
+  }
+
+  // ==================== BACKUP HELPER METHODS ====================
+
+  async getAllPurchaseLineItems(): Promise<LineItem[]> {
+    return await db.select().from(purchaseOrderLineItems);
+  }
+
+  async getAllSalesLineItems(): Promise<SalesLineItem[]> {
+    return await db.select().from(salesOrderLineItems);
+  }
+
+  async getAllReturnLineItems(): Promise<ReturnLineItem[]> {
+    return await db.select().from(returnLineItems);
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async getAllPurchaseOrders(): Promise<PurchaseOrder[]> {
+    return await db.select().from(purchaseOrders).orderBy(desc(purchaseOrders.purchaseDate));
+  }
+
+  async getAllSalesOrders(): Promise<SalesOrder[]> {
+    return await db.select().from(salesOrders).orderBy(desc(salesOrders.saleDate));
+  }
+
+  async getAllPayments(): Promise<Payment[]> {
+    return await db.select().from(payments).orderBy(desc(payments.paymentDate));
   }
 }
 
