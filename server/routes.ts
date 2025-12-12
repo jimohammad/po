@@ -433,8 +433,22 @@ export async function registerRoutes(
       // Default to Head Office (id: 1) if no branchId provided
       const branchId = orderData.branchId || 1;
       
-      // Ensure customerId is null if not a valid positive number
-      const customerId = orderData.customerId && orderData.customerId > 0 ? orderData.customerId : null;
+      // Handle customerId - Party Master customers have IDs offset by 100000
+      // If ID >= 100000, it's from Party Master (suppliers table)
+      // We need to sync this to the customers table first
+      let customerId = null;
+      if (orderData.customerId && orderData.customerId > 0) {
+        if (orderData.customerId >= 100000) {
+          // This is a Party Master customer - sync to customers table
+          const partyId = orderData.customerId - 100000;
+          const syncedCustomer = await storage.syncPartyToCustomer(partyId);
+          if (syncedCustomer) {
+            customerId = syncedCustomer.id;
+          }
+        } else {
+          customerId = orderData.customerId;
+        }
+      }
       
       const order = await storage.createSalesOrder(
         {

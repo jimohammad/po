@@ -135,6 +135,7 @@ export interface IStorage {
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: number, customer: InsertCustomer): Promise<Customer | undefined>;
   deleteCustomer(id: number): Promise<{ deleted: boolean; error?: string }>;
+  syncPartyToCustomer(partyId: number): Promise<Customer | undefined>;
 
   getSalesOrders(options?: { limit?: number; offset?: number }): Promise<{ data: SalesOrderWithDetails[]; total: number }>;
   getSalesOrder(id: number): Promise<SalesOrderWithDetails | undefined>;
@@ -559,6 +560,31 @@ export class DatabaseStorage implements IStorage {
   async updateCustomer(id: number, customer: InsertCustomer): Promise<Customer | undefined> {
     const [updated] = await db.update(customers).set(customer).where(eq(customers.id, id)).returning();
     return updated || undefined;
+  }
+
+  async syncPartyToCustomer(partyId: number): Promise<Customer | undefined> {
+    // Get party from suppliers table
+    const [party] = await db.select().from(suppliers)
+      .where(and(eq(suppliers.id, partyId), eq(suppliers.partyType, 'customer')));
+    
+    if (!party) return undefined;
+    
+    // Check if customer with same name already exists
+    const [existingCustomer] = await db.select().from(customers)
+      .where(eq(customers.name, party.name));
+    
+    if (existingCustomer) {
+      return existingCustomer;
+    }
+    
+    // Create new customer from party data
+    const [newCustomer] = await db.insert(customers).values({
+      name: party.name,
+      phone: party.phone,
+      creditLimit: party.creditLimit,
+    }).returning();
+    
+    return newCustomer;
   }
 
   async deleteCustomer(id: number): Promise<{ deleted: boolean; error?: string }> {
