@@ -51,7 +51,9 @@ export const suppliers = pgTable("suppliers", {
   phone: text("phone"),
   partyType: text("party_type").default("supplier").notNull(),
   creditLimit: numeric("credit_limit", { precision: 12, scale: 3 }),
-});
+}, (table) => [
+  index("idx_supplier_party_type").on(table.partyType),
+]);
 
 export const suppliersRelations = relations(suppliers, ({ many }) => ({
   purchaseOrders: many(purchaseOrders),
@@ -70,7 +72,9 @@ export const items = pgTable("items", {
   purchasePriceKwd: numeric("purchase_price_kwd", { precision: 12, scale: 3 }),
   fxCurrency: text("fx_currency"),
   sellingPriceKwd: numeric("selling_price_kwd", { precision: 12, scale: 3 }),
-});
+}, (table) => [
+  index("idx_item_code").on(table.code),
+]);
 
 export const insertItemSchema = createInsertSchema(items).omit({ id: true });
 export type InsertItem = z.infer<typeof insertItemSchema>;
@@ -338,6 +342,8 @@ export const payments = pgTable("payments", {
   index("idx_payment_date").on(table.paymentDate),
   index("idx_payment_customer").on(table.customerId),
   index("idx_payment_supplier").on(table.supplierId),
+  index("idx_payment_direction").on(table.direction),
+  index("idx_payment_type").on(table.paymentType),
 ]);
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
@@ -440,6 +446,7 @@ export const expenses = pgTable("expenses", {
 }, (table) => [
   index("idx_expense_branch").on(table.branchId),
   index("idx_expense_date").on(table.expenseDate),
+  index("idx_expense_category").on(table.categoryId),
 ]);
 
 export const expensesRelations = relations(expenses, ({ one }) => ({

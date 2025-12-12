@@ -90,7 +90,7 @@ const dataResolvers: DataResolver[] = [
         : salesOrders;
       const salesOrderIds = new Set(filteredSalesOrders.map(o => o.id));
       const salesLineItems = await storage.getAllSalesLineItems();
-      const filteredSalesLineItems = salesLineItems.filter(li => salesOrderIds.has(li.saleId!));
+      const filteredSalesLineItems = salesLineItems.filter(li => salesOrderIds.has(li.salesOrderId!));
       
       let summary = `Total items in catalog: ${items.length}\n`;
       
