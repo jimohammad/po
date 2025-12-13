@@ -253,7 +253,7 @@ export default function PaymentsPage() {
             
             .receipt {
               width: 80mm;
-              padding: 2mm 3mm;
+              padding: 3mm 6mm;
             }
             
             .header {
