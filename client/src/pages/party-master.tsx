@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -24,7 +24,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Users } from "lucide-react";
+import { Pencil, Trash2, Loader2, Users, RotateCcw, Save } from "lucide-react";
 import type { Supplier, PartyType } from "@shared/schema";
 
 export default function PartyMaster() {
@@ -32,7 +32,6 @@ export default function PartyMaster() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [editingParty, setEditingParty] = useState<Supplier | null>(null);
   const [partyName, setPartyName] = useState("");
   const [partyAddress, setPartyAddress] = useState("");
@@ -52,6 +51,25 @@ export default function PartyMaster() {
     ? allParties 
     : allParties.filter(p => p.partyType === filterType);
 
+  const resetForm = () => {
+    setEditingParty(null);
+    setPartyName("");
+    setPartyAddress("");
+    setPartyPhone("");
+    setPartyType("supplier");
+    setCreditLimit("");
+  };
+
+  useEffect(() => {
+    if (editingParty) {
+      setPartyName(editingParty.name);
+      setPartyAddress(editingParty.address || "");
+      setPartyPhone(editingParty.phone || "");
+      setPartyType((editingParty.partyType as PartyType) || "supplier");
+      setCreditLimit(editingParty.creditLimit || "");
+    }
+  }, [editingParty]);
+
   const createMutation = useMutation({
     mutationFn: (data: { name: string; address: string | null; phone: string | null; partyType: PartyType; creditLimit: string | null }) => 
       apiRequest("POST", "/api/suppliers", data),
@@ -59,7 +77,7 @@ export default function PartyMaster() {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({ title: "Party added successfully" });
-      handleCloseDialog();
+      resetForm();
     },
     onError: () => {
       toast({ title: "Failed to add party", variant: "destructive" });
@@ -73,7 +91,7 @@ export default function PartyMaster() {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({ title: "Party updated successfully" });
-      handleCloseDialog();
+      resetForm();
     },
     onError: () => {
       toast({ title: "Failed to update party", variant: "destructive" });
@@ -101,34 +119,8 @@ export default function PartyMaster() {
     },
   });
 
-  const handleOpenAdd = () => {
-    setEditingParty(null);
-    setPartyName("");
-    setPartyAddress("");
-    setPartyPhone("");
-    setPartyType("supplier");
-    setCreditLimit("");
-    setDialogOpen(true);
-  };
-
   const handleOpenEdit = (party: Supplier) => {
     setEditingParty(party);
-    setPartyName(party.name);
-    setPartyAddress(party.address || "");
-    setPartyPhone(party.phone || "");
-    setPartyType((party.partyType as PartyType) || "supplier");
-    setCreditLimit(party.creditLimit || "");
-    setDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setEditingParty(null);
-    setPartyName("");
-    setPartyAddress("");
-    setPartyPhone("");
-    setPartyType("supplier");
-    setCreditLimit("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -176,46 +168,145 @@ export default function PartyMaster() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 space-y-4">
+      {isAdmin && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Users className="h-5 w-5" />
+              {editingParty ? "Edit Party" : "Add New Party"}
+            </CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={resetForm} data-testid="button-reset-form">
+              <RotateCcw className="h-4 w-4 mr-1" />
+              Reset
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                <div className="space-y-0.5">
+                  <Label htmlFor="partyType" className="text-base">Party Type</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {partyType === "customer" ? "Customer (sales)" : "Supplier (purchases)"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm ${partyType === "supplier" ? "font-medium" : "text-muted-foreground"}`}>
+                    Supplier
+                  </span>
+                  <Switch
+                    id="partyType"
+                    checked={partyType === "customer"}
+                    onCheckedChange={(checked) => setPartyType(checked ? "customer" : "supplier")}
+                    data-testid="switch-party-type"
+                  />
+                  <span className={`text-sm ${partyType === "customer" ? "font-medium" : "text-muted-foreground"}`}>
+                    Customer
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="partyName">Party Name</Label>
+                  <Input
+                    id="partyName"
+                    value={partyName}
+                    onChange={(e) => setPartyName(e.target.value)}
+                    placeholder="Enter party name"
+                    data-testid="input-party-name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="partyPhone">Phone Number</Label>
+                  <Input
+                    id="partyPhone"
+                    value={partyPhone}
+                    onChange={(e) => setPartyPhone(e.target.value)}
+                    placeholder="Enter phone number (optional)"
+                    data-testid="input-party-phone"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="partyAddress">Address</Label>
+                  <Input
+                    id="partyAddress"
+                    value={partyAddress}
+                    onChange={(e) => setPartyAddress(e.target.value)}
+                    placeholder="Enter address (optional)"
+                    data-testid="input-party-address"
+                  />
+                </div>
+                {partyType === "customer" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="creditLimit">Credit Limit (KWD)</Label>
+                    <Input
+                      id="creditLimit"
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      value={creditLimit}
+                      onChange={(e) => setCreditLimit(e.target.value)}
+                      placeholder="Enter maximum credit limit (optional)"
+                      data-testid="input-credit-limit"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end">
+                <Button
+                  type="submit"
+                  disabled={!partyName.trim() || createMutation.isPending || updateMutation.isPending}
+                  data-testid="button-save-party"
+                >
+                  {(createMutation.isPending || updateMutation.isPending) ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  {editingParty ? "Update Party" : "Add Party"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
-          <div className="flex items-center gap-3">
-            <Users className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-lg font-semibold">Party Master</CardTitle>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 border rounded-md p-1">
-              <Button
-                variant={filterType === "all" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setFilterType("all")}
-                data-testid="filter-all"
-              >
-                All
-              </Button>
-              <Button
-                variant={filterType === "supplier" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setFilterType("supplier")}
-                data-testid="filter-supplier"
-              >
-                Suppliers
-              </Button>
-              <Button
-                variant={filterType === "customer" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setFilterType("customer")}
-                data-testid="filter-customer"
-              >
-                Customers
-              </Button>
-            </div>
-            {isAdmin && (
-              <Button onClick={handleOpenAdd} data-testid="button-add-party">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Party
-              </Button>
-            )}
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Users className="h-5 w-5" />
+            Party List
+          </CardTitle>
+          <div className="flex items-center gap-2 border rounded-md p-1">
+            <Button
+              variant={filterType === "all" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setFilterType("all")}
+              data-testid="filter-all"
+            >
+              All
+            </Button>
+            <Button
+              variant={filterType === "supplier" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setFilterType("supplier")}
+              data-testid="filter-supplier"
+            >
+              Suppliers
+            </Button>
+            <Button
+              variant={filterType === "customer" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setFilterType("customer")}
+              data-testid="filter-customer"
+            >
+              Customers
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -293,103 +384,6 @@ export default function PartyMaster() {
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingParty ? "Edit Party" : "Add New Party"}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
-              <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
-                <div className="space-y-0.5">
-                  <Label htmlFor="partyType" className="text-base">Party Type</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {partyType === "customer" ? "Customer (sales)" : "Supplier (purchases)"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm ${partyType === "supplier" ? "font-medium" : "text-muted-foreground"}`}>
-                    Supplier
-                  </span>
-                  <Switch
-                    id="partyType"
-                    checked={partyType === "customer"}
-                    onCheckedChange={(checked) => setPartyType(checked ? "customer" : "supplier")}
-                    data-testid="switch-party-type"
-                  />
-                  <span className={`text-sm ${partyType === "customer" ? "font-medium" : "text-muted-foreground"}`}>
-                    Customer
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="partyName">Party Name</Label>
-                <Input
-                  id="partyName"
-                  value={partyName}
-                  onChange={(e) => setPartyName(e.target.value)}
-                  placeholder="Enter party name"
-                  data-testid="input-party-name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="partyAddress">Address</Label>
-                <Input
-                  id="partyAddress"
-                  value={partyAddress}
-                  onChange={(e) => setPartyAddress(e.target.value)}
-                  placeholder="Enter address (optional)"
-                  data-testid="input-party-address"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="partyPhone">Phone Number</Label>
-                <Input
-                  id="partyPhone"
-                  value={partyPhone}
-                  onChange={(e) => setPartyPhone(e.target.value)}
-                  placeholder="Enter phone number (optional)"
-                  data-testid="input-party-phone"
-                />
-              </div>
-              {partyType === "customer" && (
-                <div className="space-y-2">
-                  <Label htmlFor="creditLimit">Credit Limit (KWD)</Label>
-                  <Input
-                    id="creditLimit"
-                    type="number"
-                    step="0.001"
-                    min="0"
-                    value={creditLimit}
-                    onChange={(e) => setCreditLimit(e.target.value)}
-                    placeholder="Enter maximum credit limit (optional)"
-                    data-testid="input-credit-limit"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Maximum amount the salesman can invoice without admin approval
-                  </p>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={!partyName.trim() || createMutation.isPending || updateMutation.isPending}
-                data-testid="button-save-party"
-              >
-                {(createMutation.isPending || updateMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                )}
-                {editingParty ? "Update" : "Add"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
