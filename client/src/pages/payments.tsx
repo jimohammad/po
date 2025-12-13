@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +47,7 @@ import {
   ChevronRight,
   Printer,
   Send,
+  RotateCcw,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import type { PaymentWithDetails, Customer, Supplier, PaymentType, PaymentDirection } from "@shared/schema";
@@ -59,8 +60,8 @@ export default function PaymentsPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   
-  const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const customerSelectRef = useRef<HTMLButtonElement>(null);
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
   const [directionFilter, setDirectionFilter] = useState<string>("all");
   const [selectedPayment, setSelectedPayment] = useState<PaymentWithDetails | null>(null);
@@ -137,7 +138,6 @@ export default function PaymentsPage() {
       setPage(1);
       toast({ title: "Payment recorded successfully" });
       resetForm();
-      setShowForm(false);
       // Auto-print the receipt immediately
       handlePrintPayment(savedPayment);
     },
@@ -489,20 +489,149 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold" data-testid="heading-payments">
-            Payment Register
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Record and track payments (received and paid)
-          </p>
-        </div>
-        <Button onClick={() => setShowForm(true)} data-testid="button-new-payment">
-          <Plus className="h-4 w-4 mr-2" />
-          New Payment
-        </Button>
-      </div>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-3">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Record Payment
+          </CardTitle>
+          <div className="flex items-center gap-4">
+            <span className={`font-medium text-sm ${direction === "IN" ? "text-emerald-600" : "text-muted-foreground"}`}>
+              Payment IN
+            </span>
+            <Switch
+              checked={direction === "OUT"}
+              onCheckedChange={(checked) => {
+                setDirection(checked ? "OUT" : "IN");
+                setCustomerId("");
+                setSupplierId("");
+              }}
+              data-testid="switch-payment-direction"
+            />
+            <span className={`font-medium text-sm ${direction === "OUT" ? "text-red-600" : "text-muted-foreground"}`}>
+              Payment OUT
+            </span>
+            <Button variant="outline" size="sm" onClick={resetForm} data-testid="button-reset-payment">
+              <RotateCcw className="h-4 w-4 mr-1" />
+              Reset
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="paymentDate">Payment Date</Label>
+                <Input
+                  id="paymentDate"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  required
+                  data-testid="input-payment-date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="paymentType">Payment Type</Label>
+                <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
+                  <SelectTrigger data-testid="select-payment-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {direction === "IN" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="customer" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Customer
+                  </Label>
+                  <Select value={customerId} onValueChange={setCustomerId}>
+                    <SelectTrigger ref={customerSelectRef} data-testid="select-payment-customer">
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id.toString()}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="supplier" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Supplier (Paid to)
+                  </Label>
+                  <Select value={supplierId} onValueChange={setSupplierId}>
+                    <SelectTrigger data-testid="select-payment-supplier">
+                      <SelectValue placeholder="Select supplier (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- No supplier --</SelectItem>
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                          {supplier.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (KWD)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.000"
+                  required
+                  data-testid="input-payment-amount"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Additional notes..."
+                rows={2}
+                data-testid="input-payment-notes"
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="submit" disabled={createPaymentMutation.isPending} data-testid="button-save-payment">
+                {createPaymentMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Payment
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-3">
@@ -699,154 +828,6 @@ export default function PaymentsPage() {
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Record Payment
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center justify-center p-4 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-4">
-                <span className={`font-medium ${direction === "IN" ? "text-emerald-600" : "text-muted-foreground"}`}>
-                  Payment IN
-                </span>
-                <Switch
-                  checked={direction === "OUT"}
-                  onCheckedChange={(checked) => {
-                    setDirection(checked ? "OUT" : "IN");
-                    setCustomerId("");
-                    setSupplierId("");
-                  }}
-                  data-testid="switch-payment-direction"
-                />
-                <span className={`font-medium ${direction === "OUT" ? "text-red-600" : "text-muted-foreground"}`}>
-                  Payment OUT
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="paymentDate">Payment Date</Label>
-                <Input
-                  id="paymentDate"
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  required
-                  data-testid="input-payment-date"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="paymentType">Payment Type</Label>
-                <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
-                  <SelectTrigger data-testid="select-payment-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {direction === "IN" ? (
-              <div className="space-y-2">
-                <Label htmlFor="customer" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Customer
-                </Label>
-                <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger data-testid="select-payment-customer">
-                    <SelectValue placeholder="Select customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id.toString()}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="supplier" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Supplier (Paid to)
-                </Label>
-                <Select value={supplierId} onValueChange={setSupplierId}>
-                  <SelectTrigger data-testid="select-payment-supplier">
-                    <SelectValue placeholder="Select supplier (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">-- No supplier --</SelectItem>
-                    {suppliers.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id.toString()}>
-                        {supplier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (KWD)</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.001"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.000"
-                required
-                data-testid="input-payment-amount"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Additional notes..."
-                rows={2}
-                data-testid="input-payment-notes"
-              />
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createPaymentMutation.isPending} data-testid="button-save-payment">
-                {createPaymentMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
         <DialogContent>
