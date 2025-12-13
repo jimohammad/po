@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Plus, Trash2, Tag, Receipt } from "lucide-react";
+import { Plus, Trash2, Tag, Receipt, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -62,8 +62,8 @@ type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 
 export default function ExpensesPage() {
   const { toast } = useToast();
-  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const { data: expenses = [], isLoading: expensesLoading } = useQuery<ExpenseWithDetails[]>({
     queryKey: ["/api/expenses"],
@@ -96,6 +96,26 @@ export default function ExpensesPage() {
     },
   });
 
+  useEffect(() => {
+    if (dateInputRef.current) {
+      dateInputRef.current.focus();
+    }
+  }, []);
+
+  const resetExpenseForm = () => {
+    expenseForm.reset({
+      expenseDate: format(new Date(), "yyyy-MM-dd"),
+      categoryId: "",
+      accountId: "",
+      amount: "",
+      description: "",
+      reference: "",
+    });
+    if (dateInputRef.current) {
+      dateInputRef.current.focus();
+    }
+  };
+
   const createExpenseMutation = useMutation({
     mutationFn: async (data: ExpenseFormValues) => {
       const payload = {
@@ -111,8 +131,7 @@ export default function ExpensesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
-      setExpenseDialogOpen(false);
-      expenseForm.reset();
+      resetExpenseForm();
       toast({ title: "Expense recorded successfully" });
     },
     onError: (error: any) => {
@@ -174,126 +193,6 @@ export default function ExpensesPage() {
     <div className="flex flex-col h-full">
       <header className="flex items-center justify-between gap-4 p-4 border-b flex-wrap">
         <h1 className="text-2xl font-semibold" data-testid="heading-expenses">Expenses</h1>
-        <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-add-expense">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Expense
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Record New Expense</DialogTitle>
-            </DialogHeader>
-            <Form {...expenseForm}>
-              <form onSubmit={expenseForm.handleSubmit((data) => createExpenseMutation.mutate(data))} className="space-y-4">
-                <FormField
-                  control={expenseForm.control}
-                  name="expenseDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" data-testid="input-expense-date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={expenseForm.control}
-                  name="categoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category (Optional)</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-expense-category">
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id.toString()}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={expenseForm.control}
-                  name="accountId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pay From Account</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-expense-account">
-                            <SelectValue placeholder="Select account" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {accounts.map((acc) => (
-                            <SelectItem key={acc.id} value={acc.id.toString()}>
-                              {acc.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={expenseForm.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Amount (KWD)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.001" min="0" data-testid="input-expense-amount" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={expenseForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea data-testid="input-expense-description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={expenseForm.control}
-                  name="reference"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reference</FormLabel>
-                      <FormControl>
-                        <Input data-testid="input-expense-reference" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full" disabled={createExpenseMutation.isPending} data-testid="button-submit-expense">
-                  {createExpenseMutation.isPending ? "Saving..." : "Save Expense"}
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
       </header>
 
       <div className="flex-1 overflow-auto p-4">
@@ -309,7 +208,141 @@ export default function ExpensesPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="expenses">
+          <TabsContent value="expenses" className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2">
+                <CardTitle>Record New Expense</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={resetExpenseForm}
+                  title="Reset form"
+                  data-testid="button-reset-expense-form"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <Form {...expenseForm}>
+                  <form onSubmit={expenseForm.handleSubmit((data) => createExpenseMutation.mutate(data))} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <FormField
+                        control={expenseForm.control}
+                        name="expenseDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Date</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="date" 
+                                data-testid="input-expense-date" 
+                                {...field} 
+                                ref={(e) => {
+                                  field.ref(e);
+                                  (dateInputRef as any).current = e;
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={expenseForm.control}
+                        name="categoryId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category (Optional)</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-expense-category">
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {categories.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id.toString()}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={expenseForm.control}
+                        name="accountId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Pay From Account</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-expense-account">
+                                  <SelectValue placeholder="Select account" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {accounts.map((acc) => (
+                                  <SelectItem key={acc.id} value={acc.id.toString()}>
+                                    {acc.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={expenseForm.control}
+                        name="amount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Amount (KWD)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.001" min="0" data-testid="input-expense-amount" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={expenseForm.control}
+                        name="reference"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Reference</FormLabel>
+                            <FormControl>
+                              <Input data-testid="input-expense-reference" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={expenseForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea data-testid="input-expense-description" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" disabled={createExpenseMutation.isPending} data-testid="button-submit-expense">
+                      {createExpenseMutation.isPending ? "Saving..." : "Save Expense"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-2">
                 <CardTitle>Expense Records</CardTitle>
