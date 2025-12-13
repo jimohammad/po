@@ -521,6 +521,54 @@ export default function PaymentsPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {direction === "IN" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="customer">Customer</Label>
+                  <SearchableSelect
+                    options={customers.map((customer) => ({
+                      value: customer.id.toString(),
+                      label: customer.name,
+                    }))}
+                    value={customerId}
+                    onValueChange={setCustomerId}
+                    placeholder="Type to search..."
+                    emptyText="No customers found."
+                    data-testid="select-payment-customer"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="supplier">Supplier (Paid to)</Label>
+                  <SearchableSelect
+                    options={[
+                      { value: "none", label: "-- No supplier --" },
+                      ...suppliers.map((supplier) => ({
+                        value: supplier.id.toString(),
+                        label: supplier.name,
+                      })),
+                    ]}
+                    value={supplierId || "none"}
+                    onValueChange={(v) => setSupplierId(v === "none" ? "" : v)}
+                    placeholder="Type to search..."
+                    emptyText="No suppliers found."
+                    data-testid="select-payment-supplier"
+                  />
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (KWD)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.000"
+                  required
+                  data-testid="input-payment-amount"
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="paymentDate">Payment Date</Label>
                 <Input
@@ -546,62 +594,6 @@ export default function PaymentsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              {direction === "IN" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="customer" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Customer
-                  </Label>
-                  <SearchableSelect
-                    options={customers.map((customer) => ({
-                      value: customer.id.toString(),
-                      label: customer.name,
-                    }))}
-                    value={customerId}
-                    onValueChange={setCustomerId}
-                    placeholder="Select customer"
-                    searchPlaceholder="Type to search customers..."
-                    emptyText="No customers found."
-                    data-testid="select-payment-customer"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="supplier" className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Supplier (Paid to)
-                  </Label>
-                  <SearchableSelect
-                    options={[
-                      { value: "none", label: "-- No supplier --" },
-                      ...suppliers.map((supplier) => ({
-                        value: supplier.id.toString(),
-                        label: supplier.name,
-                      })),
-                    ]}
-                    value={supplierId || "none"}
-                    onValueChange={(v) => setSupplierId(v === "none" ? "" : v)}
-                    placeholder="Select supplier (optional)"
-                    searchPlaceholder="Type to search suppliers..."
-                    emptyText="No suppliers found."
-                    data-testid="select-payment-supplier"
-                  />
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount (KWD)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.000"
-                  required
-                  data-testid="input-payment-amount"
-                />
               </div>
             </div>
 
