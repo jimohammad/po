@@ -252,8 +252,11 @@ export default function PaymentsPage() {
             }
             
             .receipt {
-              width: 80mm;
-              padding: 3mm 6mm;
+              max-width: 68mm;
+              margin: 0 auto;
+              padding: 3mm 2mm;
+              overflow-wrap: anywhere;
+              word-break: break-word;
             }
             
             .header {
@@ -288,17 +291,20 @@ export default function PaymentsPage() {
             .row {
               display: flex;
               justify-content: space-between;
+              gap: 2mm;
               padding: 1mm 0;
               font-size: 9pt;
             }
             
             .row-label {
               color: #333;
+              flex-shrink: 0;
             }
             
             .row-value {
               font-weight: bold;
               text-align: right;
+              overflow-wrap: anywhere;
             }
             
             .amount-box {
