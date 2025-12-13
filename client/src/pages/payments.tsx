@@ -496,6 +496,24 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
+      <Card className="bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-md bg-emerald-100 dark:bg-emerald-900">
+                <ArrowDownLeft className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Payment In</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400" data-testid="text-total-payment-in">
+                  {totalIn.toFixed(3)} KWD
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-3">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
