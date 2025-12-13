@@ -136,16 +136,23 @@ export function SalesLineItemRow({
         </div>
         
         <div className="w-14">
-          <Input
-            type="number"
-            min="1"
-            step="1"
-            value={item.quantity || ""}
-            onChange={(e) => handleQuantityChange(e.target.value)}
-            className="text-center text-sm"
-            placeholder="Qty"
-            data-testid={`input-sales-qty-${index}`}
-          />
+          {(() => {
+            const availableQty = item.itemName ? (stockMap?.get(item.itemName) ?? 0) : 0;
+            const exceedsStock = item.itemName && item.quantity > availableQty;
+            return (
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={item.quantity || ""}
+                onChange={(e) => handleQuantityChange(e.target.value)}
+                className={`text-center text-sm ${exceedsStock ? "border-destructive bg-destructive/10" : ""}`}
+                placeholder="Qty"
+                title={exceedsStock ? `Only ${availableQty} available` : ""}
+                data-testid={`input-sales-qty-${index}`}
+              />
+            );
+          })()}
         </div>
         
         <div className="w-20">

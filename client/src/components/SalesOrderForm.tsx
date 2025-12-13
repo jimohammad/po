@@ -116,12 +116,24 @@ export function SalesOrderForm({
     };
   }, [selectedCustomer, totalKwd]);
 
+  // Check if any line item exceeds available stock
+  const stockExceeded = useMemo(() => {
+    return lineItems.some((li) => {
+      if (!li.itemName || li.quantity <= 0) return false;
+      const available = stockMap.get(li.itemName) ?? 0;
+      return li.quantity > available;
+    });
+  }, [lineItems, stockMap]);
+
   const canSubmit = useMemo(() => {
     if (creditLimitInfo.exceeded && !isAdmin) {
       return false;
     }
+    if (stockExceeded) {
+      return false;
+    }
     return true;
-  }, [creditLimitInfo.exceeded, isAdmin]);
+  }, [creditLimitInfo.exceeded, isAdmin, stockExceeded]);
 
   const handleLineItemChange = (id: string, field: keyof SalesLineItemData, value: string | number | string[]) => {
     setLineItems(prev => prev.map(item => {
@@ -290,6 +302,15 @@ export function SalesOrderForm({
               </div>
             </div>
           </div>
+
+          {stockExceeded && (
+            <Alert variant="destructive" data-testid="alert-stock-exceeded">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Quantity exceeds available stock. Please reduce the quantity or select a different item.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {creditLimitInfo.exceeded && (
             <Alert variant="destructive" data-testid="alert-credit-limit-exceeded">
