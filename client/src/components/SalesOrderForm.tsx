@@ -11,6 +11,11 @@ import { Plus, RotateCcw, Save, Loader2, AlertTriangle, Share2, Printer } from "
 import { SalesLineItemRow, type SalesLineItemData } from "./SalesLineItemRow";
 import type { Customer, Item } from "@shared/schema";
 
+interface StockBalance {
+  itemName: string;
+  balance: number;
+}
+
 interface SalesOrderFormProps {
   customers: Customer[];
   items: Item[];
@@ -51,6 +56,18 @@ export function SalesOrderForm({
   const { data: nextInvoiceData } = useQuery<{ invoiceNumber: string }>({
     queryKey: ["/api/sales-orders/next-invoice-number"],
   });
+
+  // Fetch stock balance to show available qty in item dropdown
+  const { data: stockBalance = [] } = useQuery<StockBalance[]>({
+    queryKey: ["/api/reports/stock-balance"],
+  });
+
+  // Create a map of item name to available quantity
+  const stockMap = useMemo(() => {
+    const map = new Map<string, number>();
+    stockBalance.forEach((s) => map.set(s.itemName, s.balance));
+    return map;
+  }, [stockBalance]);
 
   // Set invoice number when data is fetched
   useEffect(() => {
@@ -245,6 +262,7 @@ export function SalesOrderForm({
                     onRemove={handleRemoveRow}
                     canRemove={lineItems.length > 1}
                     allImeiNumbers={allImeiNumbers}
+                    stockMap={stockMap}
                   />
                 );
               })}

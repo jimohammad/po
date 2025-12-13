@@ -24,6 +24,7 @@ interface SalesLineItemRowProps {
   onRemove: (id: string) => void;
   canRemove: boolean;
   allImeiNumbers: string[];
+  stockMap?: Map<string, number>;
 }
 
 export function SalesLineItemRow({
@@ -34,6 +35,7 @@ export function SalesLineItemRow({
   onRemove,
   canRemove,
   allImeiNumbers,
+  stockMap,
 }: SalesLineItemRowProps) {
   const [imeiDialogOpen, setImeiDialogOpen] = useState(false);
   const [newImei, setNewImei] = useState("");
@@ -121,11 +123,14 @@ export function SalesLineItemRow({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">-- Select item --</SelectItem>
-              {items.map((itm) => (
-                <SelectItem key={itm.id} value={itm.name}>
-                  {itm.name}
-                </SelectItem>
-              ))}
+              {items.map((itm) => {
+                const availableQty = stockMap?.get(itm.name) ?? 0;
+                return (
+                  <SelectItem key={itm.id} value={itm.name}>
+                    {itm.name} <span className="text-muted-foreground ml-1">(Qty: {availableQty})</span>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
