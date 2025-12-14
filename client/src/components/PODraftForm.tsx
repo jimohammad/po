@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -58,7 +58,6 @@ function generateItemId() {
 export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormProps) {
   const { toast } = useToast();
   const { currentBranch } = useBranch();
-  const supplierSelectRef = useRef<HTMLButtonElement>(null);
   
   const [poNumber, setPoNumber] = useState("");
   const [poDate, setPoDate] = useState(new Date().toISOString().split("T")[0]);
@@ -95,14 +94,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
     ]);
     setTotals({ totalKwd: "0.000", totalFx: "" });
     refetchNextNumber();
-    setTimeout(() => supplierSelectRef.current?.focus(), 100);
   };
-
-  useEffect(() => {
-    if (!editingPO) {
-      setTimeout(() => supplierSelectRef.current?.focus(), 100);
-    }
-  }, []);
 
   useEffect(() => {
     if (editingPO) {
@@ -285,7 +277,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
             <div className="space-y-2">
               <Label htmlFor="supplier">Supplier</Label>
               <Select value={supplierId || "none"} onValueChange={(val) => setSupplierId(val === "none" ? "" : val)}>
-                <SelectTrigger ref={supplierSelectRef} data-testid="select-supplier">
+                <SelectTrigger data-testid="select-supplier">
                   <SelectValue placeholder="-- Select supplier --" />
                 </SelectTrigger>
                 <SelectContent>
