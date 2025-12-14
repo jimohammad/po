@@ -547,7 +547,7 @@ export default function PaymentsPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {direction === "IN" ? (
                 <div className="space-y-2">
                   <Label htmlFor="customer">Customer</Label>
@@ -583,20 +583,6 @@ export default function PaymentsPage() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount (KWD)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.000"
-                  required
-                  data-testid="input-payment-amount"
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="paymentDate">Payment Date</Label>
                 <Input
                   id="paymentDate"
@@ -622,6 +608,22 @@ export default function PaymentsPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount (KWD)</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.001"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.000"
+                required
+                className="!text-3xl h-14 font-semibold"
+                data-testid="input-payment-amount"
+              />
             </div>
 
             <div className="space-y-2">
