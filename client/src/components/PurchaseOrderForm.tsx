@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,9 +42,14 @@ export function PurchaseOrderForm({
   onSubmit,
   isSubmitting,
 }: PurchaseOrderFormProps) {
+  const supplierSelectRef = useRef<HTMLButtonElement>(null);
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [supplierId, setSupplierId] = useState<string>("");
+
+  useEffect(() => {
+    setTimeout(() => supplierSelectRef.current?.focus(), 100);
+  }, []);
   const [fxCurrency, setFxCurrency] = useState<"AED" | "USD">("AED");
   const [fxRate, setFxRate] = useState("");
   const [grnDate, setGrnDate] = useState("");
@@ -157,7 +162,7 @@ export function PurchaseOrderForm({
             <div className="space-y-1.5 md:col-span-2">
               <Label className="text-xs font-medium text-muted-foreground">Supplier</Label>
               <Select value={supplierId || "none"} onValueChange={(val) => setSupplierId(val === "none" ? "" : val)}>
-                <SelectTrigger className="w-full" data-testid="select-supplier">
+                <SelectTrigger ref={supplierSelectRef} className="w-full" data-testid="select-supplier">
                   <SelectValue placeholder="-- Select supplier --" />
                 </SelectTrigger>
                 <SelectContent>
