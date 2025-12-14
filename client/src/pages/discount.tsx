@@ -218,40 +218,42 @@ export default function DiscountPage() {
             <CardTitle>Create Discount</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="customer">Customer</Label>
-              <Select value={customerId} onValueChange={handleCustomerChange}>
-                <SelectTrigger data-testid="select-customer">
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id.toString()}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="customer">Customer</Label>
+                <Select value={customerId} onValueChange={handleCustomerChange}>
+                  <SelectTrigger data-testid="select-customer">
+                    <SelectValue placeholder="Select customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id.toString()}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="invoice">Invoice Number</Label>
-              <Select 
-                value={salesOrderId} 
-                onValueChange={setSalesOrderId}
-                disabled={!customerId || invoices.length === 0}
-              >
-                <SelectTrigger data-testid="select-invoice">
-                  <SelectValue placeholder={!customerId ? "Select customer first" : invoices.length === 0 ? "No invoices found" : "Select invoice"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {invoices.map((invoice) => (
-                    <SelectItem key={invoice.id} value={invoice.id.toString()}>
-                      {invoice.invoiceNumber} - {invoice.totalKwd} KWD
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label htmlFor="invoice">Invoice Number</Label>
+                <Select 
+                  value={salesOrderId} 
+                  onValueChange={setSalesOrderId}
+                  disabled={!customerId || invoices.length === 0}
+                >
+                  <SelectTrigger data-testid="select-invoice">
+                    <SelectValue placeholder={!customerId ? "Select customer first" : invoices.length === 0 ? "No invoices found" : "Select invoice"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {invoices.map((invoice) => (
+                      <SelectItem key={invoice.id} value={invoice.id.toString()}>
+                        {invoice.invoiceNumber} - {invoice.totalKwd} KWD
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {selectedInvoice && (
@@ -273,6 +275,7 @@ export default function DiscountPage() {
                 value={discountAmount}
                 onChange={(e) => setDiscountAmount(e.target.value)}
                 placeholder="Enter discount amount"
+                className="!text-3xl h-14 font-semibold"
                 data-testid="input-discount-amount"
               />
             </div>
