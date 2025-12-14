@@ -275,7 +275,7 @@ export default function DiscountPage() {
                 value={discountAmount}
                 onChange={(e) => setDiscountAmount(e.target.value)}
                 placeholder="Enter discount amount"
-                className="!text-3xl h-14 font-semibold"
+                className="!text-3xl h-14 font-semibold placeholder:text-muted-foreground/30 placeholder:font-normal"
                 data-testid="input-discount-amount"
               />
             </div>

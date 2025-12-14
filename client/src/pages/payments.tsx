@@ -621,7 +621,7 @@ export default function PaymentsPage() {
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.000"
                 required
-                className="!text-3xl h-14 font-semibold"
+                className="!text-3xl h-14 font-semibold placeholder:text-muted-foreground/30 placeholder:font-normal"
                 data-testid="input-payment-amount"
               />
             </div>
