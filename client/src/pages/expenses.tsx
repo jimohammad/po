@@ -63,7 +63,7 @@ type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 export default function ExpensesPage() {
   const { toast } = useToast();
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const categorySelectRef = useRef<HTMLButtonElement>(null);
 
   const { data: expenses = [], isLoading: expensesLoading } = useQuery<ExpenseWithDetails[]>({
     queryKey: ["/api/expenses"],
@@ -97,9 +97,7 @@ export default function ExpensesPage() {
   });
 
   useEffect(() => {
-    if (dateInputRef.current) {
-      dateInputRef.current.focus();
-    }
+    setTimeout(() => categorySelectRef.current?.focus(), 100);
   }, []);
 
   const resetExpenseForm = () => {
@@ -111,9 +109,7 @@ export default function ExpensesPage() {
       description: "",
       reference: "",
     });
-    if (dateInputRef.current) {
-      dateInputRef.current.focus();
-    }
+    setTimeout(() => categorySelectRef.current?.focus(), 100);
   };
 
   const createExpenseMutation = useMutation({
@@ -255,7 +251,7 @@ export default function ExpensesPage() {
                             <FormLabel>Category (Optional)</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
-                                <SelectTrigger data-testid="select-expense-category">
+                                <SelectTrigger ref={categorySelectRef} data-testid="select-expense-category">
                                   <SelectValue placeholder="Select category" />
                                 </SelectTrigger>
                               </FormControl>
@@ -302,20 +298,7 @@ export default function ExpensesPage() {
                           <FormItem>
                             <FormLabel>Amount (KWD)</FormLabel>
                             <FormControl>
-                              <Input type="number" step="0.001" min="0" data-testid="input-expense-amount" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={expenseForm.control}
-                        name="reference"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Reference</FormLabel>
-                            <FormControl>
-                              <Input data-testid="input-expense-reference" {...field} />
+                              <Input type="number" step="0.001" min="0" className="text-2xl" data-testid="input-expense-amount" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
