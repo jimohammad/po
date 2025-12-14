@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -62,7 +61,6 @@ export default function PaymentsPage() {
   const isAdmin = user?.role === "admin";
   
   const [searchTerm, setSearchTerm] = useState("");
-  const customerSelectRef = useRef<HTMLButtonElement>(null);
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
   const [directionFilter, setDirectionFilter] = useState<string>("all");
   const [selectedPayment, setSelectedPayment] = useState<PaymentWithDetails | null>(null);
@@ -553,35 +551,35 @@ export default function PaymentsPage() {
               {direction === "IN" ? (
                 <div className="space-y-2">
                   <Label htmlFor="customer">Customer</Label>
-                  <SearchableSelect
-                    options={customers.map((customer) => ({
-                      value: customer.id.toString(),
-                      label: customer.name,
-                    }))}
-                    value={customerId}
-                    onValueChange={setCustomerId}
-                    placeholder="Type to search..."
-                    emptyText="No customers found."
-                    data-testid="select-payment-customer"
-                  />
+                  <Select value={customerId} onValueChange={setCustomerId}>
+                    <SelectTrigger data-testid="select-payment-customer">
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id.toString()}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <Label htmlFor="supplier">Supplier (Paid to)</Label>
-                  <SearchableSelect
-                    options={[
-                      { value: "none", label: "-- No supplier --" },
-                      ...suppliers.map((supplier) => ({
-                        value: supplier.id.toString(),
-                        label: supplier.name,
-                      })),
-                    ]}
-                    value={supplierId || "none"}
-                    onValueChange={(v) => setSupplierId(v === "none" ? "" : v)}
-                    placeholder="Type to search..."
-                    emptyText="No suppliers found."
-                    data-testid="select-payment-supplier"
-                  />
+                  <Select value={supplierId || "none"} onValueChange={(v) => setSupplierId(v === "none" ? "" : v)}>
+                    <SelectTrigger data-testid="select-payment-supplier">
+                      <SelectValue placeholder="Select supplier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- No supplier --</SelectItem>
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                          {supplier.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
               <div className="space-y-2">
