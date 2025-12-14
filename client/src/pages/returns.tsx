@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,7 +39,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -99,8 +98,6 @@ export default function ReturnsPage() {
   const [imeiDialogLineIndex, setImeiDialogLineIndex] = useState<number | null>(null);
   const [newImei, setNewImei] = useState("");
   const [imeiError, setImeiError] = useState("");
-  const customerSelectRef = useRef<HTMLButtonElement>(null);
-  const supplierSelectRef = useRef<HTMLButtonElement>(null);
 
   const { data: returns = [], isLoading } = useQuery<ReturnWithDetails[]>({
     queryKey: ["/api/returns"],
@@ -208,13 +205,6 @@ export default function ReturnsPage() {
     form.setValue("customerId", "");
     form.setValue("supplierId", "");
     setLineItems([{ itemName: "", quantity: 0, priceKwd: "", totalKwd: "", imeiNumbers: [] }]);
-    setTimeout(() => {
-      if (returnType === "sale_return") {
-        customerSelectRef.current?.focus();
-      } else {
-        supplierSelectRef.current?.focus();
-      }
-    }, 100);
   };
 
   const handleTypeToggle = (checked: boolean) => {
@@ -631,18 +621,18 @@ export default function ReturnsPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Customer</FormLabel>
-                          <SearchableSelect
-                            options={customers.map((customer) => ({
-                              value: customer.id.toString(),
-                              label: customer.name,
-                            }))}
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="Select customer"
-                            searchPlaceholder="Type to search customers..."
-                            emptyText="No customers found."
-                            data-testid="select-customer"
-                          />
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger data-testid="select-customer">
+                              <SelectValue placeholder="Select customer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {customers.map((customer) => (
+                                <SelectItem key={customer.id} value={customer.id.toString()}>
+                                  {customer.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -654,18 +644,18 @@ export default function ReturnsPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Supplier</FormLabel>
-                          <SearchableSelect
-                            options={suppliers.map((supplier) => ({
-                              value: supplier.id.toString(),
-                              label: supplier.name,
-                            }))}
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="Select supplier"
-                            searchPlaceholder="Type to search suppliers..."
-                            emptyText="No suppliers found."
-                            data-testid="select-supplier"
-                          />
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger data-testid="select-supplier">
+                              <SelectValue placeholder="Select supplier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {suppliers.map((supplier) => (
+                                <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                                  {supplier.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
