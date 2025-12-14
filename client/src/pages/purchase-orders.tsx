@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import type { PaymentWithDetails } from "@shared/schema";
 import {
   Table,
   TableBody,
@@ -122,6 +123,26 @@ export default function PurchaseOrdersPage() {
       return res.json();
     },
   });
+
+  const { data: paymentsData } = useQuery<{ data: PaymentWithDetails[]; total: number }>({
+    queryKey: ["/api/payments", "po-status"],
+    queryFn: async () => {
+      const res = await fetch(`/api/payments?limit=10000`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch payments");
+      return res.json();
+    },
+  });
+
+  const paidPurchaseOrderIds = useMemo(() => {
+    const payments = paymentsData?.data ?? [];
+    const paidIds = new Set<number>();
+    payments.forEach(p => {
+      if (p.purchaseOrderId) {
+        paidIds.add(p.purchaseOrderId);
+      }
+    });
+    return paidIds;
+  }, [paymentsData]);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -258,18 +279,21 @@ export default function PurchaseOrdersPage() {
                   <TableHead>Items</TableHead>
                   <TableHead className="text-right">Total KWD</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Payment</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       No purchase orders found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredOrders.map((po) => (
+                  filteredOrders.map((po) => {
+                    const isPaid = po.convertedToPurchaseId ? paidPurchaseOrderIds.has(po.convertedToPurchaseId) : false;
+                    return (
                     <TableRow key={po.id} data-testid={`row-po-${po.id}`}>
                       <TableCell className="font-medium">{po.poNumber}</TableCell>
                       <TableCell>
@@ -288,6 +312,21 @@ export default function PurchaseOrdersPage() {
                         <Badge variant={getStatusVariant(po.status)} className="capitalize">
                           {po.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {po.status === "converted" ? (
+                          isPaid ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200" data-testid={`badge-paid-${po.id}`}>
+                              Paid
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" data-testid={`badge-unpaid-${po.id}`}>
+                              Unpaid
+                            </Badge>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -355,7 +394,8 @@ export default function PurchaseOrdersPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

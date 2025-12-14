@@ -50,8 +50,10 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
-import type { PaymentWithDetails, Customer, Supplier, PaymentType, PaymentDirection } from "@shared/schema";
+import type { PaymentWithDetails, Customer, Supplier, PaymentType, PaymentDirection, PurchaseOrderWithDetails } from "@shared/schema";
 import { PAYMENT_TYPES, PAYMENT_DIRECTIONS } from "@shared/schema";
+
+const FX_CURRENCIES = ["AED", "USD"] as const;
 
 const PAGE_SIZE = 50;
 
@@ -89,8 +91,12 @@ export default function PaymentsPage() {
   const [direction, setDirection] = useState<PaymentDirection>("IN");
   const [customerId, setCustomerId] = useState("");
   const [supplierId, setSupplierId] = useState("");
+  const [purchaseOrderId, setPurchaseOrderId] = useState("");
   const [paymentType, setPaymentType] = useState<PaymentType>("Cash");
   const [amount, setAmount] = useState("");
+  const [fxCurrency, setFxCurrency] = useState<string>("");
+  const [fxRate, setFxRate] = useState("");
+  const [fxAmount, setFxAmount] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -117,14 +123,36 @@ export default function PaymentsPage() {
     queryKey: ["/api/suppliers"],
   });
 
+  const { data: purchaseOrdersData } = useQuery<{ data: PurchaseOrderWithDetails[]; total: number }>({
+    queryKey: ["/api/purchase-orders", "all"],
+    queryFn: async () => {
+      const res = await fetch(`/api/purchase-orders?limit=1000`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch purchase orders");
+      return res.json();
+    },
+    enabled: direction === "OUT",
+  });
+
+  const allPurchaseOrders = purchaseOrdersData?.data ?? [];
+  
+  const supplierPurchaseOrders = supplierId 
+    ? allPurchaseOrders.filter(po => po.supplierId === parseInt(supplierId))
+    : [];
+
   const createPaymentMutation = useMutation({
     mutationFn: async (data: {
       paymentDate: string;
       direction: string;
       customerId: number | null;
       supplierId: number | null;
+      purchaseOrderId: number | null;
       paymentType: string;
       amount: string;
+      fxCurrency: string | null;
+      fxRate: string | null;
+      fxAmount: string | null;
       reference: string | null;
       notes: string | null;
     }) => {
@@ -210,10 +238,49 @@ export default function PaymentsPage() {
     setDirection("IN");
     setCustomerId("");
     setSupplierId("");
+    setPurchaseOrderId("");
     setPaymentType("Cash");
     setAmount("");
+    setFxCurrency("");
+    setFxRate("");
+    setFxAmount("");
     setReference("");
     setNotes("");
+  };
+
+  const handlePurchaseOrderSelect = (poId: string) => {
+    setPurchaseOrderId(poId);
+    if (poId && poId !== "none") {
+      const po = allPurchaseOrders.find(p => p.id === parseInt(poId));
+      if (po) {
+        if (po.fxCurrency) setFxCurrency(po.fxCurrency);
+        if (po.fxRate) setFxRate(po.fxRate);
+        if (po.totalFx) setFxAmount(po.totalFx);
+        if (po.totalKwd) setAmount(po.totalKwd);
+      }
+    }
+  };
+
+  const handleFxAmountChange = (value: string) => {
+    setFxAmount(value);
+    if (value && fxRate) {
+      const rate = parseFloat(fxRate);
+      const fxAmt = parseFloat(value);
+      if (!isNaN(rate) && !isNaN(fxAmt) && rate > 0) {
+        setAmount((fxAmt / rate).toFixed(3));
+      }
+    }
+  };
+
+  const handleFxRateChange = (value: string) => {
+    setFxRate(value);
+    if (fxAmount && value) {
+      const rate = parseFloat(value);
+      const fxAmt = parseFloat(fxAmount);
+      if (!isNaN(rate) && !isNaN(fxAmt) && rate > 0) {
+        setAmount((fxAmt / rate).toFixed(3));
+      }
+    }
   };
 
   const handlePrintPayment = (payment: PaymentWithDetails) => {
@@ -410,8 +477,12 @@ export default function PaymentsPage() {
       direction,
       customerId: direction === "IN" && customerId ? parseInt(customerId) : null,
       supplierId: direction === "OUT" && supplierId ? parseInt(supplierId) : null,
+      purchaseOrderId: direction === "OUT" && purchaseOrderId ? parseInt(purchaseOrderId) : null,
       paymentType,
       amount,
+      fxCurrency: direction === "OUT" && fxCurrency ? fxCurrency : null,
+      fxRate: direction === "OUT" && fxRate ? fxRate : null,
+      fxAmount: direction === "OUT" && fxAmount ? fxAmount : null,
       reference: null,
       notes: notes || null,
     });
@@ -565,22 +636,45 @@ export default function PaymentsPage() {
                   </Select>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="supplier">Supplier (Paid to)</Label>
-                  <Select value={supplierId || "none"} onValueChange={(v) => setSupplierId(v === "none" ? "" : v)}>
-                    <SelectTrigger data-testid="select-payment-supplier">
-                      <SelectValue placeholder="Select supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">-- No supplier --</SelectItem>
-                      {suppliers.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id.toString()}>
-                          {supplier.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="supplier">Supplier (Paid to)</Label>
+                    <Select value={supplierId || "none"} onValueChange={(v) => {
+                      setSupplierId(v === "none" ? "" : v);
+                      setPurchaseOrderId("");
+                    }}>
+                      <SelectTrigger data-testid="select-payment-supplier">
+                        <SelectValue placeholder="Select supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">-- No supplier --</SelectItem>
+                        {suppliers.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                            {supplier.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {supplierId && (
+                    <div className="space-y-2">
+                      <Label htmlFor="purchaseOrder">Link to Purchase Order</Label>
+                      <Select value={purchaseOrderId || "none"} onValueChange={(v) => handlePurchaseOrderSelect(v === "none" ? "" : v)}>
+                        <SelectTrigger data-testid="select-payment-po">
+                          <SelectValue placeholder="Select PO (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">-- No PO --</SelectItem>
+                          {supplierPurchaseOrders.map((po) => (
+                            <SelectItem key={po.id} value={po.id.toString()}>
+                              {po.invoiceNumber || `PO #${po.id}`} - {po.totalKwd} KWD ({po.purchaseDate})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </>
               )}
               <div className="space-y-2">
                 <Label htmlFor="paymentDate">Payment Date</Label>
@@ -609,6 +703,52 @@ export default function PaymentsPage() {
                 </Select>
               </div>
             </div>
+
+            {direction === "OUT" && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fxCurrency">Foreign Currency</Label>
+                  <Select value={fxCurrency || "none"} onValueChange={(v) => setFxCurrency(v === "none" ? "" : v)}>
+                    <SelectTrigger data-testid="select-fx-currency">
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- None --</SelectItem>
+                      {FX_CURRENCIES.map((curr) => (
+                        <SelectItem key={curr} value={curr}>{curr}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fxRate">Exchange Rate</Label>
+                  <Input
+                    id="fxRate"
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={fxRate}
+                    onChange={(e) => handleFxRateChange(e.target.value)}
+                    placeholder="0.0000"
+                    data-testid="input-fx-rate"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fxAmount">Amount ({fxCurrency || "FX"})</Label>
+                  <Input
+                    id="fxAmount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={fxAmount}
+                    onChange={(e) => handleFxAmountChange(e.target.value)}
+                    placeholder="0.00"
+                    className="!text-3xl h-14 font-semibold placeholder:text-muted-foreground/30 placeholder:font-normal"
+                    data-testid="input-fx-amount"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="amount">Amount (KWD)</Label>
