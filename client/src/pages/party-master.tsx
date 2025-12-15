@@ -7,6 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -247,13 +254,26 @@ export default function PartyMaster() {
                 {partyType === "customer" && (
                   <div className="space-y-2">
                     <Label htmlFor="partyArea">Area</Label>
-                    <Input
-                      id="partyArea"
-                      value={partyArea}
-                      onChange={(e) => setPartyArea(e.target.value)}
-                      placeholder="Enter area (e.g., Salmiya, Hawalli)"
-                      data-testid="input-party-area"
-                    />
+                    <Select
+                      value={partyArea || "none"}
+                      onValueChange={(value) => setPartyArea(value === "none" ? "" : value)}
+                    >
+                      <SelectTrigger data-testid="select-party-area">
+                        <SelectValue placeholder="Select area" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Select area</SelectItem>
+                        <SelectItem value="Fahaheel">Fahaheel</SelectItem>
+                        <SelectItem value="Farwaniya">Farwaniya</SelectItem>
+                        <SelectItem value="Jahra">Jahra</SelectItem>
+                        <SelectItem value="Jaleeb">Jaleeb</SelectItem>
+                        <SelectItem value="Khaitan">Khaitan</SelectItem>
+                        <SelectItem value="Mahboula">Mahboula</SelectItem>
+                        <SelectItem value="Margab">Margab</SelectItem>
+                        <SelectItem value="Sharq">Sharq</SelectItem>
+                        <SelectItem value="Souk Wataniya">Souk Wataniya</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
               </div>
