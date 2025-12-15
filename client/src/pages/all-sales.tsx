@@ -32,7 +32,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Search, Eye, Trash2, Receipt, ShoppingBag, ChevronLeft, ChevronRight, Printer, FileDown } from "lucide-react";
+import { Loader2, Search, Eye, Trash2, Receipt, ShoppingBag, ChevronLeft, ChevronRight, Printer, FileDown, Pencil, Plus, X, Save } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SiWhatsapp } from "react-icons/si";
 import { format } from "date-fns";
 import { usePasswordProtection } from "@/components/PasswordConfirmDialog";
@@ -43,7 +51,8 @@ interface SalesOrderLineItem {
   id: number;
   itemName: string;
   quantity: number;
-  unitPrice: string;
+  priceKwd: string | null;
+  totalKwd: string | null;
   imeiNumbers: string[] | null;
 }
 
@@ -80,6 +89,13 @@ export default function AllSalesPage() {
   const [page, setPage] = useState(1);
   const { requestPasswordConfirmation, PasswordDialog } = usePasswordProtection();
   
+  // Edit state
+  const [editSO, setEditSO] = useState<SalesOrder | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editInvoiceNumber, setEditInvoiceNumber] = useState("");
+  const [editCustomerId, setEditCustomerId] = useState<string>("");
+  const [editLineItems, setEditLineItems] = useState<{ id: string; itemName: string; quantity: number; priceKwd: string; imeiNumbers: string[] }[]>([]);
+  
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     setPage(1);
@@ -112,6 +128,118 @@ export default function AllSalesPage() {
       setDeleteId(null);
     },
   });
+
+  // Fetch customers for edit dropdown
+  const { data: customers = [] } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ["/api/customers"],
+  });
+  
+  // Fetch items for edit dropdown
+  const { data: items = [] } = useQuery<{ id: number; name: string; sellingPriceKwd: string | null }[]>({
+    queryKey: ["/api/items"],
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { saleDate: string; invoiceNumber: string; customerId: number | null; totalKwd: string; lineItems: { itemName: string; quantity: number; priceKwd: string; totalKwd: string; imeiNumbers: string[] }[] } }) => {
+      return await apiRequest("PUT", `/api/sales-orders/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return typeof key === 'string' && key.startsWith('/api/sales-orders');
+        }
+      });
+      toast({ title: "Sales invoice updated successfully" });
+      setEditSO(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const openEditDialog = (so: SalesOrder) => {
+    setEditSO(so);
+    setEditDate(so.saleDate);
+    setEditInvoiceNumber(so.invoiceNumber || "");
+    setEditCustomerId(so.customer?.id.toString() || "");
+    setEditLineItems(
+      so.lineItems.map((item, idx) => ({
+        id: `edit-${idx}`,
+        itemName: item.itemName,
+        quantity: item.quantity,
+        priceKwd: item.priceKwd || "",
+        imeiNumbers: item.imeiNumbers || [],
+      }))
+    );
+  };
+
+  const handleEditSubmit = () => {
+    if (!editSO) return;
+    
+    const validItems = editLineItems.filter(item => item.itemName && item.quantity > 0);
+    if (validItems.length === 0) {
+      toast({ title: "Please add at least one item", variant: "destructive" });
+      return;
+    }
+    
+    // Validate all items have valid prices
+    const hasInvalidPrice = validItems.some(item => {
+      const price = parseFloat(item.priceKwd || "0");
+      return isNaN(price) || price < 0;
+    });
+    
+    if (hasInvalidPrice) {
+      toast({ title: "Please enter valid prices for all items", variant: "destructive" });
+      return;
+    }
+    
+    const totalKwd = validItems.reduce((sum, item) => {
+      return sum + (item.quantity * parseFloat(item.priceKwd || "0"));
+    }, 0).toFixed(3);
+    
+    updateMutation.mutate({
+      id: editSO.id,
+      data: {
+        saleDate: editDate,
+        invoiceNumber: editInvoiceNumber,
+        customerId: editCustomerId ? parseInt(editCustomerId) : null,
+        totalKwd,
+        lineItems: validItems.map(item => {
+          const price = parseFloat(item.priceKwd || "0");
+          return {
+            itemName: item.itemName,
+            quantity: item.quantity,
+            priceKwd: price.toFixed(3),
+            totalKwd: (item.quantity * price).toFixed(3),
+            imeiNumbers: item.imeiNumbers,
+          };
+        }),
+      },
+    });
+  };
+
+  const addEditLineItem = () => {
+    setEditLineItems(prev => [...prev, { id: `edit-${Date.now()}`, itemName: "", quantity: 1, priceKwd: "", imeiNumbers: [] }]);
+  };
+
+  const removeEditLineItem = (id: string) => {
+    setEditLineItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updateEditLineItem = (id: string, field: string, value: string | number) => {
+    setEditLineItems(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      const updated = { ...item, [field]: value };
+      if (field === "itemName" && typeof value === "string") {
+        const foundItem = items.find(i => i.name === value);
+        if (foundItem?.sellingPriceKwd) {
+          updated.priceKwd = foundItem.sellingPriceKwd;
+        }
+      }
+      return updated;
+    }));
+  };
 
   const filteredOrders = salesOrders.filter((so) => {
     const query = searchQuery.toLowerCase();
@@ -149,7 +277,7 @@ export default function AllSalesPage() {
     const lineItemsHtml = selectedSO.lineItems.map(item => `
       <div class="item-row">
         <div class="item-name">${escapeHtml(item.itemName)}</div>
-        <div class="item-details">${item.quantity} x ${formatCurrency(item.unitPrice)} = ${formatCurrency(parseFloat(item.unitPrice || "0") * item.quantity)}</div>
+        <div class="item-details">${item.quantity} x ${formatCurrency(item.priceKwd)} = ${formatCurrency(parseFloat(item.priceKwd || "0") * item.quantity)}</div>
         ${item.imeiNumbers?.length ? `<div class="item-imei">IMEI: ${item.imeiNumbers.map(imei => escapeHtml(imei)).join(", ")}</div>` : ""}
       </div>
     `).join("");
@@ -330,7 +458,7 @@ export default function AllSalesPage() {
       <tr>
         <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.itemName)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unitPrice)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.priceKwd)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px; color: #6b7280;">${item.imeiNumbers?.length ? item.imeiNumbers.map(imei => escapeHtml(imei)).join(", ") : "-"}</td>
       </tr>
     `).join("");
@@ -400,7 +528,7 @@ export default function AllSalesPage() {
   const handleWhatsAppShare = () => {
     if (!selectedSO) return;
     const lineItemsText = selectedSO.lineItems.map((item, index) => 
-      `${index + 1}. ${item.itemName} - Qty: ${item.quantity} - ${formatCurrency(item.unitPrice)} KWD${item.imeiNumbers?.length ? `\n   IMEI: ${item.imeiNumbers.join(", ")}` : ""}`
+      `${index + 1}. ${item.itemName} - Qty: ${item.quantity} - ${formatCurrency(item.priceKwd)} KWD${item.imeiNumbers?.length ? `\n   IMEI: ${item.imeiNumbers.join(", ")}` : ""}`
     ).join("\n");
 
     const message = `*Iqbal Electronics - Sales Invoice*
@@ -493,6 +621,14 @@ Thank you for your business!`;
                             data-testid={`button-view-sale-${so.id}`}
                           >
                             <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => openEditDialog(so)}
+                            data-testid={`button-edit-sale-${so.id}`}
+                          >
+                            <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             size="icon"
@@ -620,7 +756,7 @@ Thank you for your business!`;
                       <TableRow key={item.id}>
                         <TableCell>{item.itemName}</TableCell>
                         <TableCell className="text-center">{item.quantity}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.priceKwd)}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {item.imeiNumbers?.length ? item.imeiNumbers.join(", ") : "-"}
                         </TableCell>
@@ -628,6 +764,151 @@ Thank you for your business!`;
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editSO} onOpenChange={() => setEditSO(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" />
+              Edit Sales Invoice
+            </DialogTitle>
+          </DialogHeader>
+          {editSO && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Input
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    data-testid="input-edit-date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Invoice #</Label>
+                  <Input
+                    value={editInvoiceNumber}
+                    onChange={(e) => setEditInvoiceNumber(e.target.value)}
+                    placeholder="Invoice number"
+                    data-testid="input-edit-invoice"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Customer</Label>
+                  <Select value={editCustomerId} onValueChange={setEditCustomerId}>
+                    <SelectTrigger data-testid="select-edit-customer">
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id.toString()}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Line Items</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addEditLineItem}
+                    data-testid="button-add-edit-line"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Item
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {editLineItems.map((item, index) => (
+                    <div key={item.id} className="flex items-center gap-2 p-2 rounded-md bg-muted/30">
+                      <div className="flex-1 min-w-[140px]">
+                        <Select
+                          value={item.itemName || "none"}
+                          onValueChange={(val) => updateEditLineItem(item.id, "itemName", val === "none" ? "" : val)}
+                        >
+                          <SelectTrigger data-testid={`select-edit-item-${index}`}>
+                            <SelectValue placeholder="Select item" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">-- Select --</SelectItem>
+                            {items.map((i) => (
+                              <SelectItem key={i.id} value={i.name}>
+                                {i.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-20">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity || ""}
+                          onChange={(e) => updateEditLineItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+                          placeholder="Qty"
+                          data-testid={`input-edit-qty-${index}`}
+                        />
+                      </div>
+                      <div className="w-24">
+                        <Input
+                          type="number"
+                          step="0.001"
+                          value={item.priceKwd || ""}
+                          onChange={(e) => updateEditLineItem(item.id, "priceKwd", e.target.value)}
+                          placeholder="Price"
+                          data-testid={`input-edit-price-${index}`}
+                        />
+                      </div>
+                      <div className="w-24 text-right text-sm font-medium">
+                        {(item.quantity * parseFloat(item.priceKwd || "0")).toFixed(3)}
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removeEditLineItem(item.id)}
+                        disabled={editLineItems.length <= 1}
+                        data-testid={`button-remove-edit-line-${index}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-right font-medium pt-2 border-t">
+                  Total: {editLineItems.reduce((sum, item) => sum + (item.quantity * parseFloat(item.priceKwd || "0")), 0).toFixed(3)} KWD
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setEditSO(null)} data-testid="button-cancel-edit">
+                  Cancel
+                </Button>
+                <Button onClick={handleEditSubmit} disabled={updateMutation.isPending} data-testid="button-save-edit">
+                  {updateMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           )}
