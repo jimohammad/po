@@ -100,7 +100,6 @@ import {
   type InsertImeiEvent,
   type ImeiInventoryWithDetails,
   type ImeiEventWithDetails,
-  type AllTransaction,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
@@ -285,18 +284,6 @@ export interface IStorage {
   getAllPurchaseOrders(): Promise<PurchaseOrder[]>;
   getAllSalesOrders(): Promise<SalesOrder[]>;
   getAllPayments(): Promise<Payment[]>;
-
-  // All Transactions - consolidated view
-  getAllTransactions(options?: {
-    limit?: number;
-    offset?: number;
-    startDate?: string;
-    endDate?: string;
-    modules?: string[];
-    branchId?: number;
-    partyId?: number;
-    search?: string;
-  }): Promise<{ data: AllTransaction[]; total: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
