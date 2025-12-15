@@ -4,7 +4,7 @@
 
 This is a **Purchase Order Register** system built for Iqbal Electronics Co. WLL to track and manage supplier invoices, purchase orders, and multi-currency transactions. The application enables users to:
 
-- Dashboard with real-time KPIs (Stock Available, Total Cash, Monthly Sales, Monthly Purchases) and global search across all entities
+- Dashboard with real-time KPIs (Stock Available, Total Cash, Monthly Sales, Monthly Purchases), global search across all entities, and low stock alerts
 - Create and manage parties (suppliers and customers) and inventory items via Party Master with toggle switch for type selection
 - Record purchase orders with line items
 - Track invoice numbers, delivery notes, and TT (Telegraphic Transfer) copies
@@ -16,7 +16,7 @@ This is a **Purchase Order Register** system built for Iqbal Electronics Co. WLL
 - IMEI History module for complete device lifecycle tracking (purchase → stock → sale → return → warranty → transfer)
 - Payment module with IN/OUT direction tracking for cash flow
 - Returns module with toggle switch between Sale Returns (from customers) and Purchase Returns (to suppliers), including IMEI tracking
-- Reports module with Available Stock, Daily Cash Flow, and Customer Reports
+- Reports module with Available Stock, Daily Cash Flow, Customer Reports, and Customer Aging Report (0-30, 31-60, 61-90, 90+ day buckets)
 - Expenses module with category management and expense tracking
 - Accounts module with 5 predefined accounts (Cash, NBK Bank, CBK Bank, Knet, Wamd), account statements, and inter-account transfer functionality
 - AI Assistant powered by OpenAI for querying business data (sales summaries, stock info, customer insights, etc.) with branch-aware filtering
