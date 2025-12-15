@@ -291,6 +291,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    // First check by ID
     const existingUser = await this.getUser(userData.id);
     
     if (existingUser) {
@@ -304,6 +305,25 @@ export class DatabaseStorage implements IStorage {
         .where(eq(users.id, userData.id))
         .returning();
       return user;
+    }
+    
+    // Also check by email to avoid unique constraint violation
+    if (userData.email) {
+      const [existingByEmail] = await db.select().from(users).where(eq(users.email, userData.email));
+      if (existingByEmail) {
+        // Update the existing user's ID to match the new OIDC ID
+        const [user] = await db
+          .update(users)
+          .set({
+            ...userData,
+            id: userData.id,
+            role: existingByEmail.role,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.email, userData.email))
+          .returning();
+        return user;
+      }
     }
     
     const [adminCount] = await db

@@ -1757,12 +1757,14 @@ export async function registerRoutes(
   app.post("/api/stock-transfers", isAuthenticated, async (req: any, res) => {
     try {
       const { lineItems, ...transferData } = req.body;
+      console.log("[Stock Transfer] Creating transfer:", JSON.stringify({ transferData, lineItems }, null, 2));
       
       const parsed = insertStockTransferSchema.safeParse({
         ...transferData,
         createdBy: req.user?.claims?.sub,
       });
       if (!parsed.success) {
+        console.error("[Stock Transfer] Validation error:", parsed.error);
         return res.status(400).json({ error: parsed.error.message });
       }
 
@@ -1770,11 +1772,13 @@ export async function registerRoutes(
         return res.status(400).json({ error: "At least one line item is required" });
       }
 
+      console.log("[Stock Transfer] Parsed data:", JSON.stringify(parsed.data, null, 2));
       const transfer = await storage.createStockTransfer(parsed.data, lineItems);
       res.status(201).json(transfer);
-    } catch (error) {
-      console.error("Error creating stock transfer:", error);
-      res.status(500).json({ error: "Failed to create stock transfer" });
+    } catch (error: any) {
+      console.error("[Stock Transfer] Error creating stock transfer:", error?.message || error);
+      console.error("[Stock Transfer] Full error:", error);
+      res.status(500).json({ error: "Failed to create stock transfer", details: error?.message });
     }
   });
 
