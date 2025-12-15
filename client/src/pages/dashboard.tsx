@@ -152,78 +152,90 @@ export default function DashboardPage() {
       ) : (
         <div className="space-y-4">
           <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            <Card data-testid="card-stock-amount" className="p-0">
-              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+            <Card data-testid="card-stock-amount" className="p-0 overflow-visible">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 p-3 pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Stock Amount</CardTitle>
-                <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="p-1.5 rounded-lg bg-sky-100 dark:bg-sky-900/40">
+                  <Package className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                </div>
               </CardHeader>
               <CardContent className="p-3 pt-0">
-                <div className="text-lg font-light" data-testid="text-stock-amount">
+                <div className="text-lg font-semibold" data-testid="text-stock-amount">
                   {formatCurrency(stats?.stockAmount || 0)}
                 </div>
                 <p className="text-[10px] text-muted-foreground">KWD</p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-total-credit" className="p-0">
-              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+            <Card data-testid="card-total-credit" className="p-0 overflow-visible">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 p-3 pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Total Receivables</CardTitle>
-                <TrendingUp className="h-3.5 w-3.5 text-green-600" />
+                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                  <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
               </CardHeader>
               <CardContent className="p-3 pt-0">
-                <div className="text-lg font-light text-green-600" data-testid="text-total-credit">
+                <div className="text-lg font-semibold text-emerald-600 dark:text-emerald-400" data-testid="text-total-credit">
                   {formatCurrency(stats?.totalCredit || 0)}
                 </div>
                 <p className="text-[10px] text-muted-foreground">KWD</p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-total-debit" className="p-0">
-              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+            <Card data-testid="card-total-debit" className="p-0 overflow-visible">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 p-3 pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Total Payables</CardTitle>
-                <TrendingDown className="h-3.5 w-3.5 text-red-600" />
+                <div className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900/40">
+                  <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+                </div>
               </CardHeader>
               <CardContent className="p-3 pt-0">
-                <div className="text-lg font-light text-red-600" data-testid="text-total-debit">
+                <div className="text-lg font-semibold text-red-600 dark:text-red-400" data-testid="text-total-debit">
                   {formatCurrency(stats?.totalDebit || 0)}
                 </div>
                 <p className="text-[10px] text-muted-foreground">KWD</p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-cash-balance" className="p-0">
-              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+            <Card data-testid="card-cash-balance" className="p-0 overflow-visible">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 p-3 pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Cash in Hand</CardTitle>
-                <Wallet className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40">
+                  <Wallet className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
               </CardHeader>
               <CardContent className="p-3 pt-0">
-                <div className="text-lg font-light" data-testid="text-cash-balance">
+                <div className="text-lg font-semibold" data-testid="text-cash-balance">
                   {formatCurrency(stats?.cashBalance || 0)}
                 </div>
                 <p className="text-[10px] text-muted-foreground">KWD</p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-bank-accounts" className="p-0">
-              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+            <Card data-testid="card-bank-accounts" className="p-0 overflow-visible">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 p-3 pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Bank Accounts</CardTitle>
-                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
+                  <Building2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
               </CardHeader>
               <CardContent className="p-3 pt-0">
-                <div className="text-lg font-light" data-testid="text-bank-accounts">
+                <div className="text-lg font-semibold" data-testid="text-bank-accounts">
                   {formatCurrency(stats?.bankAccountsBalance || 0)}
                 </div>
                 <p className="text-[10px] text-muted-foreground">KWD</p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-monthly-purchases" className="p-0">
-              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+            <Card data-testid="card-monthly-purchases" className="p-0 overflow-visible">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 p-3 pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Purchases</CardTitle>
-                <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-900/40">
+                  <ShoppingCart className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                </div>
               </CardHeader>
               <CardContent className="p-3 pt-0">
-                <div className="text-lg font-light" data-testid="text-monthly-purchases">
+                <div className="text-lg font-semibold" data-testid="text-monthly-purchases">
                   {formatCurrency(stats?.monthlyPurchases || 0)}
                 </div>
                 <div className="flex items-center justify-between gap-2">
@@ -240,18 +252,20 @@ export default function DashboardPage() {
             </div>
 
           <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
-            <Card data-testid="card-monthly-sales" className="p-0">
-              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+            <Card data-testid="card-monthly-sales" className="p-0 overflow-visible">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 p-3 pb-1">
                 <div>
                   <CardTitle className="text-xs font-medium text-muted-foreground">This Month Sales</CardTitle>
                   <p className="text-[10px] text-muted-foreground mt-0.5">Last 7 days trend</p>
                 </div>
-                <DollarSign className="h-4 w-4 text-secondary" />
+                <div className="p-2 rounded-lg bg-gradient-to-br from-coral-100 to-sky-100 dark:from-coral-900/40 dark:to-sky-900/40" style={{ background: 'linear-gradient(135deg, hsl(16 85% 95%), hsl(200 80% 95%))' }}>
+                  <DollarSign className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                </div>
               </CardHeader>
               <CardContent className="p-3 pt-0">
                 <div className="flex items-end justify-between gap-4">
                   <div>
-                    <div className="text-xl font-light" data-testid="text-monthly-sales">
+                    <div className="text-xl font-semibold" data-testid="text-monthly-sales">
                       {formatCurrency(stats?.monthlySales || 0)}
                     </div>
                     <p className="text-[10px] text-muted-foreground">KWD in {currentMonthName}</p>
@@ -265,13 +279,15 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card data-testid="card-total-expenses" className="p-0">
-              <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 pb-1">
+            <Card data-testid="card-total-expenses" className="p-0 overflow-visible">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 p-3 pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Total Expenses</CardTitle>
-                <Receipt className="h-3.5 w-3.5 text-orange-600" />
+                <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/40">
+                  <Receipt className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                </div>
               </CardHeader>
               <CardContent className="p-3 pt-0">
-                <div className="text-xl font-light text-orange-600" data-testid="text-total-expenses">
+                <div className="text-xl font-semibold text-orange-600 dark:text-orange-400" data-testid="text-total-expenses">
                   {formatCurrency(stats?.totalExpenses || 0)}
                 </div>
                 <p className="text-[10px] text-muted-foreground">KWD</p>
