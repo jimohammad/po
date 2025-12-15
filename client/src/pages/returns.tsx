@@ -114,6 +114,7 @@ export default function ReturnsPage() {
   const [imeiDialogLineIndex, setImeiDialogLineIndex] = useState<number | null>(null);
   const [newImei, setNewImei] = useState("");
   const [imeiError, setImeiError] = useState("");
+  const [shouldPrintAfterSave, setShouldPrintAfterSave] = useState(false);
 
   const { data: returns = [], isLoading } = useQuery<ReturnWithDetails[]>({
     queryKey: ["/api/returns"],
@@ -180,10 +181,18 @@ export default function ReturnsPage() {
           imeiNumbers: item.imeiNumbers,
         })),
       };
-      return apiRequest("POST", "/api/returns", payload);
+      const response = await apiRequest("POST", "/api/returns", payload);
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (savedReturn: ReturnWithDetails) => {
       queryClient.invalidateQueries({ queryKey: ["/api/returns"] });
+      
+      // Print if requested
+      if (shouldPrintAfterSave) {
+        handlePrintReturn(savedReturn);
+        setShouldPrintAfterSave(false);
+      }
+      
       const newReturnNumber = generateReturnNumber();
       form.reset({
         returnDate: format(new Date(), "yyyy-MM-dd"),
@@ -196,6 +205,7 @@ export default function ReturnsPage() {
       toast({ title: "Return recorded successfully" });
     },
     onError: (error: any) => {
+      setShouldPrintAfterSave(false);
       toast({ title: "Failed to create return", description: error?.message || "Unknown error", variant: "destructive" });
     },
   });
@@ -809,8 +819,25 @@ export default function ReturnsPage() {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <Button type="submit" disabled={createReturnMutation.isPending} data-testid="button-submit-return">
-                    {createReturnMutation.isPending ? "Saving..." : "Save Return"}
+                  <Button 
+                    type="submit" 
+                    variant="outline"
+                    disabled={createReturnMutation.isPending} 
+                    data-testid="button-submit-return"
+                  >
+                    {createReturnMutation.isPending && !shouldPrintAfterSave ? "Saving..." : "Save"}
+                  </Button>
+                  <Button 
+                    type="button"
+                    disabled={createReturnMutation.isPending}
+                    onClick={() => {
+                      setShouldPrintAfterSave(true);
+                      form.handleSubmit(onSubmit)();
+                    }}
+                    data-testid="button-save-print-return"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    {createReturnMutation.isPending && shouldPrintAfterSave ? "Saving..." : "Save & Print"}
                   </Button>
                 </div>
               </form>
