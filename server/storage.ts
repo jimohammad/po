@@ -141,6 +141,7 @@ export interface IStorage {
   getSalesOrders(options?: { limit?: number; offset?: number }): Promise<{ data: SalesOrderWithDetails[]; total: number }>;
   getSalesOrder(id: number): Promise<SalesOrderWithDetails | undefined>;
   createSalesOrder(so: InsertSalesOrder, lineItems: Omit<InsertSalesLineItem, 'salesOrderId'>[]): Promise<SalesOrderWithDetails>;
+  updateSalesOrder(id: number, so: Partial<InsertSalesOrder>, lineItems?: Omit<InsertSalesLineItem, 'salesOrderId'>[]): Promise<SalesOrderWithDetails | undefined>;
   deleteSalesOrder(id: number): Promise<boolean>;
 
   getSalesMonthlyStats(year?: number): Promise<{ month: number; totalKwd: number; totalFx: number }[]>;
@@ -677,6 +678,31 @@ export class DatabaseStorage implements IStorage {
     }
 
     return this.getSalesOrder(newSo.id) as Promise<SalesOrderWithDetails>;
+  }
+
+  async updateSalesOrder(
+    id: number,
+    so: Partial<InsertSalesOrder>,
+    lineItems?: Omit<InsertSalesLineItem, 'salesOrderId'>[]
+  ): Promise<SalesOrderWithDetails | undefined> {
+    const [updated] = await db.update(salesOrders).set(so).where(eq(salesOrders.id, id)).returning();
+    
+    if (!updated) return undefined;
+
+    if (lineItems !== undefined) {
+      await db.delete(salesOrderLineItems).where(eq(salesOrderLineItems.salesOrderId, id));
+      
+      if (lineItems.length > 0) {
+        await db.insert(salesOrderLineItems).values(
+          lineItems.map(item => ({
+            ...item,
+            salesOrderId: id,
+          }))
+        );
+      }
+    }
+
+    return this.getSalesOrder(id);
   }
 
   async deleteSalesOrder(id: number): Promise<boolean> {

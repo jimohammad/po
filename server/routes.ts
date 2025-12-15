@@ -573,6 +573,51 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/sales-orders/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid order ID" });
+      }
+      
+      const { lineItems, ...orderData } = req.body;
+      
+      // Handle customerId - Party Master customers have IDs offset by 100000
+      let customerId = null;
+      if (orderData.customerId && orderData.customerId > 0) {
+        if (orderData.customerId >= 100000) {
+          const partyId = orderData.customerId - 100000;
+          const syncedCustomer = await storage.syncPartyToCustomer(partyId);
+          if (syncedCustomer) {
+            customerId = syncedCustomer.id;
+          }
+        } else {
+          customerId = orderData.customerId;
+        }
+      }
+      
+      const updatedOrder = await storage.updateSalesOrder(
+        id,
+        {
+          saleDate: orderData.saleDate,
+          invoiceNumber: orderData.invoiceNumber,
+          customerId: customerId,
+          totalKwd: orderData.totalKwd,
+        },
+        lineItems || []
+      );
+      
+      if (!updatedOrder) {
+        return res.status(404).json({ error: "Sales order not found" });
+      }
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating sales order:", error);
+      res.status(500).json({ error: "Failed to update sales order" });
+    }
+  });
+
   app.delete("/api/sales-orders/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
