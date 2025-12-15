@@ -61,7 +61,7 @@ interface SalesOrder {
   saleDate: string;
   invoiceNumber: string | null;
   totalKwd: string | null;
-  customer: { id: number; name: string; balance?: string | null } | null;
+  customer: { id: number; name: string; balance?: string | null; phone?: string | null; address?: string | null } | null;
   lineItems: SalesOrderLineItem[];
   createdAt: string | null;
 }
@@ -463,97 +463,132 @@ export default function AllSalesPage() {
 
   const handleDownloadPDF = () => {
     if (!selectedSO) return;
-    const pdfWindow = window.open("", "_blank");
+    const pdfWindow = window.open("", "_blank", "width=800,height=900");
     if (!pdfWindow) return;
 
-    const lineItemsHtmlPdf = selectedSO.lineItems.map(item => `
+    const customerName = selectedSO.customer?.name || "Walk-in Customer";
+    const customerPhone = selectedSO.customer?.phone || "";
+    const customerAddress = selectedSO.customer?.address || "";
+    const previousBalance = parseFloat(selectedSO.customer?.balance || "0");
+    const invoiceAmount = parseFloat(selectedSO.totalKwd || "0");
+    const currentBalance = previousBalance + invoiceAmount;
+    const saleDate = format(new Date(selectedSO.saleDate), "yyyy-MM-dd");
+
+    const itemsHtml = selectedSO.lineItems.map((li, idx) => `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.itemName)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.priceKwd)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(parseFloat(item.priceKwd || "0") * item.quantity)}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:center;">${idx + 1}</td>
+        <td style="padding:8px;border:1px solid #ddd;">${escapeHtml(li.itemName)}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:center;">${li.quantity}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right;">${parseFloat(li.priceKwd || "0").toFixed(3)}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right;">${(li.quantity * parseFloat(li.priceKwd || "0")).toFixed(3)}</td>
       </tr>
     `).join("");
-    
-    // Calculate balance information
-    const previousBalance = parseFloat(selectedSO.customer?.balance || "0");
-    const invoiceTotal = parseFloat(selectedSO.totalKwd || "0");
-    const currentBalance = previousBalance + invoiceTotal;
 
     pdfWindow.document.write(`
       <!DOCTYPE html>
       <html>
-        <head>
-          <title>Invoice - ${escapeHtml(selectedSO.invoiceNumber) || "No Number"}</title>
-          <style>
-            body { font-family: Inter, system-ui, sans-serif; padding: 20px; }
-            .pdf-instructions { text-align: center; padding: 16px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; margin-bottom: 20px; }
-            .pdf-instructions strong { display: block; font-size: 16px; margin-bottom: 8px; color: #92400e; }
-            .pdf-instructions span { color: #92400e; }
-            .shortcut { display: inline-block; background: #fff; border: 1px solid #d97706; padding: 4px 12px; border-radius: 4px; font-family: monospace; font-weight: 600; margin: 4px; }
-            .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-            .company { font-size: 24px; font-weight: bold; color: #0f172a; }
-            .invoice-title { font-size: 14px; color: #64748b; text-transform: uppercase; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-            .info-item { font-size: 14px; }
-            .info-label { color: #64748b; margin-right: 4px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-size: 12px; text-transform: uppercase; }
-            .total { font-size: 18px; font-weight: bold; text-align: right; }
-            @media print { .pdf-instructions { display: none !important; } body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
-          </style>
-        </head>
-        <body>
-          <div class="pdf-instructions">
-            <strong>Save Invoice as PDF</strong>
-            <span>Press <span class="shortcut">Ctrl + P</span> (Windows) or <span class="shortcut">Cmd + P</span> (Mac)<br>
-            Then select <strong>"Save as PDF"</strong> as the destination.</span>
+      <head>
+        <title>Credit Invoice ${escapeHtml(selectedSO.invoiceNumber)}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; font-size: 12px; color: #333; }
+          .header { background: linear-gradient(135deg, #8B7CB3 0%, #6B5B95 100%); color: white; padding: 20px; display: flex; align-items: center; gap: 20px; }
+          .logo { width: 80px; height: 80px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+          .logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+          .company-info { flex: 1; }
+          .company-name { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+          .company-details { font-size: 11px; opacity: 0.9; }
+          .invoice-title { text-align: right; }
+          .invoice-title h1 { font-size: 28px; margin-bottom: 5px; }
+          .content { padding: 20px; }
+          .info-section { display: flex; justify-content: space-between; margin-bottom: 20px; }
+          .info-box { background: #f8f8f8; padding: 15px; border-radius: 5px; width: 48%; }
+          .info-box h3 { color: #6B5B95; margin-bottom: 10px; font-size: 14px; }
+          .info-row { margin: 5px 0; }
+          .info-label { font-weight: bold; display: inline-block; width: 100px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th { background: #6B5B95; color: white; padding: 10px; text-align: left; }
+          .totals-section { display: flex; justify-content: flex-end; }
+          .totals-box { width: 300px; background: #f8f8f8; padding: 15px; border-radius: 5px; }
+          .totals-row { display: flex; justify-content: space-between; padding: 5px 0; }
+          .totals-row.total { font-weight: bold; font-size: 16px; border-top: 2px solid #6B5B95; padding-top: 10px; margin-top: 5px; color: #6B5B95; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }
+          .terms { font-size: 10px; color: #666; }
+          .signature-section { display: flex; justify-content: space-between; margin-top: 40px; }
+          .signature-box { width: 200px; text-align: center; }
+          .signature-line { border-top: 1px solid #333; margin-top: 50px; padding-top: 5px; }
+          @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo">
+            ${logoBase64 ? `<img src="${logoBase64}" alt="Logo" />` : '<span style="color:#6B5B95;font-weight:bold;">LOGO</span>'}
           </div>
-          <div class="header">
-            <div>
-              ${logoBase64 ? `<img src="${logoBase64}" style="height: 50px; width: auto;" alt="IEC" />` : `<div class="company">Iqbal Electronics</div>`}
-              <div style="color: #64748b; font-size: 12px;">Kuwait</div>
-            </div>
-            <div style="text-align: right;">
-              <div class="invoice-title">Sales Invoice</div>
-              <div style="font-size: 18px; font-weight: bold;">${escapeHtml(selectedSO.invoiceNumber)}</div>
-            </div>
+          <div class="company-info">
+            <div class="company-name">Iqbal Electronics Co. WLL</div>
+            <div class="company-details">Mobile Phones & Accessories | Electronics</div>
           </div>
-          <div class="info-grid">
-            <div class="info-item"><span class="info-label">Date:</span> ${format(new Date(selectedSO.saleDate), "dd/MM/yyyy")}</div>
-            <div class="info-item"><span class="info-label">Customer:</span> ${escapeHtml(selectedSO.customer?.name)}</div>
+          <div class="invoice-title">
+            <h1>CREDIT INVOICE</h1>
+            <div>${escapeHtml(selectedSO.invoiceNumber) || "N/A"}</div>
+          </div>
+        </div>
+        <div class="content">
+          <div class="info-section">
+            <div class="info-box">
+              <h3>Bill To</h3>
+              <div class="info-row"><span class="info-label">Customer:</span> ${escapeHtml(customerName)}</div>
+              ${customerPhone ? `<div class="info-row"><span class="info-label">Phone:</span> ${escapeHtml(customerPhone)}</div>` : ""}
+              ${customerAddress ? `<div class="info-row"><span class="info-label">Address:</span> ${escapeHtml(customerAddress)}</div>` : ""}
+            </div>
+            <div class="info-box">
+              <h3>Invoice Details</h3>
+              <div class="info-row"><span class="info-label">Invoice No:</span> ${escapeHtml(selectedSO.invoiceNumber) || "N/A"}</div>
+              <div class="info-row"><span class="info-label">Date:</span> ${saleDate}</div>
+            </div>
           </div>
           <table>
             <thead>
               <tr>
-                <th>Item</th>
-                <th style="text-align: center;">Qty</th>
-                <th style="text-align: right;">Unit Price</th>
-                <th style="text-align: right;">Amount</th>
+                <th style="width:50px;text-align:center;">#</th>
+                <th>Description</th>
+                <th style="width:80px;text-align:center;">Qty</th>
+                <th style="width:100px;text-align:right;">Unit Price</th>
+                <th style="width:100px;text-align:right;">Amount</th>
               </tr>
             </thead>
-            <tbody>${lineItemsHtmlPdf}</tbody>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
           </table>
-          <div style="margin-top: 20px; border-top: 2px solid #e5e7eb; padding-top: 16px;">
-            <div style="display: flex; justify-content: flex-end;">
-              <div style="width: 280px;">
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e5e7eb;">
-                  <span style="color: #64748b;">Previous Balance:</span>
-                  <span style="font-weight: 500;">${formatCurrency(previousBalance)} KWD</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e5e7eb;">
-                  <span style="color: #64748b;">Invoice Total:</span>
-                  <span style="font-weight: 500;">${formatCurrency(invoiceTotal)} KWD</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 8px 0; background: #f1f5f9; margin-top: 4px; padding-left: 8px; padding-right: 8px; border-radius: 4px;">
-                  <span style="font-weight: 600;">Current Balance:</span>
-                  <span style="font-weight: 700; font-size: 16px;">${formatCurrency(currentBalance)} KWD</span>
-                </div>
+          <div class="totals-section">
+            <div class="totals-box">
+              <div class="totals-row"><span>Previous Balance:</span><span>${previousBalance.toFixed(3)} KWD</span></div>
+              <div class="totals-row"><span>Invoice Amount:</span><span>${invoiceAmount.toFixed(3)} KWD</span></div>
+              <div class="totals-row total"><span>Current Balance:</span><span>${currentBalance.toFixed(3)} KWD</span></div>
+            </div>
+          </div>
+          <div class="footer">
+            <div class="terms">
+              <strong>Terms & Conditions:</strong><br/>
+              1. Goods once sold will not be taken back or exchanged.<br/>
+              2. Payment is due within the agreed credit period.<br/>
+              3. All disputes are subject to local jurisdiction.
+            </div>
+            <div class="signature-section">
+              <div class="signature-box">
+                <div class="signature-line">Customer Signature</div>
+              </div>
+              <div class="signature-box">
+                <div class="signature-line">Authorized Signature</div>
               </div>
             </div>
           </div>
-          <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); }</script>
-        </body>
+        </div>
+        <script>window.onload = function() { window.print(); }</script>
+      </body>
       </html>
     `);
     pdfWindow.document.close();
