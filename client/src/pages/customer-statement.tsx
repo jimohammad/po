@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import companyLogoUrl from "@/assets/company-logo.jpg";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,21 @@ export default function CustomerStatementPage() {
   const [dateTo, setDateTo] = useState<string>("");
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [logoBase64, setLogoBase64] = useState<string>("");
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetch(companyLogoUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoBase64(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+      })
+      .catch(console.error);
+  }, []);
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -127,7 +142,7 @@ export default function CustomerStatementPage() {
         </head>
         <body>
           <div class="header">
-            <div class="company">Iqbal Electronics Co. WLL</div>
+            ${logoBase64 ? `<img src="${logoBase64}" style="height: 60px; width: auto; margin-bottom: 10px;" alt="IEC" />` : `<div class="company">Iqbal Electronics Co. WLL</div>`}
             <div class="title">Customer Statement</div>
             <div class="date-range">Generated: ${new Date().toLocaleDateString()}</div>
           </div>
@@ -200,7 +215,7 @@ export default function CustomerStatementPage() {
         </head>
         <body>
           <div class="header">
-            <div class="company">Iqbal Electronics Co. WLL</div>
+            ${logoBase64 ? `<img src="${logoBase64}" style="height: 60px; width: auto; margin-bottom: 10px;" alt="IEC" />` : `<div class="company">Iqbal Electronics Co. WLL</div>`}
             <div class="title">Customer Statement</div>
           </div>
           <div class="customer-info">

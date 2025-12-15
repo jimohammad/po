@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import companyLogoUrl from "@/assets/company-logo.jpg";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,20 @@ export function SalesOrderDetail({
   const { toast } = useToast();
   const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [logoBase64, setLogoBase64] = useState<string>("");
+
+  useEffect(() => {
+    fetch(companyLogoUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoBase64(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+      })
+      .catch(console.error);
+  }, []);
   
   const { data: balanceData } = useQuery<{ previousBalance: number; currentBalance: number }>({
     queryKey: ["/api/customer-balance-for-sale", order?.id],
@@ -385,7 +400,7 @@ export function SalesOrderDetail({
             <!-- Header -->
             <div class="invoice-header">
               <div class="company-info">
-                <h1>Iqbal Electronics</h1>
+                ${logoBase64 ? `<img src="${logoBase64}" style="height: 60px; width: auto; margin-bottom: 8px;" alt="IEC" />` : `<h1>Iqbal Electronics</h1>`}
                 <p>
                   Co. WLL<br>
                   Kuwait City, Kuwait<br>
@@ -862,7 +877,7 @@ export function SalesOrderDetail({
           <div class="invoice-container">
             <div class="invoice-header">
               <div class="company-info">
-                <h1>Iqbal Electronics</h1>
+                ${logoBase64 ? `<img src="${logoBase64}" style="height: 60px; width: auto; margin-bottom: 8px;" alt="IEC" />` : `<h1>Iqbal Electronics</h1>`}
                 <p>
                   Co. WLL<br>
                   Kuwait City, Kuwait<br>
