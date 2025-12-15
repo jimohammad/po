@@ -698,12 +698,13 @@ export class DatabaseStorage implements IStorage {
       with: {
         customer: true,
         supplier: true,
+        purchaseOrder: true,
       },
       orderBy: [desc(payments.paymentDate), desc(payments.id)],
       limit: options?.limit,
       offset: options?.offset,
     });
-    return { data: paymentList, total };
+    return { data: paymentList as PaymentWithDetails[], total };
   }
 
   async getPayment(id: number): Promise<PaymentWithDetails | undefined> {
@@ -712,9 +713,10 @@ export class DatabaseStorage implements IStorage {
       with: {
         customer: true,
         supplier: true,
+        purchaseOrder: true,
       },
     });
-    return payment || undefined;
+    return (payment as PaymentWithDetails) || undefined;
   }
 
   async createPayment(payment: InsertPayment): Promise<PaymentWithDetails> {
