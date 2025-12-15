@@ -461,6 +461,7 @@ export const expenses = pgTable("expenses", {
   index("idx_expense_branch").on(table.branchId),
   index("idx_expense_date").on(table.expenseDate),
   index("idx_expense_category").on(table.categoryId),
+  index("idx_expense_account").on(table.accountId),
 ]);
 
 export const expensesRelations = relations(expenses, ({ one }) => ({
@@ -508,6 +509,8 @@ export const returns = pgTable("returns", {
   index("idx_return_branch").on(table.branchId),
   index("idx_return_date").on(table.returnDate),
   index("idx_return_type").on(table.returnType),
+  index("idx_return_customer").on(table.customerId),
+  index("idx_return_supplier").on(table.supplierId),
 ]);
 
 export const returnsRelations = relations(returns, ({ one, many }) => ({
@@ -626,7 +629,11 @@ export const discounts = pgTable("discounts", {
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   createdBy: varchar("created_by").references(() => users.id),
-});
+}, (table) => [
+  index("idx_discount_customer").on(table.customerId),
+  index("idx_discount_sales_order").on(table.salesOrderId),
+  index("idx_discount_created").on(table.createdAt),
+]);
 
 export const discountsRelations = relations(discounts, ({ one }) => ({
   customer: one(customers, {
