@@ -55,8 +55,13 @@ export default function ItemBulkEdit() {
       toast({ title: "Items updated successfully" });
       setEditedItems({});
     },
-    onError: () => {
-      toast({ title: "Failed to update items", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Bulk update error:", error);
+      toast({ 
+        title: "Failed to update items", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 

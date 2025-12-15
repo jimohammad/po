@@ -118,6 +118,29 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/items/bulk", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { updates } = req.body;
+      if (!Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ error: "Updates array is required" });
+      }
+      const transformedUpdates = updates.map((update: any) => ({
+        id: update.id,
+        item: {
+          purchasePriceKwd: update.purchasePriceKwd || null,
+          purchasePriceFx: update.purchasePriceFx || null,
+          fxCurrency: update.fxCurrency || null,
+          sellingPriceKwd: update.sellingPriceKwd || null,
+        }
+      }));
+      const updatedItems = await storage.bulkUpdateItems(transformedUpdates);
+      res.json(updatedItems);
+    } catch (error) {
+      console.error("Error bulk updating items:", error);
+      res.status(500).json({ error: "Failed to bulk update items" });
+    }
+  });
+
   app.put("/api/items/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -164,33 +187,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching last pricing:", error);
       res.status(500).json({ error: "Failed to fetch last pricing" });
-    }
-  });
-
-  app.put("/api/items/bulk", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const { updates } = req.body;
-      console.log("Bulk update received:", JSON.stringify(updates, null, 2));
-      if (!Array.isArray(updates) || updates.length === 0) {
-        return res.status(400).json({ error: "Updates array is required" });
-      }
-      // Transform frontend format to storage format
-      const transformedUpdates = updates.map((update: any) => ({
-        id: update.id,
-        item: {
-          purchasePriceKwd: update.purchasePriceKwd || null,
-          purchasePriceFx: update.purchasePriceFx || null,
-          fxCurrency: update.fxCurrency || null,
-          sellingPriceKwd: update.sellingPriceKwd || null,
-        }
-      }));
-      console.log("Transformed updates:", JSON.stringify(transformedUpdates, null, 2));
-      const updatedItems = await storage.bulkUpdateItems(transformedUpdates);
-      console.log("Updated items:", updatedItems.length);
-      res.json(updatedItems);
-    } catch (error) {
-      console.error("Error bulk updating items:", error);
-      res.status(500).json({ error: "Failed to bulk update items" });
     }
   });
 
