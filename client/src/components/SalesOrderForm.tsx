@@ -467,6 +467,43 @@ export function SalesOrderForm({
     handleReset(true);
   };
 
+  // Save and print functions - save invoice first, then print
+  const handleSaveAndPrintThermal = async () => {
+    if (!canSubmit) {
+      return;
+    }
+    
+    await onSubmit({
+      saleDate,
+      invoiceNumber,
+      customerId: customerId ? parseInt(customerId) : null,
+      totalKwd,
+      lineItems,
+    });
+    
+    // Print after saving
+    printThermal();
+    handleReset(true);
+  };
+
+  const handleSaveAndPrintA4 = async () => {
+    if (!canSubmit) {
+      return;
+    }
+    
+    await onSubmit({
+      saleDate,
+      invoiceNumber,
+      customerId: customerId ? parseInt(customerId) : null,
+      totalKwd,
+      lineItems,
+    });
+    
+    // Print after saving
+    printA4Laser();
+    handleReset(true);
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
@@ -657,9 +694,9 @@ export function SalesOrderForm({
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" data-testid="button-print-sales">
+                <Button type="button" variant="outline" disabled={!canSubmit || isSubmitting} data-testid="button-print-sales">
                   <Printer className="h-4 w-4 mr-2" />
-                  Print ({userPrinterType === "thermal" ? "Thermal" : "A4"})
+                  Save & Print
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
@@ -667,8 +704,9 @@ export function SalesOrderForm({
                 <DropdownMenuItem
                   onClick={() => {
                     if (userPrinterType !== "thermal") updatePrinterMutation.mutate("thermal");
-                    printThermal();
+                    handleSaveAndPrintThermal();
                   }}
+                  disabled={!canSubmit || isSubmitting}
                   data-testid="menu-print-thermal"
                 >
                   <Printer className="h-4 w-4 mr-2" />
@@ -678,8 +716,9 @@ export function SalesOrderForm({
                 <DropdownMenuItem
                   onClick={() => {
                     if (userPrinterType !== "a4laser") updatePrinterMutation.mutate("a4laser");
-                    printA4Laser();
+                    handleSaveAndPrintA4();
                   }}
+                  disabled={!canSubmit || isSubmitting}
                   data-testid="menu-print-a4"
                 >
                   <FileText className="h-4 w-4 mr-2" />
