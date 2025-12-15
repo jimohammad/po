@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import companyLogoUrl from "@/assets/company-logo.jpg";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +62,21 @@ export default function PaymentsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  
+  const [logoBase64, setLogoBase64] = useState<string>("");
+  
+  useEffect(() => {
+    fetch(companyLogoUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoBase64(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+      })
+      .catch(console.error);
+  }, []);
   
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
@@ -506,7 +522,7 @@ export default function PaymentsPage() {
             
             <div class="header">
               <div class="company-info">
-                <div class="company-logo">IEC</div>
+                ${logoBase64 ? `<img src="${logoBase64}" style="height: 50px; width: auto;" alt="IEC" />` : `<div class="company-logo">IEC</div>`}
                 <div class="company-arabic">شركة إقبال للأجهزة الإلكترونية ذ.م.م</div>
               </div>
               <div class="company-contact">

@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, RotateCcw, Save, Loader2, AlertTriangle, Share2, Printer } from "lucide-react";
 import { SalesLineItemRow, type SalesLineItemData } from "./SalesLineItemRow";
 import type { Customer, Item } from "@shared/schema";
+import companyLogoUrl from "@/assets/company-logo.jpg";
 
 interface StockBalance {
   itemName: string;
@@ -46,6 +47,20 @@ export function SalesOrderForm({
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [customerId, setCustomerId] = useState<string>("");
+  const [logoBase64, setLogoBase64] = useState<string>("");
+
+  useEffect(() => {
+    fetch(companyLogoUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoBase64(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+      })
+      .catch(console.error);
+  }, []);
 
   // Fetch next invoice number on mount
   const { data: nextInvoiceData } = useQuery<{ invoiceNumber: string }>({
@@ -417,8 +432,7 @@ export function SalesOrderForm({
                     <body>
                       <div class="receipt">
                         <div class="header">
-                          <div class="company-name">Iqbal Electronics Co.</div>
-                          <div class="company-sub">WLL</div>
+                          ${logoBase64 ? `<img src="${logoBase64}" style="height: 40px; width: auto; margin-bottom: 2mm;" alt="IEC" />` : `<div class="company-name">Iqbal Electronics Co.</div><div class="company-sub">WLL</div>`}
                           <div class="doc-type">Sales Invoice</div>
                         </div>
                         <div class="info">
