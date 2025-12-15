@@ -537,6 +537,12 @@ export function SalesOrderForm({
                   ))}
                 </SelectContent>
               </Select>
+              {customerId && customerBalance !== undefined && (
+                <p className={`text-sm font-medium ${(customerBalance?.balance || 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} data-testid="text-customer-balance">
+                  Current Balance: {(customerBalance?.balance || 0).toFixed(3)} KWD
+                  {(customerBalance?.balance || 0) > 0 && <span className="text-xs font-normal ml-1">(Amount Due)</span>}
+                </p>
+              )}
               {creditLimitInfo.hasLimit && (
                 <p className="text-xs text-muted-foreground" data-testid="text-credit-limit-info">
                   Credit Limit: {creditLimitInfo.limit.toFixed(3)} KWD
