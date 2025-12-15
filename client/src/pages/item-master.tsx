@@ -42,6 +42,7 @@ export default function ItemMaster() {
   const [itemCode, setItemCode] = useState("");
   const [itemName, setItemName] = useState("");
   const [purchasePriceKwd, setPurchasePriceKwd] = useState("");
+  const [purchasePriceFx, setPurchasePriceFx] = useState("");
   const [fxCurrency, setFxCurrency] = useState("");
   const [sellingPriceKwd, setSellingPriceKwd] = useState("");
   const [fetchingPricing, setFetchingPricing] = useState(false);
@@ -75,6 +76,7 @@ export default function ItemMaster() {
     code: string | null;
     name: string;
     purchasePriceKwd: string | null;
+    purchasePriceFx: string | null;
     fxCurrency: string | null;
     sellingPriceKwd: string | null;
   };
@@ -152,6 +154,7 @@ export default function ItemMaster() {
     setItemCode("");
     setItemName("");
     setPurchasePriceKwd("");
+    setPurchasePriceFx("");
     setFxCurrency("");
     setSellingPriceKwd("");
     setDialogOpen(true);
@@ -162,6 +165,7 @@ export default function ItemMaster() {
     setItemCode(item.code || "");
     setItemName(item.name);
     setPurchasePriceKwd(item.purchasePriceKwd || "");
+    setPurchasePriceFx(item.purchasePriceFx || "");
     setFxCurrency(item.fxCurrency || "");
     setSellingPriceKwd(item.sellingPriceKwd || "");
     setDialogOpen(true);
@@ -173,6 +177,7 @@ export default function ItemMaster() {
     setItemCode("");
     setItemName("");
     setPurchasePriceKwd("");
+    setPurchasePriceFx("");
     setFxCurrency("");
     setSellingPriceKwd("");
   };
@@ -185,6 +190,7 @@ export default function ItemMaster() {
       code: itemCode.trim() || null,
       name: itemName.trim(),
       purchasePriceKwd: purchasePriceKwd.trim() || null,
+      purchasePriceFx: purchasePriceFx.trim() || null,
       fxCurrency: fxCurrency.trim() || null,
       sellingPriceKwd: sellingPriceKwd.trim() || null,
     };
@@ -245,6 +251,7 @@ export default function ItemMaster() {
                     <TableHead>Item Name</TableHead>
                     <TableHead className="w-24 text-right">Avail Qty</TableHead>
                     <TableHead className="w-28 text-right">Purchase KWD</TableHead>
+                    <TableHead className="w-28 text-right">Purchase FX</TableHead>
                     <TableHead className="w-20">FX</TableHead>
                     <TableHead className="w-28 text-right">Selling KWD</TableHead>
                     {isAdmin && <TableHead className="w-24 text-right">Actions</TableHead>}
@@ -267,6 +274,9 @@ export default function ItemMaster() {
                       </TableCell>
                       <TableCell className="text-right font-mono" data-testid={`text-purchase-price-${item.id}`}>
                         {item.purchasePriceKwd ? parseFloat(item.purchasePriceKwd).toFixed(3) : "-"}
+                      </TableCell>
+                      <TableCell className="text-right font-mono" data-testid={`text-purchase-price-fx-${item.id}`}>
+                        {item.purchasePriceFx ? parseFloat(item.purchasePriceFx).toFixed(3) : "-"}
                       </TableCell>
                       <TableCell data-testid={`text-fx-currency-${item.id}`}>
                         {item.fxCurrency || "-"}
@@ -362,6 +372,19 @@ export default function ItemMaster() {
                   type="number"
                   step="0.001"
                   data-testid="input-purchase-price"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="purchasePriceFx">Purchase Price (FX)</Label>
+                <Input
+                  id="purchasePriceFx"
+                  value={purchasePriceFx}
+                  onChange={(e) => setPurchasePriceFx(e.target.value)}
+                  placeholder="0.000"
+                  type="number"
+                  step="0.001"
+                  data-testid="input-purchase-price-fx"
                 />
               </div>
               
