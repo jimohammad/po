@@ -56,6 +56,7 @@ const DiscountPage = lazy(() => import("@/pages/discount"));
 const ExportImeiPage = lazy(() => import("@/pages/export-imei"));
 const CustomerStatementPage = lazy(() => import("@/pages/customer-statement"));
 const StockTransfersPage = lazy(() => import("@/pages/stock-transfers"));
+const StockTransferNewPage = lazy(() => import("@/pages/stock-transfer-new"));
 const BranchesPage = lazy(() => import("@/pages/branches"));
 const OpeningBalancesPage = lazy(() => import("@/pages/opening-balances"));
 const PurchaseOrdersPage = lazy(() => import("@/pages/purchase-orders"));
@@ -587,6 +588,8 @@ function AuthenticatedLayout() {
         return "Branch Management";
       case "/stock-transfers":
         return "Stock Transfers";
+      case "/stock-transfers/new":
+        return "New Stock Transfer";
       case "/stock-lookup":
         return "Stock";
       case "/ai-chat":
@@ -651,6 +654,7 @@ function AuthenticatedLayout() {
                 <Route path="/settings/security" component={SecuritySettingsPage} />
                 <Route path="/settings/backup" component={BackupPage} />
                 <Route path="/ai-chat" component={AIChatPage} />
+                <Route path="/stock-transfers/new" component={StockTransferNewPage} />
                 <Route path="/stock-transfers" component={StockTransfersPage} />
                 <Route path="/stock-lookup" component={StockLookupPage} />
                 <Route path="/imei-history" component={ImeiHistoryPage} />
