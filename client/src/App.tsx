@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BranchProvider, useBranch } from "@/contexts/BranchContext";
 import { BranchSelector } from "@/components/BranchSelector";
-import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent, LayoutDashboard, ArrowLeftRight, Building2, Smartphone, MessageCircle } from "lucide-react";
+import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent, LayoutDashboard, ArrowLeftRight, Building2, Smartphone, MessageCircle, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +41,8 @@ const SalesPage = lazy(() => import("@/pages/sales"));
 const AllPurchasesPage = lazy(() => import("@/pages/all-purchases"));
 const AllSalesPage = lazy(() => import("@/pages/all-sales"));
 const PaymentsPage = lazy(() => import("@/pages/payments"));
+const PaymentInPage = lazy(() => import("@/pages/payment-in"));
+const PaymentOutPage = lazy(() => import("@/pages/payment-out"));
 const ReturnsPage = lazy(() => import("@/pages/returns"));
 const ItemMaster = lazy(() => import("@/pages/item-master"));
 const ItemBulkEdit = lazy(() => import("@/pages/item-bulk-edit"));
@@ -128,12 +130,6 @@ function AppSidebar() {
       module: "dashboard",
     },
     {
-      title: "Payments",
-      url: "/payments",
-      icon: CreditCard,
-      module: "payments",
-    },
-    {
       title: "Returns",
       url: "/returns",
       icon: RotateCcw,
@@ -164,6 +160,11 @@ function AppSidebar() {
       module: "purchases",
     },
   ].filter(item => canAccess(item.module));
+
+  const paymentsSubItems = [
+    { title: "Payment IN", url: "/payments/in", icon: ArrowDownLeft },
+    { title: "Payment OUT", url: "/payments/out", icon: ArrowUpRight },
+  ];
 
   const purchasesSubItems = [
     { title: "Purchase Orders", url: "/purchases/orders" },
@@ -200,6 +201,7 @@ function AppSidebar() {
   const getInitialExpandedMenu = () => {
     if (location.startsWith("/purchases")) return "purchases";
     if (location.startsWith("/sales")) return "sales";
+    if (location.startsWith("/payments")) return "payments";
     if (location.startsWith("/items")) return "items";
     if (location.startsWith("/reports")) return "reports";
     if (location.startsWith("/settings")) return "settings";
@@ -388,6 +390,38 @@ function AppSidebar() {
                 </Collapsible>
               )}
 
+              {/* Payments - collapsible with IN/OUT submenu */}
+              {canAccess("payments") && (
+                <Collapsible open={expandedMenu === "payments"} onOpenChange={() => handleMenuToggle("payments")} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={location.startsWith("/payments")}>
+                        <CreditCard className="h-4 w-4" />
+                        <span>Payments</span>
+                        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {paymentsSubItems.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.url}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location === subItem.url}
+                            >
+                              <Link href={subItem.url} data-testid={`link-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                                <subItem.icon className="h-4 w-4" />
+                                <span>{subItem.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
+
               {/* Rest of menu items (excluding Dashboard which is handled above) */}
               {mainMenuItems.filter(item => item.title !== "Dashboard").map((item) => (
                 <SidebarMenuItem key={item.title}>
@@ -558,6 +592,10 @@ function AuthenticatedLayout() {
         return "Sales Invoice Register";
       case "/payments":
         return "Payment Register";
+      case "/payments/in":
+        return "Payment IN (Receive)";
+      case "/payments/out":
+        return "Payment OUT (Pay)";
       case "/returns":
         return "Returns Register";
       case "/expenses":
@@ -635,6 +673,8 @@ function AuthenticatedLayout() {
                 <Route path="/sales" component={SalesPage} />
                 <Route path="/sales/all" component={AllSalesPage} />
                 <Route path="/payments" component={PaymentsPage} />
+                <Route path="/payments/in" component={PaymentInPage} />
+                <Route path="/payments/out" component={PaymentOutPage} />
                 <Route path="/returns" component={ReturnsPage} />
                 <Route path="/expenses" component={ExpensesPage} />
                 <Route path="/accounts" component={AccountsPage} />
