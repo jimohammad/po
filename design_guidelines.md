@@ -11,11 +11,12 @@
 - Font weights: 300 (light), 400 (regular), 500 (medium), 600 (semi-bold), 700 (bold)
 - Monospace: `"SF Mono", Monaco, "Cascadia Code"` for invoice numbers, amounts
 
-**Color Theme**: Deep Blue & Gold
-- Primary: Deep navy blue (HSL 222, 47%, 25% light / 45% dark)
-- Secondary/Accent: Gold (HSL 45, 93%, 47% light / 52% dark)
-- Sidebar: Dark navy (HSL 222, 47%, 14%) with gold accents
-- Background: Subtle blue-gray tint for depth
+**Color Theme**: Ocean Blue & Coral
+- Primary: Ocean blue (HSL 205, 75%, 40% light / 50% dark)
+- Secondary/Accent: Coral (HSL 16, 85%, 58% light / 62% dark)
+- Sidebar: Deep ocean blue (HSL 205, 65%, 18%) with coral highlights
+- Background: Cool blue-tinted gray (HSL 200, 25%, 97% light / HSL 205, 55%, 8% dark)
+- Cards: Subtle blue-gray (HSL 200, 20%, 98% light / HSL 205, 50%, 11% dark)
 
 **Hierarchy**:
 - Page Headers: `text-2xl md:text-3xl font-bold` (Purchase Order Register)
