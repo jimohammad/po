@@ -1,3 +1,35 @@
+/**
+ * Database Storage Module
+ * 
+ * This module provides the data access layer for the Purchase Order Register application.
+ * It implements the IStorage interface with PostgreSQL using Drizzle ORM.
+ * 
+ * Organization:
+ * - User Management (lines ~300-370)
+ * - Suppliers & Items (lines ~370-460)
+ * - Purchase Orders (lines ~460-550)
+ * - Customers (lines ~550-660)
+ * - Sales Orders (lines ~660-750)
+ * - Payments (lines ~750-800)
+ * - Stock & Reports (lines ~800-1100)
+ * - Accounts & Transfers (lines ~1100-1230)
+ * - Expenses (lines ~1230-1290)
+ * - Returns (lines ~1290-1350)
+ * - Role Permissions (lines ~1350-1420)
+ * - Discounts (lines ~1420-1680)
+ * - Dashboard & Stats (lines ~1680-2020)
+ * - Branches (lines ~2020-2160)
+ * - Stock Transfers (lines ~2160-2260)
+ * - Inventory Adjustments (lines ~2260-2320)
+ * - Opening Balances (lines ~2320-2410)
+ * - Purchase Order Drafts (lines ~2410-2480)
+ * - Settings (lines ~2480-2510)
+ * - IMEI Management (lines ~2510-2800)
+ * - Stock Aging (lines ~2800-2970)
+ * - Backup Helpers (lines ~2970-3000)
+ * - All Transactions Report (lines ~3000-3320)
+ */
+
 import bcrypt from "bcryptjs";
 import { 
   suppliers, 
@@ -300,6 +332,10 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // ============================================================
+  // USER MANAGEMENT
+  // ============================================================
+
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
@@ -366,6 +402,10 @@ export class DatabaseStorage implements IStorage {
     return updated || undefined;
   }
 
+  // ============================================================
+  // SUPPLIERS
+  // ============================================================
+
   async getSuppliers(): Promise<Supplier[]> {
     return await db.select().from(suppliers).orderBy(suppliers.name);
   }
@@ -401,6 +441,10 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(suppliers).where(eq(suppliers.id, id)).returning();
     return { deleted: result.length > 0 };
   }
+
+  // ============================================================
+  // ITEMS / PRODUCTS
+  // ============================================================
 
   async getItems(): Promise<Item[]> {
     return await db.select().from(items).orderBy(items.name);
@@ -454,6 +498,10 @@ export class DatabaseStorage implements IStorage {
     }
     return updatedItems;
   }
+
+  // ============================================================
+  // PURCHASE ORDERS
+  // ============================================================
 
   async getPurchaseOrders(options?: { limit?: number; offset?: number }): Promise<{ data: PurchaseOrderWithDetails[]; total: number }> {
     const [countResult] = await db.select({ count: sql<number>`count(*)::int` }).from(purchaseOrders);
@@ -544,7 +592,9 @@ export class DatabaseStorage implements IStorage {
     return result.rows as { month: number; totalKwd: number; totalFx: number }[];
   }
 
-  // ==================== SALES MODULE ====================
+  // ============================================================
+  // CUSTOMERS & SALES ORDERS
+  // ============================================================
 
   async getCustomers(): Promise<Customer[]> {
     // Get customers from both sources:
