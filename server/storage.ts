@@ -3037,14 +3037,14 @@ export class DatabaseStorage implements IStorage {
           so.branch_id,
           b.name as branch_name,
           COALESCE(so.total_kwd, '0') as amount_kwd,
-          so.total_fx as amount_fx,
+          so.total_fx::text as amount_fx,
           so.fx_currency,
           so.fx_rate::text as fx_rate,
-          so.notes,
+          NULL as notes,
           so.created_by,
           so.created_at::text
         FROM sales_orders so
-        LEFT JOIN suppliers c ON so.customer_id = c.id
+        LEFT JOIN customers c ON so.customer_id = c.id
         LEFT JOIN branches b ON so.branch_id = b.id
 
         UNION ALL
@@ -3142,7 +3142,7 @@ export class DatabaseStorage implements IStorage {
           r.created_by,
           r.created_at::text
         FROM returns r
-        LEFT JOIN suppliers c ON r.customer_id = c.id
+        LEFT JOIN customers c ON r.customer_id = c.id
         LEFT JOIN branches b ON r.branch_id = b.id
         WHERE r.return_type = 'sale'
 
