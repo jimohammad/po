@@ -30,6 +30,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Trash2, 
   Loader2, 
@@ -42,9 +48,11 @@ import {
   Printer,
   Send,
   Plus,
+  ChevronDown,
+  FileText,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
-import type { PaymentWithDetails, Customer, PaymentType } from "@shared/schema";
+import type { PaymentWithDetails, Customer, PaymentType, User } from "@shared/schema";
 import { PAYMENT_TYPES } from "@shared/schema";
 
 const PAGE_SIZE = 50;
@@ -90,7 +98,25 @@ export default function PaymentInPage() {
   
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [shouldPrintAfterSave, setShouldPrintAfterSave] = useState(false);
+  const [printTypeAfterSave, setPrintTypeAfterSave] = useState<"thermal" | "a4">("thermal");
   const [customerId, setCustomerId] = useState("");
+  
+  // Get user's printer preference
+  const { data: userData } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+  });
+  
+  const userPrinterType = userData?.printerType || "thermal";
+
+  // Mutation to update printer preference
+  const updatePrinterMutation = useMutation({
+    mutationFn: async (printerType: string) => {
+      return apiRequest("PUT", "/api/auth/user/printer-type", { printerType });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+  });
   const [paymentType, setPaymentType] = useState<PaymentType>("Cash");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -168,10 +194,15 @@ export default function PaymentInPage() {
       setPage(1);
       toast({ title: "Payment received successfully" });
       if (shouldPrintAfterSave) {
-        handlePrintPayment(savedPayment);
+        if (printTypeAfterSave === "a4") {
+          handlePrintPaymentA4(savedPayment);
+        } else {
+          handlePrintPaymentThermal(savedPayment);
+        }
       }
       resetForm();
       setShouldPrintAfterSave(false);
+      setPrintTypeAfterSave("thermal");
     },
     onError: (error: Error) => {
       toast({ title: "Failed to record payment", description: error.message, variant: "destructive" });
@@ -391,13 +422,67 @@ export default function PaymentInPage() {
     return result;
   };
 
-  const handlePrintPayment = (payment: PaymentWithDetails) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-
+  const handlePrintPaymentThermal = async (payment: PaymentWithDetails) => {
     const customerName = payment.customer?.name || "Customer";
+    const customerPhone = payment.customer?.phone || "";
     const amountNum = parseFloat(payment.amount);
     const amountWords = numberToWords(amountNum);
+
+    let currentBalance = 0;
+    let previousBalance = 0;
+
+    if (payment.customerId) {
+      try {
+        const res = await fetch(`/api/customers/${payment.customerId}/balance`, {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          currentBalance = data.balance || 0;
+          previousBalance = currentBalance + amountNum;
+        }
+      } catch (e) {
+        console.error("Failed to fetch customer balance:", e);
+      }
+    }
+
+    const printWindow = window.open("", "_blank", "width=350,height=600");
+    if (!printWindow) return;
+
+    const receiptDate = new Date(payment.paymentDate).toLocaleDateString("en-GB", {
+      day: "2-digit", month: "short", year: "numeric"
+    });
+    const receiptTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+    const balanceSection = payment.customerId ? `
+      <div class="balance-section">
+        <div class="row">
+          <span class="label">Previous Bal:</span>
+          <span class="value">${previousBalance.toFixed(3)} KWD</span>
+        </div>
+        <div class="row">
+          <span class="label">Current Bal:</span>
+          <span class="value">${currentBalance.toFixed(3)} KWD</span>
+        </div>
+      </div>
+    ` : "";
+
+    const splitPaymentSection = payment.splits && payment.splits.length > 0 ? `
+      <div style="margin-bottom: 2mm;">
+        <div style="font-weight: bold; margin-bottom: 1mm;">Payment Breakdown:</div>
+        ${payment.splits.map((split: { paymentType: string; amount: string }) => `
+          <div class="row">
+            <span class="label">${split.paymentType}:</span>
+            <span class="value">${parseFloat(split.amount).toFixed(3)} KWD</span>
+          </div>
+        `).join('')}
+      </div>
+    ` : `
+      <div class="row">
+        <span class="label">Payment Type:</span>
+        <span class="value">${payment.paymentType}</span>
+      </div>
+    `;
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -408,45 +493,73 @@ export default function PaymentInPage() {
           @page { size: 80mm auto; margin: 0; }
           body { 
             font-family: 'Courier New', monospace; 
-            width: 80mm; 
+            width: 76mm; 
             margin: 0 auto; 
-            padding: 3mm;
-            font-size: 12px;
+            padding: 2mm;
+            font-size: 10pt;
           }
-          .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
-          .logo { max-width: 50mm; max-height: 15mm; margin-bottom: 4px; }
-          .company { font-size: 14px; font-weight: bold; }
-          .title { font-size: 16px; font-weight: bold; margin: 8px 0; }
-          .row { display: flex; justify-content: space-between; padding: 2px 0; }
-          .label { font-weight: bold; }
-          .amount-box { 
-            border: 2px solid #000; 
-            padding: 8px; 
-            margin: 10px 0; 
-            text-align: center;
-            background: #f0f0f0;
-          }
-          .amount { font-size: 20px; font-weight: bold; }
-          .words { font-size: 10px; font-style: italic; margin-top: 4px; }
-          .footer { text-align: center; border-top: 1px dashed #000; padding-top: 8px; margin-top: 8px; font-size: 10px; }
+          .header { text-align: center; margin-bottom: 2mm; }
+          .company-name { font-size: 12pt; font-weight: bold; }
+          .arabic { font-size: 9pt; }
+          .receipt-title { font-size: 11pt; font-weight: bold; margin: 2mm 0; text-align: center; }
+          .row { display: flex; justify-content: space-between; margin: 1mm 0; }
+          .label { color: #333; }
+          .value { font-weight: bold; text-align: right; }
+          .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+          .total-row { font-size: 12pt; font-weight: bold; }
+          .balance-section { background: #f0f0f0; padding: 2mm; margin: 2mm 0; }
+          .footer { text-align: center; margin-top: 3mm; font-size: 8pt; border-top: 1px dashed #000; padding-top: 2mm; }
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         </style>
       </head>
       <body>
         <div class="header">
-          ${logoBase64 ? `<img src="${logoBase64}" class="logo" />` : ''}
-          <div class="company">Iqbal Electronics Co. WLL</div>
-          <div class="title">PAYMENT RECEIPT</div>
+          <div class="company-name">IQBAL ELECTRONICS CO. WLL</div>
+          <div class="arabic">شركة إقبال للأجهزة الإلكترونية ذ.م.م</div>
+          <div style="font-size: 8pt;">Tel: 22622445 / 22622445</div>
         </div>
-        <div class="row"><span class="label">Receipt No:</span><span>PR-${payment.id}</span></div>
-        <div class="row"><span class="label">Date:</span><span>${formatDate(payment.paymentDate)}</span></div>
-        <div class="row"><span class="label">Customer:</span><span>${customerName}</span></div>
-        <div class="row"><span class="label">Payment Type:</span><span>${payment.paymentType}</span></div>
-        <div class="amount-box">
-          <div>Amount Received</div>
-          <div class="amount">${amountNum.toFixed(3)} KWD</div>
-          <div class="words">${amountWords}</div>
+        
+        <div class="receipt-title">PAYMENT RECEIVED</div>
+        
+        <div class="row">
+          <span class="label">Date:</span>
+          <span class="value">${receiptDate}</span>
         </div>
-        ${payment.notes ? `<div class="row"><span class="label">Notes:</span><span>${payment.notes}</span></div>` : ''}
+        <div class="row">
+          <span class="label">Time:</span>
+          <span class="value">${receiptTime}</span>
+        </div>
+        <div class="row">
+          <span class="label">Receipt #:</span>
+          <span class="value">PAY-${payment.id}</span>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="row">
+          <span class="label">Received From:</span>
+          <span class="value">${customerName}</span>
+        </div>
+        ${customerPhone ? `<div class="row"><span class="label">Phone:</span><span class="value">${customerPhone}</span></div>` : ""}
+        
+        <div class="divider"></div>
+        
+        ${splitPaymentSection}
+        
+        <div class="divider"></div>
+        
+        <div class="row total-row">
+          <span>TOTAL RECEIVED:</span>
+          <span>${amountNum.toFixed(3)} KWD</span>
+        </div>
+        <div style="font-size: 8pt; text-align: center; font-style: italic; margin-top: 1mm;">
+          ${amountWords}
+        </div>
+        
+        ${balanceSection}
+        
+        ${payment.notes ? `<div class="row"><span class="label">Notes:</span><span class="value">${payment.notes}</span></div>` : ""}
+        
         <div class="footer">
           <p>Thank you for your payment!</p>
           <p>Printed: ${new Date().toLocaleString()}</p>
@@ -456,6 +569,282 @@ export default function PaymentInPage() {
     `);
     printWindow.document.close();
     printWindow.print();
+  };
+
+  const handlePrintPaymentA4 = async (payment: PaymentWithDetails) => {
+    const customerName = payment.customer?.name || "Customer";
+    const customerPhone = payment.customer?.phone || "";
+    const amountNum = parseFloat(payment.amount);
+    const amountWords = numberToWords(amountNum);
+
+    let currentBalance = 0;
+    let previousBalance = 0;
+
+    if (payment.customerId) {
+      try {
+        const res = await fetch(`/api/customers/${payment.customerId}/balance`, {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          currentBalance = data.balance || 0;
+          previousBalance = currentBalance + amountNum;
+        }
+      } catch (e) {
+        console.error("Failed to fetch customer balance:", e);
+      }
+    }
+
+    const printWindow = window.open("", "_blank", "width=800,height=900");
+    if (!printWindow) return;
+
+    const receiptDate = new Date(payment.paymentDate).toLocaleDateString("en-GB", {
+      day: "2-digit", month: "short", year: "numeric"
+    });
+    const receiptTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Payment Receipt</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body { 
+            font-family: Arial, sans-serif; 
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 10mm;
+            font-size: 10pt;
+            color: #333;
+          }
+          .receipt {
+            border: 1px solid #ddd;
+            padding: 10mm;
+          }
+          .voucher-title {
+            background: linear-gradient(135deg, #6b5b95 0%, #8b7bb5 100%);
+            color: white;
+            text-align: center;
+            padding: 4mm;
+            font-size: 14pt;
+            font-weight: bold;
+            margin: -10mm -10mm 8mm -10mm;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #6b5b95;
+            padding-bottom: 5mm;
+            margin-bottom: 8mm;
+          }
+          .company-info {
+            display: flex;
+            align-items: center;
+            gap: 4mm;
+          }
+          .company-logo {
+            width: 15mm;
+            height: 15mm;
+            background: #6b5b95;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 10pt;
+          }
+          .company-arabic {
+            font-size: 9pt;
+            color: #666;
+          }
+          .company-contact {
+            text-align: right;
+          }
+          .company-name-right {
+            font-weight: bold;
+            color: #6b5b95;
+          }
+          .phone-no {
+            font-size: 9pt;
+            color: #666;
+          }
+          .main-title {
+            text-align: center;
+            font-size: 16pt;
+            font-weight: bold;
+            color: #6b5b95;
+            margin: 5mm 0;
+          }
+          .content-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8mm;
+          }
+          .left-section {
+            flex: 1;
+          }
+          .right-section {
+            flex: 1;
+            text-align: right;
+          }
+          .section-title {
+            font-weight: bold;
+            font-size: 10pt;
+            color: #333;
+            margin-bottom: 1mm;
+          }
+          .party-name {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 2mm;
+          }
+          .party-details {
+            font-size: 10pt;
+            color: #333;
+          }
+          .receipt-details {
+            font-size: 10pt;
+          }
+          .receipt-details div {
+            margin-bottom: 1mm;
+          }
+          .amounts-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5mm;
+          }
+          .amounts-table th,
+          .amounts-table td {
+            padding: 3mm 4mm;
+            text-align: left;
+            font-size: 10pt;
+          }
+          .amounts-table .header-row th {
+            background: #6b5b95;
+            color: white;
+            font-weight: bold;
+          }
+          .amounts-table .data-row td {
+            border-bottom: 1px solid #ddd;
+          }
+          .amounts-table .amount-col {
+            text-align: right;
+            width: 30%;
+          }
+          .footer {
+            text-align: center;
+            padding-top: 5mm;
+            margin-top: 5mm;
+            border-top: 1px solid #ddd;
+            font-size: 9pt;
+            color: #666;
+          }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <div class="voucher-title">Payment Receipt Voucher</div>
+          
+          <div class="header">
+            <div class="company-info">
+              ${logoBase64 ? `<img src="${logoBase64}" style="height: 50px; width: auto;" alt="IEC" />` : `<div class="company-logo">IEC</div>`}
+              <div class="company-arabic">شركة إقبال للأجهزة الإلكترونية ذ.م.م</div>
+            </div>
+            <div class="company-contact">
+              <div class="company-name-right">Iqbal Electronics Co. WLL</div>
+              <div class="phone-no">Phone no.: +965 55584488</div>
+            </div>
+          </div>
+          
+          <div class="main-title">Payment Receipt Voucher</div>
+          
+          <div class="content-section">
+            <div class="left-section">
+              <div class="section-title">Received From</div>
+              <div class="party-name">${customerName}</div>
+              <div class="party-details">Kuwait</div>
+              ${customerPhone ? `<div class="party-details">Contact No.: ${customerPhone}</div>` : ""}
+            </div>
+            <div class="right-section">
+              <div class="section-title">Receipt Details</div>
+              <div class="receipt-details">
+                <div>Receipt No.: ${payment.id}</div>
+                <div>Date: ${receiptDate}</div>
+                <div>Time: ${receiptTime}</div>
+              </div>
+            </div>
+          </div>
+          
+          <table class="amounts-table">
+            <tr class="header-row">
+              <th>Amount in words</th>
+              <th class="amount-col">Amounts</th>
+            </tr>
+            <tr class="data-row">
+              <td>${amountWords} only</td>
+              <td class="amount-col">Received</td>
+            </tr>
+            <tr class="data-row">
+              <td></td>
+              <td class="amount-col" style="font-weight: bold;">KWD ${amountNum.toFixed(3)}</td>
+            </tr>
+            <tr class="header-row">
+              <th>Payment mode</th>
+              <th class="amount-col"></th>
+            </tr>
+            ${payment.splits && payment.splits.length > 0 ? 
+              payment.splits.map((split: { paymentType: string; amount: string }) => `
+                <tr class="data-row">
+                  <td>${split.paymentType.toUpperCase()}: KWD ${parseFloat(split.amount).toFixed(3)}</td>
+                  <td class="amount-col"></td>
+                </tr>
+              `).join('') : `
+              <tr class="data-row">
+                <td>${payment.paymentType.toUpperCase()}</td>
+                <td class="amount-col"></td>
+              </tr>
+            `}
+            <tr class="data-row">
+              <td></td>
+              <td class="amount-col">Previous Balance</td>
+            </tr>
+            <tr class="data-row">
+              <td></td>
+              <td class="amount-col" style="font-weight: bold;">KWD ${previousBalance.toFixed(3)}</td>
+            </tr>
+            <tr class="data-row">
+              <td></td>
+              <td class="amount-col">Current Balance</td>
+            </tr>
+            <tr class="data-row">
+              <td></td>
+              <td class="amount-col" style="font-weight: bold;">KWD ${currentBalance.toFixed(3)}</td>
+            </tr>
+          </table>
+          
+          <div class="footer">
+            <p>Thank you for your payment!</p>
+            <p>Printed: ${new Date().toLocaleString()}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const handlePrintPayment = (payment: PaymentWithDetails) => {
+    if (userPrinterType === "a4laser") {
+      handlePrintPaymentA4(payment);
+    } else {
+      handlePrintPaymentThermal(payment);
+    }
   };
 
   return (
@@ -644,24 +1033,72 @@ export default function PaymentInPage() {
                   </>
                 )}
               </Button>
-              <Button 
-                type="submit" 
-                disabled={createPaymentMutation.isPending} 
-                onClick={() => setShouldPrintAfterSave(true)}
-                data-testid="button-save-print-payment"
-              >
-                {createPaymentMutation.isPending && shouldPrintAfterSave ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Printer className="h-4 w-4 mr-2" />
-                    Save & Print
-                  </>
-                )}
-              </Button>
+              <div className="flex">
+                <Button 
+                  type="submit" 
+                  disabled={createPaymentMutation.isPending}
+                  onClick={() => {
+                    setShouldPrintAfterSave(true);
+                    setPrintTypeAfterSave(userPrinterType === "a4laser" ? "a4" : "thermal");
+                  }}
+                  className="rounded-r-none border-r-0"
+                  data-testid="button-save-print-payment"
+                >
+                  {createPaymentMutation.isPending && shouldPrintAfterSave ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Save & Print ({userPrinterType === "a4laser" ? "A4" : "Thermal"})
+                    </>
+                  )}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      type="button"
+                      disabled={createPaymentMutation.isPending}
+                      className="rounded-l-none px-2"
+                      data-testid="button-print-dropdown"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        if (userPrinterType !== "thermal") updatePrinterMutation.mutate("thermal");
+                        setPrintTypeAfterSave("thermal");
+                        setShouldPrintAfterSave(true);
+                        const form = document.querySelector("form");
+                        form?.requestSubmit();
+                      }}
+                      data-testid="menu-save-print-thermal"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Thermal (80mm)
+                      {userPrinterType === "thermal" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        if (userPrinterType !== "a4laser") updatePrinterMutation.mutate("a4laser");
+                        setPrintTypeAfterSave("a4");
+                        setShouldPrintAfterSave(true);
+                        const form = document.querySelector("form");
+                        form?.requestSubmit();
+                      }}
+                      data-testid="menu-save-print-a4"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      A4 Laser
+                      {userPrinterType === "a4laser" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </form>
         </CardContent>
