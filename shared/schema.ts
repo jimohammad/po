@@ -384,7 +384,35 @@ export type PaymentWithDetails = Payment & {
   customer: Customer | null;
   supplier: Supplier | null;
   purchaseOrder: PurchaseOrder | null;
+  splits?: PaymentSplit[];
 };
+
+// ==================== PAYMENT SPLITS (for split payments) ====================
+
+export const paymentSplits = pgTable("payment_splits", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  paymentId: integer("payment_id").references(() => payments.id, { onDelete: "cascade" }).notNull(),
+  paymentType: text("payment_type").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 3 }).notNull(),
+  fxCurrency: text("fx_currency"),
+  fxRate: numeric("fx_rate", { precision: 10, scale: 4 }),
+  fxAmount: numeric("fx_amount", { precision: 12, scale: 2 }),
+  accountId: integer("account_id").references(() => accounts.id),
+}, (table) => [
+  index("idx_payment_split_payment").on(table.paymentId),
+  index("idx_payment_split_type").on(table.paymentType),
+]);
+
+export const paymentSplitsRelations = relations(paymentSplits, ({ one }) => ({
+  payment: one(payments, {
+    fields: [paymentSplits.paymentId],
+    references: [payments.id],
+  }),
+}));
+
+export const insertPaymentSplitSchema = createInsertSchema(paymentSplits).omit({ id: true });
+export type InsertPaymentSplit = z.infer<typeof insertPaymentSplitSchema>;
+export type PaymentSplit = typeof paymentSplits.$inferSelect;
 
 // ==================== ACCOUNTS MODULE ====================
 
