@@ -4,7 +4,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Plus, Trash2, RotateCcw, X, Smartphone, Printer, FileDown } from "lucide-react";
+import { Plus, Trash2, RotateCcw, X, Smartphone, Printer, FileDown, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -524,6 +530,119 @@ export default function ReturnsPage() {
     printWindow.document.close();
   };
 
+  const handlePrintReturnA4 = (ret: ReturnWithDetails) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const partyName = ret.returnType === "sale_return" 
+      ? ret.customer?.name || "Not specified"
+      : ret.supplier?.name || "Not specified";
+    const partyLabel = ret.returnType === "sale_return" ? "Customer" : "Supplier";
+    const returnTypeLabel = ret.returnType === "sale_return" ? "SALE RETURN" : "PURCHASE RETURN";
+
+    const grandTotal = ret.lineItems?.reduce((sum, item) => sum + (parseFloat(item.totalKwd || "0")), 0) || 0;
+
+    const lineItemsHtml = ret.lineItems?.map((item, idx) => `
+      <tr>
+        <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${idx + 1}</td>
+        <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.itemName)}</td>
+        <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+        <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${parseFloat(item.priceKwd || "0").toFixed(3)}</td>
+        <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${parseFloat(item.totalKwd || "0").toFixed(3)}</td>
+      </tr>
+    `).join("") || "";
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Return - ${escapeHtml(ret.returnNumber)}</title>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; font-size: 12pt; color: #333; }
+            .container { max-width: 100%; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #1e40af; }
+            .logo-section { }
+            .company-name { font-size: 24px; font-weight: bold; color: #1e40af; }
+            .company-sub { font-size: 12px; color: #64748b; }
+            .document-section { text-align: right; }
+            .document-title { font-size: 22px; font-weight: bold; color: #1e40af; margin-bottom: 8px; }
+            .return-number { font-size: 16px; font-weight: bold; }
+            .return-badge { display: inline-block; padding: 6px 16px; background: ${ret.returnType === "sale_return" ? "#dbeafe" : "#fef3c7"}; color: ${ret.returnType === "sale_return" ? "#1e40af" : "#92400e"}; border-radius: 4px; font-weight: 600; margin-top: 8px; }
+            .info-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+            .info-box { padding: 15px; background: #f8fafc; border-radius: 6px; }
+            .info-label { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+            .info-value { font-size: 14px; font-weight: 600; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            thead { background: #1e40af; color: white; }
+            th { padding: 12px 8px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+            th:nth-child(1) { width: 50px; text-align: center; }
+            th:nth-child(3) { text-align: center; }
+            th:nth-child(4), th:nth-child(5) { text-align: right; }
+            tbody tr:nth-child(even) { background: #f8fafc; }
+            .total-row { background: #f1f5f9; font-weight: bold; }
+            .total-row td { padding: 12px 8px; font-size: 14px; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #64748b; font-size: 10px; }
+            @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="logo-section">
+                ${logoBase64 ? `<img src="${logoBase64}" style="height: 60px; width: auto; margin-bottom: 8px;" alt="IEC" />` : `<div class="company-name">Iqbal Electronics</div>`}
+                <div class="company-sub">Co. WLL - Kuwait</div>
+              </div>
+              <div class="document-section">
+                <div class="document-title">Return Receipt</div>
+                <div class="return-number">${escapeHtml(ret.returnNumber)}</div>
+                <div class="return-badge">${returnTypeLabel}</div>
+              </div>
+            </div>
+            
+            <div class="info-section">
+              <div class="info-box">
+                <div class="info-label">Return Date</div>
+                <div class="info-value">${format(new Date(ret.returnDate), "dd MMMM yyyy")}</div>
+              </div>
+              <div class="info-box">
+                <div class="info-label">${partyLabel}</div>
+                <div class="info-value">${escapeHtml(partyName)}</div>
+              </div>
+            </div>
+            
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Item Description</th>
+                  <th>Qty</th>
+                  <th>Unit Price (KWD)</th>
+                  <th>Amount (KWD)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${lineItemsHtml}
+                <tr class="total-row">
+                  <td colspan="4" style="text-align: right; padding-right: 8px;">Grand Total:</td>
+                  <td style="text-align: right;">${grandTotal.toFixed(3)} KWD</td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div class="footer">
+              <p>Computer Generated Document - Iqbal Electronics Co. WLL</p>
+            </div>
+          </div>
+          
+          <script>window.onload = function() { window.print(); }</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const handleDownloadPDF = (ret: ReturnWithDetails) => {
     const pdfWindow = window.open("", "_blank");
     if (!pdfWindow) return;
@@ -720,7 +839,7 @@ export default function ReturnsPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-4">
-                    <Label className="text-sm font-medium">Line Items</Label>
+                    <Label className="text-sm font-medium">Items</Label>
                     <Button type="button" variant="outline" size="sm" onClick={addLineItem} data-testid="button-add-line">
                       <Plus className="h-4 w-4 mr-1" />
                       Add Item
@@ -967,15 +1086,27 @@ export default function ReturnsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handlePrintReturn(ret)}
-                          title="Print"
-                          data-testid={`button-print-return-${ret.id}`}
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1"
+                              data-testid={`button-print-return-${ret.id}`}
+                            >
+                              <Printer className="h-4 w-4" />
+                              <ChevronDown className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handlePrintReturn(ret)} data-testid={`button-print-thermal-${ret.id}`}>
+                              Thermal (80mm)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePrintReturnA4(ret)} data-testid={`button-print-a4-${ret.id}`}>
+                              A4 Laser
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button
                           variant="ghost"
                           size="icon"
