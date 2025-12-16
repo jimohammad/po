@@ -74,6 +74,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
   const [supplierId, setSupplierId] = useState<string>("");
   const [fxCurrency, setFxCurrency] = useState<"AED" | "USD">("AED");
   const [fxRate, setFxRate] = useState("");
+  const [fxTransferred, setFxTransferred] = useState("");
   const [notes, setNotes] = useState("");
   const [lineItems, setLineItems] = useState<LineItemData[]>([
     { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000", imeiNumbers: [] },
@@ -107,6 +108,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
     setSupplierId("");
     setFxCurrency("AED");
     setFxRate("");
+    setFxTransferred("");
     setNotes("");
     setLineItems([
       { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000", imeiNumbers: [] },
@@ -130,6 +132,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
       setSupplierId(editingPO.supplierId?.toString() || "");
       setFxCurrency((editingPO.fxCurrency as "AED" | "USD") || "AED");
       setFxRate(editingPO.fxRate || "");
+      setFxTransferred((editingPO as any).fxTransferred || "");
       setNotes(editingPO.notes || "");
       setLineItems(
         editingPO.lineItems.map((item) => ({
@@ -148,20 +151,27 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
   }, [editingPO, nextNumberData]);
 
   useEffect(() => {
-    let totalKwd = 0;
+    let totalFxFromItems = 0;
+    let totalKwdFromItems = 0;
     const rate = parseFloat(fxRate) || 0;
+    const transferred = parseFloat(fxTransferred) || 0;
 
     lineItems.forEach((item) => {
       const qty = item.quantity || 0;
-      const price = parseFloat(item.priceKwd) || 0;
-      totalKwd += qty * price;
+      const fxPrice = parseFloat(item.fxPrice) || 0;
+      const kwdPrice = parseFloat(item.priceKwd) || 0;
+      totalFxFromItems += qty * fxPrice;
+      totalKwdFromItems += qty * kwdPrice;
     });
 
+    // Calculate total KWD from FX transferred if available, otherwise sum from items
+    const calculatedKwd = transferred && rate ? (transferred * rate) : totalKwdFromItems;
+
     setTotals({
-      totalKwd: totalKwd.toFixed(3),
-      totalFx: rate ? (totalKwd * rate).toFixed(2) : "",
+      totalKwd: calculatedKwd.toFixed(3),
+      totalFx: totalFxFromItems ? totalFxFromItems.toFixed(2) : "",
     });
-  }, [lineItems, fxRate]);
+  }, [lineItems, fxRate, fxTransferred]);
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -431,6 +441,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
       fxCurrency,
       fxRate: fxRate || null,
       totalFx: totals.totalFx || null,
+      fxTransferred: fxTransferred || null,
       notes: notes || null,
       invoiceFilePath,
       deliveryNoteFilePath,
@@ -520,7 +531,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Foreign Currency</Label>
               <CurrencyToggle value={fxCurrency} onChange={setFxCurrency} />
@@ -537,6 +548,24 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
                 placeholder="Enter exchange rate"
                 data-testid="input-fx-rate"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fx-transferred">Total {fxCurrency} Transferred to Supplier</Label>
+              <Input
+                id="fx-transferred"
+                type="number"
+                step="0.01"
+                value={fxTransferred}
+                onChange={(e) => setFxTransferred(e.target.value)}
+                placeholder={`Enter total ${fxCurrency} sent`}
+                data-testid="input-fx-transferred"
+              />
+              {fxTransferred && fxRate && (
+                <p className="text-sm text-muted-foreground">
+                  = {(parseFloat(fxTransferred) * parseFloat(fxRate)).toFixed(3)} KWD
+                </p>
+              )}
             </div>
           </div>
 

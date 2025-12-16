@@ -172,6 +172,7 @@ export const purchaseOrderDrafts = pgTable("purchase_order_drafts", {
   fxCurrency: text("fx_currency").default("AED"),
   fxRate: numeric("fx_rate", { precision: 10, scale: 4 }),
   totalFx: numeric("total_fx", { precision: 12, scale: 2 }),
+  fxTransferred: numeric("fx_transferred", { precision: 12, scale: 2 }),
   invoiceFilePath: text("invoice_file_path"),
   deliveryNoteFilePath: text("delivery_note_file_path"),
   ttCopyFilePath: text("tt_copy_file_path"),
