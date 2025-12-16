@@ -499,10 +499,22 @@ export default function PaymentsPage() {
           
           <div class="divider"></div>
           
+          ${payment.splits && payment.splits.length > 0 ? `
+          <div style="margin-bottom: 2mm;">
+            <div style="font-weight: bold; margin-bottom: 1mm;">Payment Breakdown:</div>
+            ${payment.splits.map((split: { paymentType: string; amount: string }) => `
+              <div class="row">
+                <span class="label">${split.paymentType}:</span>
+                <span class="value">${parseFloat(split.amount).toFixed(3)} KWD</span>
+              </div>
+            `).join('')}
+          </div>
+          ` : `
           <div class="row">
             <span class="label">Payment Type:</span>
             <span class="value">${payment.paymentType}</span>
           </div>
+          `}
           
           ${fxSection}
           
@@ -780,8 +792,20 @@ export default function PaymentsPage() {
                 <th>Payment mode</th>
                 <th class="amount-col"></th>
               </tr>
+              ${payment.splits && payment.splits.length > 0 ? 
+                payment.splits.map((split: { paymentType: string; amount: string }) => `
+                  <tr class="data-row">
+                    <td>${split.paymentType.toUpperCase()}: KWD ${parseFloat(split.amount).toFixed(3)}</td>
+                    <td class="amount-col"></td>
+                  </tr>
+                `).join('') : `
+                <tr class="data-row">
+                  <td>${payment.paymentType.toUpperCase()}</td>
+                  <td class="amount-col"></td>
+                </tr>
+              `}
               <tr class="data-row">
-                <td>${payment.paymentType.toUpperCase()}</td>
+                <td></td>
                 <td class="amount-col">Previous Balance</td>
               </tr>
               <tr class="data-row">
@@ -801,10 +825,18 @@ export default function PaymentsPage() {
                 <th>Payment mode</th>
                 <th class="amount-col"></th>
               </tr>
-              <tr class="data-row">
-                <td>${payment.paymentType.toUpperCase()}</td>
-                <td class="amount-col"></td>
-              </tr>
+              ${payment.splits && payment.splits.length > 0 ? 
+                payment.splits.map((split: { paymentType: string; amount: string }) => `
+                  <tr class="data-row">
+                    <td>${split.paymentType.toUpperCase()}: KWD ${parseFloat(split.amount).toFixed(3)}</td>
+                    <td class="amount-col"></td>
+                  </tr>
+                `).join('') : `
+                <tr class="data-row">
+                  <td>${payment.paymentType.toUpperCase()}</td>
+                  <td class="amount-col"></td>
+                </tr>
+              `}
               `}
             </table>
             
