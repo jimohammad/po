@@ -961,15 +961,6 @@ export default function ReturnsPage() {
                         {ret.lineItems?.map((item, idx) => (
                           <div key={idx} className="text-sm">
                             {item.itemName} x{item.quantity}
-                            {item.imeiNumbers && item.imeiNumbers.length > 0 && (
-                              <div className="flex gap-1 flex-wrap mt-1">
-                                {item.imeiNumbers.map((imei) => (
-                                  <Badge key={imei} variant="outline" className="text-xs">
-                                    {imei}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
