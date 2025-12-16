@@ -282,14 +282,7 @@ export default function AllTransactionsPage() {
                         {tx.reference}
                       </TableCell>
                       <TableCell>
-                        {tx.partyName ? (
-                          <div className="flex flex-col">
-                            <span>{tx.partyName}</span>
-                            <span className="text-xs text-muted-foreground capitalize">{tx.partyType}</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                        {tx.partyName || <span className="text-muted-foreground">-</span>}
                       </TableCell>
                       <TableCell>
                         {tx.branchName || <span className="text-muted-foreground">-</span>}

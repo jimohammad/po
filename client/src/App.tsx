@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BranchProvider, useBranch } from "@/contexts/BranchContext";
 import { BranchSelector } from "@/components/BranchSelector";
-import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent, LayoutDashboard, ArrowLeftRight, Building2, Smartphone, MessageCircle, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Loader2, LogOut, ShoppingCart, TrendingUp, Package, Users, CreditCard, FileBarChart, Receipt, Wallet, Edit3, ChevronDown, RotateCcw, FileText, Settings, Percent, LayoutDashboard, ArrowLeftRight, Building2, Smartphone, MessageCircle, ArrowDownLeft, ArrowUpRight, List } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -161,6 +161,12 @@ function AppSidebar() {
       icon: ArrowLeftRight,
       module: "purchases",
     },
+    {
+      title: "All Transactions",
+      url: "/all-transactions",
+      icon: List,
+      module: "reports",
+    },
   ].filter(item => canAccess(item.module));
 
   const purchasesSubItems = [
@@ -179,7 +185,6 @@ function AppSidebar() {
 
   const reportsSubItems = [
     { title: "General Reports", url: "/reports" },
-    { title: "All Transactions", url: "/reports/all-transactions" },
     { title: "Customer Aging", url: "/reports/customer-aging" },
     { title: "Party Statement", url: "/reports/party-statement" },
     { title: "Account Statement", url: "/reports/account-statement" },
@@ -616,7 +621,7 @@ function AuthenticatedLayout() {
         return "Customer Statement";
       case "/reports/export-imei":
         return "Export IMEI";
-      case "/reports/all-transactions":
+      case "/all-transactions":
         return "All Transactions";
       case "/settings/user-roles":
         return "User Roles & Permissions";
@@ -686,7 +691,7 @@ function AuthenticatedLayout() {
                 <Route path="/reports/item-report" component={ItemReportPage} />
                 <Route path="/reports/export-imei" component={ExportImeiPage} />
                 <Route path="/reports/customer-statement" component={CustomerStatementPage} />
-                <Route path="/reports/all-transactions" component={AllTransactionsPage} />
+                <Route path="/all-transactions" component={AllTransactionsPage} />
                 <Route path="/reports/customer-aging" component={CustomerAgingPage} />
                 <Route path="/settings/user-roles" component={UserRolesPage} />
                 <Route path="/settings/branches" component={BranchesPage} />
