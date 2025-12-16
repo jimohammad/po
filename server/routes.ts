@@ -733,9 +733,11 @@ export async function registerRoutes(
   app.post("/api/payments", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub;
-      const paymentData = { ...req.body, createdBy: userId };
+      const { splits, ...paymentBody } = req.body;
+      const paymentData = { ...paymentBody, createdBy: userId };
       
       console.log("[Payment] Received payment data:", JSON.stringify(paymentData, null, 2));
+      console.log("[Payment] Received splits:", JSON.stringify(splits, null, 2));
       
       if (!PAYMENT_TYPES.includes(paymentData.paymentType)) {
         return res.status(400).json({ error: `Invalid payment type. Must be one of: ${PAYMENT_TYPES.join(", ")}` });
@@ -753,7 +755,19 @@ export async function registerRoutes(
       
       console.log("[Payment] Parsed data:", JSON.stringify(parsed.data, null, 2));
       
-      const payment = await storage.createPayment(parsed.data);
+      // Validate splits if provided
+      if (splits && Array.isArray(splits) && splits.length > 0) {
+        for (const split of splits) {
+          if (!PAYMENT_TYPES.includes(split.paymentType)) {
+            return res.status(400).json({ error: `Invalid split payment type: ${split.paymentType}` });
+          }
+          if (!split.amount || parseFloat(split.amount) <= 0) {
+            return res.status(400).json({ error: "Each split must have a positive amount" });
+          }
+        }
+      }
+      
+      const payment = await storage.createPayment(parsed.data, splits);
       res.status(201).json(payment);
     } catch (error) {
       console.error("[Payment] Error creating payment:", error);
