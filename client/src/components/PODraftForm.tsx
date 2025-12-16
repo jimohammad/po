@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -9,9 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, RotateCcw, Save, Loader2, Trash2, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus, RotateCcw, Save, Loader2, Trash2, FileText, Barcode, Upload, X, FileSpreadsheet, ClipboardPaste } from "lucide-react";
 import { CurrencyToggle } from "./CurrencyToggle";
 import { FileUploadField } from "./FileUploadField";
+import * as XLSX from "xlsx";
 import type { Supplier, Item } from "@shared/schema";
 
 interface PODraftLineItem {
@@ -21,6 +25,7 @@ interface PODraftLineItem {
   priceKwd: string | null;
   fxPrice: string | null;
   totalKwd: string | null;
+  imeiNumbers: string[] | null;
 }
 
 interface PurchaseOrderDraft {
@@ -48,6 +53,7 @@ interface LineItemData {
   priceKwd: string;
   fxPrice: string;
   totalKwd: string;
+  imeiNumbers: string[];
 }
 
 interface PODraftFormProps {
@@ -70,8 +76,14 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
   const [fxRate, setFxRate] = useState("");
   const [notes, setNotes] = useState("");
   const [lineItems, setLineItems] = useState<LineItemData[]>([
-    { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000" },
+    { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000", imeiNumbers: [] },
   ]);
+  const [imeiDialogOpen, setImeiDialogOpen] = useState(false);
+  const [activeLineItemId, setActiveLineItemId] = useState<string | null>(null);
+  const [newImei, setNewImei] = useState("");
+  const [imeiError, setImeiError] = useState("");
+  const [bulkImeiText, setBulkImeiText] = useState("");
+  const excelInputRef = useRef<HTMLInputElement>(null);
   const [totals, setTotals] = useState({ totalKwd: "0.000", totalFx: "" });
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const [deliveryNoteFile, setDeliveryNoteFile] = useState<File | null>(null);
@@ -97,12 +109,17 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
     setFxRate("");
     setNotes("");
     setLineItems([
-      { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000" },
+      { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000", imeiNumbers: [] },
     ]);
     setTotals({ totalKwd: "0.000", totalFx: "" });
     setInvoiceFile(null);
     setDeliveryNoteFile(null);
     setTtCopyFile(null);
+    setImeiDialogOpen(false);
+    setActiveLineItemId(null);
+    setNewImei("");
+    setImeiError("");
+    setBulkImeiText("");
     refetchNextNumber();
   };
 
@@ -122,6 +139,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
           priceKwd: item.priceKwd || "",
           fxPrice: item.fxPrice || "",
           totalKwd: item.totalKwd || "0.000",
+          imeiNumbers: item.imeiNumbers || [],
         }))
       );
     } else if (nextNumberData?.poNumber) {
@@ -207,9 +225,159 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
   const handleAddRow = () => {
     setLineItems((prev) => [
       ...prev,
-      { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000" },
+      { id: generateItemId(), itemName: "", quantity: 1, priceKwd: "", fxPrice: "", totalKwd: "0.000", imeiNumbers: [] },
     ]);
   };
+
+  // Get all IMEI numbers from all line items for duplicate checking
+  const getAllImeis = (): string[] => {
+    return lineItems.flatMap((item) => item.imeiNumbers);
+  };
+
+  const validateImei = (imei: string): string | null => {
+    const trimmedImei = imei.trim();
+    if (!/^\d+$/.test(trimmedImei)) {
+      return "IMEI must contain only digits";
+    }
+    if (trimmedImei.length !== 15) {
+      return "IMEI must be exactly 15 digits";
+    }
+    if (getAllImeis().includes(trimmedImei)) {
+      return "This IMEI has already been added";
+    }
+    return null;
+  };
+
+  const openImeiDialog = (lineItemId: string) => {
+    setActiveLineItemId(lineItemId);
+    setNewImei("");
+    setImeiError("");
+    setBulkImeiText("");
+    setImeiDialogOpen(true);
+  };
+
+  const handleAddSingleImei = () => {
+    if (!activeLineItemId || !newImei.trim()) return;
+    
+    const error = validateImei(newImei);
+    if (error) {
+      setImeiError(error);
+      return;
+    }
+
+    setLineItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeLineItemId) return item;
+        const updatedImeis = [...item.imeiNumbers, newImei.trim()];
+        return { ...item, imeiNumbers: updatedImeis, quantity: updatedImeis.length };
+      })
+    );
+    setNewImei("");
+    setImeiError("");
+  };
+
+  const handleRemoveImei = (imeiIndex: number) => {
+    if (!activeLineItemId) return;
+    
+    setLineItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeLineItemId) return item;
+        const updatedImeis = item.imeiNumbers.filter((_, i) => i !== imeiIndex);
+        return { ...item, imeiNumbers: updatedImeis, quantity: Math.max(1, updatedImeis.length) };
+      })
+    );
+  };
+
+  const handleBulkImeiImport = () => {
+    if (!activeLineItemId || !bulkImeiText.trim()) return;
+
+    // Parse IMEIs from text (newlines, commas, tabs, spaces)
+    const rawImeis = bulkImeiText.split(/[\n,\t\s]+/).map((s) => s.trim()).filter(Boolean);
+    const validImeis: string[] = [];
+    const errors: string[] = [];
+
+    rawImeis.forEach((imei) => {
+      const error = validateImei(imei);
+      if (error) {
+        errors.push(`${imei}: ${error}`);
+      } else if (!validImeis.includes(imei)) {
+        validImeis.push(imei);
+      }
+    });
+
+    if (validImeis.length > 0) {
+      setLineItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== activeLineItemId) return item;
+          const updatedImeis = [...item.imeiNumbers, ...validImeis];
+          return { ...item, imeiNumbers: updatedImeis, quantity: updatedImeis.length };
+        })
+      );
+      setBulkImeiText("");
+      toast({ 
+        title: `Imported ${validImeis.length} IMEI(s)`,
+        description: errors.length > 0 ? `${errors.length} skipped (invalid or duplicate)` : undefined
+      });
+    } else if (errors.length > 0) {
+      setImeiError("No valid IMEIs found");
+    }
+  };
+
+  const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeLineItemId) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as string[][];
+
+        // Extract all values that look like IMEIs (15-digit numbers)
+        const imeis: string[] = [];
+        jsonData.forEach((row) => {
+          row.forEach((cell) => {
+            const cellStr = String(cell).trim();
+            if (/^\d{15}$/.test(cellStr)) {
+              imeis.push(cellStr);
+            }
+          });
+        });
+
+        if (imeis.length > 0) {
+          const validImeis: string[] = [];
+          imeis.forEach((imei) => {
+            if (!validateImei(imei) && !validImeis.includes(imei)) {
+              validImeis.push(imei);
+            }
+          });
+
+          if (validImeis.length > 0) {
+            setLineItems((prev) =>
+              prev.map((item) => {
+                if (item.id !== activeLineItemId) return item;
+                const updatedImeis = [...item.imeiNumbers, ...validImeis];
+                return { ...item, imeiNumbers: updatedImeis, quantity: updatedImeis.length };
+              })
+            );
+            toast({ title: `Imported ${validImeis.length} IMEI(s) from Excel` });
+          } else {
+            toast({ title: "No new valid IMEIs found", variant: "destructive" });
+          }
+        } else {
+          toast({ title: "No IMEIs found in file", description: "IMEIs should be 15-digit numbers", variant: "destructive" });
+        }
+      } catch {
+        toast({ title: "Failed to read Excel file", variant: "destructive" });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
+  };
+
+  const getActiveLineItem = () => lineItems.find((item) => item.id === activeLineItemId);
 
   const handleRemoveRow = (id: string) => {
     if (lineItems.length > 1) {
@@ -276,6 +444,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
           priceKwd: item.priceKwd || null,
           fxPrice: item.fxPrice || null,
           totalKwd: item.totalKwd,
+          imeiNumbers: item.imeiNumbers.length > 0 ? item.imeiNumbers : null,
         })),
     };
 
@@ -385,6 +554,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
                 <thead className="bg-muted/50">
                   <tr>
                     <th className="text-left p-2 font-medium text-sm">Item Name</th>
+                    <th className="text-center p-2 font-medium text-sm w-20">IMEI</th>
                     <th className="text-right p-2 font-medium text-sm w-24">Qty</th>
                     <th className="text-right p-2 font-medium text-sm w-28">Price {fxCurrency}</th>
                     <th className="text-right p-2 font-medium text-sm w-28">Price KWD</th>
@@ -411,6 +581,19 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
                             ))}
                           </SelectContent>
                         </Select>
+                      </td>
+                      <td className="p-2 text-center">
+                        <Button
+                          type="button"
+                          variant={item.imeiNumbers.length > 0 ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => openImeiDialog(item.id)}
+                          disabled={!item.itemName}
+                          data-testid={`button-imei-${index}`}
+                        >
+                          <Barcode className="h-4 w-4 mr-1" />
+                          {item.imeiNumbers.length > 0 ? item.imeiNumbers.length : "Add"}
+                        </Button>
                       </td>
                       <td className="p-2">
                         <Input
@@ -462,7 +645,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
                 </tbody>
                 <tfoot className="bg-muted/30">
                   <tr className="border-t">
-                    <td colSpan={4} className="p-2 text-right font-medium">
+                    <td colSpan={5} className="p-2 text-right font-medium">
                       Total KWD:
                     </td>
                     <td className="p-2 text-right font-bold" data-testid="text-total-kwd">
@@ -472,7 +655,7 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
                   </tr>
                   {totals.totalFx && (
                     <tr>
-                      <td colSpan={4} className="p-2 text-right font-medium">
+                      <td colSpan={5} className="p-2 text-right font-medium">
                         Total {fxCurrency}:
                       </td>
                       <td className="p-2 text-right font-bold" data-testid="text-total-fx">
@@ -537,6 +720,117 @@ export default function PODraftForm({ editingPO, onEditComplete }: PODraftFormPr
           </div>
         </form>
       </CardContent>
+
+      {/* IMEI Dialog */}
+      <Dialog open={imeiDialogOpen} onOpenChange={setImeiDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Barcode className="h-5 w-5" />
+              Manage IMEIs - {getActiveLineItem()?.itemName || "Item"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Single IMEI Entry */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Add Single IMEI</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newImei}
+                  onChange={(e) => {
+                    setNewImei(e.target.value);
+                    setImeiError("");
+                  }}
+                  placeholder="Enter 15-digit IMEI"
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddSingleImei())}
+                  data-testid="input-single-imei"
+                />
+                <Button type="button" onClick={handleAddSingleImei} data-testid="button-add-imei">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {imeiError && <p className="text-sm text-destructive">{imeiError}</p>}
+            </div>
+
+            {/* Bulk Import Options */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Bulk Import</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => excelInputRef.current?.click()}
+                  data-testid="button-import-excel"
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-1" />
+                  Import Excel
+                </Button>
+                <input
+                  ref={excelInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleExcelImport}
+                  className="hidden"
+                />
+              </div>
+              <Textarea
+                value={bulkImeiText}
+                onChange={(e) => setBulkImeiText(e.target.value)}
+                placeholder="Paste IMEIs here (one per line, or comma/tab separated)"
+                rows={3}
+                data-testid="textarea-bulk-imei"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleBulkImeiImport}
+                disabled={!bulkImeiText.trim()}
+                data-testid="button-import-bulk"
+              >
+                <ClipboardPaste className="h-4 w-4 mr-1" />
+                Import Pasted IMEIs
+              </Button>
+            </div>
+
+            {/* IMEI List */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Added IMEIs ({getActiveLineItem()?.imeiNumbers.length || 0})
+              </Label>
+              <ScrollArea className="h-40 border rounded-md p-2">
+                {getActiveLineItem()?.imeiNumbers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No IMEIs added yet</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {getActiveLineItem()?.imeiNumbers.map((imei, idx) => (
+                      <Badge key={idx} variant="secondary" className="gap-1">
+                        {imei}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImei(idx)}
+                          className="ml-1 hover:text-destructive"
+                          data-testid={`button-remove-imei-${idx}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setImeiDialogOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

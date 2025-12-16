@@ -216,6 +216,7 @@ export const purchaseOrderDraftItems = pgTable("purchase_order_draft_items", {
   priceKwd: numeric("price_kwd", { precision: 12, scale: 3 }),
   fxPrice: numeric("fx_price", { precision: 12, scale: 2 }),
   totalKwd: numeric("total_kwd", { precision: 12, scale: 3 }),
+  imeiNumbers: text("imei_numbers").array(),
 }, (table) => [
   index("idx_pod_line_item").on(table.itemName),
   index("idx_pod_line_order").on(table.purchaseOrderDraftId),
