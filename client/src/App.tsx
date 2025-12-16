@@ -100,24 +100,42 @@ function AppSidebar() {
     return permissions.modules.includes(moduleName);
   };
 
-  // Keyboard shortcuts: Alt+S (Sales), Alt+E (Expenses), Alt+P (Purchase), Alt+I (Item)
+  // Keyboard shortcuts: Alt+S (Sales), Alt+P (Purchase), Alt+I (Payment-In), Alt+O (Payment-Out), Alt+E (Expense)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey) {
-        const key = e.key.toLowerCase();
-        if (key === 's') {
+      if (!e.altKey) return;
+      
+      const target = e.target as HTMLElement;
+      const isInputField = 
+        target.tagName === "INPUT" || 
+        target.tagName === "TEXTAREA" || 
+        target.tagName === "SELECT" ||
+        target.isContentEditable;
+      
+      if (isInputField) return;
+
+      const key = e.key.toLowerCase();
+      switch (key) {
+        case 's':
           e.preventDefault();
           setLocation('/sales');
-        } else if (key === 'e') {
+          break;
+        case 'p':
+          e.preventDefault();
+          setLocation('/purchases/orders');
+          break;
+        case 'i':
+          e.preventDefault();
+          setLocation('/payments/in');
+          break;
+        case 'o':
+          e.preventDefault();
+          setLocation('/payments/out');
+          break;
+        case 'e':
           e.preventDefault();
           setLocation('/expenses');
-        } else if (key === 'p') {
-          e.preventDefault();
-          setLocation('/purchases');
-        } else if (key === 'i') {
-          e.preventDefault();
-          setLocation('/items');
-        }
+          break;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
