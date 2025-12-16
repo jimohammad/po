@@ -416,7 +416,7 @@ export default function DashboardPage() {
                       key={customer.id}
                       className="flex items-center justify-between p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 cursor-pointer hover-elevate"
                       data-testid={`stock-check-customer-${customer.id}`}
-                      onClick={() => setLocation("/party-master")}
+                      onClick={() => setLocation("/parties")}
                     >
                       <div className="flex flex-col">
                         <span className="font-medium text-sm">{customer.name}</span>
