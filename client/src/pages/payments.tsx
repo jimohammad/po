@@ -124,6 +124,32 @@ export default function PaymentsPage() {
   const [fxAmount, setFxAmount] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
+  
+  // Split payment support
+  const [splitEnabled, setSplitEnabled] = useState(false);
+  type PaymentSplitLine = { paymentType: PaymentType; amount: string; fxCurrency?: string; fxRate?: string; fxAmount?: string };
+  const [splits, setSplits] = useState<PaymentSplitLine[]>([
+    { paymentType: "Cash", amount: "" },
+    { paymentType: "Knet", amount: "" }
+  ]);
+  
+  const addSplit = () => {
+    setSplits([...splits, { paymentType: "Cash", amount: "" }]);
+  };
+  
+  const removeSplit = (index: number) => {
+    if (splits.length > 2) {
+      setSplits(splits.filter((_, i) => i !== index));
+    }
+  };
+  
+  const updateSplit = (index: number, field: keyof PaymentSplitLine, value: string) => {
+    const newSplits = [...splits];
+    newSplits[index] = { ...newSplits[index], [field]: value };
+    setSplits(newSplits);
+  };
+  
+  const splitTotal = splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
 
   const { data: paymentsData, isLoading: paymentsLoading } = useQuery<{ data: PaymentWithDetails[]; total: number }>({
     queryKey: ["/api/payments", page],
@@ -180,6 +206,7 @@ export default function PaymentsPage() {
       fxAmount: string | null;
       reference: string | null;
       notes: string | null;
+      splits?: { paymentType: string; amount: string; fxCurrency?: string; fxRate?: string; fxAmount?: string }[];
     }) => {
       const response = await apiRequest("POST", "/api/payments", data);
       return response.json();
@@ -288,6 +315,8 @@ export default function PaymentsPage() {
     setFxAmount("");
     setReference("");
     setNotes("");
+    setSplitEnabled(false);
+    setSplits([{ paymentType: "Cash", amount: "" }, { paymentType: "Knet", amount: "" }]);
   };
 
   const handlePurchaseOrderSelect = (poId: string) => {
@@ -846,30 +875,71 @@ export default function PaymentsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || parseFloat(amount) <= 0) {
-      toast({ title: "Please enter a valid amount", variant: "destructive" });
-      return;
-    }
+    if (splitEnabled) {
+      // Validate splits
+      const validSplits = splits.filter(s => s.amount && parseFloat(s.amount) > 0);
+      if (validSplits.length < 2) {
+        toast({ title: "Split payment requires at least 2 payment methods with amounts", variant: "destructive" });
+        return;
+      }
+      const total = validSplits.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+      if (total <= 0) {
+        toast({ title: "Please enter valid amounts", variant: "destructive" });
+        return;
+      }
+      
+      if (direction === "IN" && !customerId) {
+        toast({ title: "Please select a customer", variant: "destructive" });
+        return;
+      }
+      
+      createPaymentMutation.mutate({
+        paymentDate,
+        direction,
+        customerId: direction === "IN" && customerId ? parseInt(customerId) : null,
+        supplierId: direction === "OUT" && supplierId ? parseInt(supplierId) : null,
+        purchaseOrderId: direction === "OUT" && purchaseOrderId ? parseInt(purchaseOrderId) : null,
+        paymentType: validSplits[0].paymentType,
+        amount: total.toFixed(3),
+        fxCurrency: null,
+        fxRate: null,
+        fxAmount: null,
+        reference: null,
+        notes: notes || null,
+        splits: validSplits.map(s => ({
+          paymentType: s.paymentType,
+          amount: s.amount,
+          fxCurrency: s.fxCurrency || undefined,
+          fxRate: s.fxRate || undefined,
+          fxAmount: s.fxAmount || undefined,
+        })),
+      });
+    } else {
+      if (!amount || parseFloat(amount) <= 0) {
+        toast({ title: "Please enter a valid amount", variant: "destructive" });
+        return;
+      }
 
-    if (direction === "IN" && !customerId) {
-      toast({ title: "Please select a customer", variant: "destructive" });
-      return;
-    }
+      if (direction === "IN" && !customerId) {
+        toast({ title: "Please select a customer", variant: "destructive" });
+        return;
+      }
 
-    createPaymentMutation.mutate({
-      paymentDate,
-      direction,
-      customerId: direction === "IN" && customerId ? parseInt(customerId) : null,
-      supplierId: direction === "OUT" && supplierId ? parseInt(supplierId) : null,
-      purchaseOrderId: direction === "OUT" && purchaseOrderId ? parseInt(purchaseOrderId) : null,
-      paymentType,
-      amount,
-      fxCurrency: direction === "OUT" && fxCurrency ? fxCurrency : null,
-      fxRate: direction === "OUT" && fxRate ? fxRate : null,
-      fxAmount: direction === "OUT" && fxAmount ? fxAmount : null,
-      reference: null,
-      notes: notes || null,
-    });
+      createPaymentMutation.mutate({
+        paymentDate,
+        direction,
+        customerId: direction === "IN" && customerId ? parseInt(customerId) : null,
+        supplierId: direction === "OUT" && supplierId ? parseInt(supplierId) : null,
+        purchaseOrderId: direction === "OUT" && purchaseOrderId ? parseInt(purchaseOrderId) : null,
+        paymentType,
+        amount,
+        fxCurrency: direction === "OUT" && fxCurrency ? fxCurrency : null,
+        fxRate: direction === "OUT" && fxRate ? fxRate : null,
+        fxAmount: direction === "OUT" && fxAmount ? fxAmount : null,
+        reference: null,
+        notes: notes || null,
+      });
+    }
   };
 
   const filteredPayments = payments.filter((payment) => {
@@ -1100,21 +1170,23 @@ export default function PaymentsPage() {
                   data-testid="input-payment-date"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="paymentType">Payment Type</Label>
-                <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
-                  <SelectTrigger data-testid="select-payment-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!splitEnabled && (
+                <div className="space-y-2">
+                  <Label htmlFor="paymentType">Payment Type</Label>
+                  <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
+                    <SelectTrigger data-testid="select-payment-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {direction === "OUT" && (
@@ -1163,21 +1235,97 @@ export default function PaymentsPage() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (KWD)</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.001"
-                min="0"
-                value={amount}
-                onChange={(e) => handleAmountChange(e.target.value)}
-                placeholder="0.000"
-                required
-                className="!text-3xl h-14 font-semibold placeholder:text-muted-foreground/30 placeholder:font-normal"
-                data-testid="input-payment-amount"
+            <div className="flex items-center gap-3 py-2 border-t">
+              <Switch
+                checked={splitEnabled}
+                onCheckedChange={setSplitEnabled}
+                data-testid="switch-split-payment"
               />
+              <Label className="text-sm">Split Payment (Multiple payment methods)</Label>
             </div>
+
+            {splitEnabled ? (
+              <div className="space-y-3 p-4 border rounded-md bg-muted/30">
+                <div className="flex justify-between items-center">
+                  <Label className="text-base font-semibold">Payment Methods</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={addSplit}
+                    data-testid="button-add-split"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Method
+                  </Button>
+                </div>
+                {splits.map((split, index) => (
+                  <div key={index} className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Label className="text-xs">Type</Label>
+                      <Select
+                        value={split.paymentType}
+                        onValueChange={(v) => updateSplit(index, "paymentType", v)}
+                      >
+                        <SelectTrigger data-testid={`select-split-type-${index}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PAYMENT_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex-1">
+                      <Label className="text-xs">Amount (KWD)</Label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        value={split.amount}
+                        onChange={(e) => updateSplit(index, "amount", e.target.value)}
+                        placeholder="0.000"
+                        data-testid={`input-split-amount-${index}`}
+                      />
+                    </div>
+                    {splits.length > 2 && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removeSplit(index)}
+                        data-testid={`button-remove-split-${index}`}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="text-sm font-medium">Total:</span>
+                  <span className="text-xl font-bold font-mono">{splitTotal.toFixed(3)} KWD</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (KWD)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => handleAmountChange(e.target.value)}
+                  placeholder="0.000"
+                  required
+                  className="!text-3xl h-14 font-semibold placeholder:text-muted-foreground/30 placeholder:font-normal"
+                  data-testid="input-payment-amount"
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="notes">Notes (Optional)</Label>
