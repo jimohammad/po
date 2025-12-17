@@ -39,7 +39,7 @@ export default function SendPriceList() {
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
-  const [includeQuantity, setIncludeQuantity] = useState(true);
+  const [includeQuantity, setIncludeQuantity] = useState(false);
 
   const { data: parties = [] } = useQuery<Supplier[]>({
     queryKey: ["/api/suppliers"],
