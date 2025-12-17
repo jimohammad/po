@@ -126,6 +126,8 @@ export async function sendWhatsAppMessage(
   }
   
   try {
+    console.log(`[WhatsApp] Sending message to: ${formattedPhone}`);
+    
     const response = await fetch(WHATSAPP_API_URL, {
       method: "POST",
       headers: {
@@ -145,15 +147,17 @@ export async function sendWhatsAppMessage(
     });
     
     const data = await response.json();
+    console.log(`[WhatsApp] API Response status: ${response.status}, data:`, JSON.stringify(data));
     
     if (!response.ok) {
-      console.error("WhatsApp API error:", data);
+      console.error("[WhatsApp] API error:", data);
       const errorMessage = data.error?.message || "Failed to send message";
       return { success: false, error: errorMessage };
     }
     
     const messageId = data.messages?.[0]?.id;
-    console.log("WhatsApp message sent successfully:", messageId);
+    const messageStatus = data.messages?.[0]?.message_status;
+    console.log(`[WhatsApp] Message sent successfully. ID: ${messageId}, Status: ${messageStatus}`);
     return { success: true, messageId };
     
   } catch (error) {
