@@ -66,6 +66,7 @@ const StockLookupPage = lazy(() => import("@/pages/stock-lookup"));
 const SecuritySettingsPage = lazy(() => import("@/pages/security-settings"));
 const ImeiHistoryPage = lazy(() => import("@/pages/imei-history"));
 const BackupPage = lazy(() => import("@/pages/backup"));
+const UserManagementPage = lazy(() => import("@/pages/user-management"));
 const AIChatPage = lazy(() => import("@/pages/ai-chat"));
 const Landing = lazy(() => import("@/pages/landing"));
 const PublicStatementPage = lazy(() => import("@/pages/public-statement"));
@@ -213,6 +214,7 @@ function AppSidebar() {
   ];
 
   const settingsSubItems = [
+    { title: "User Management", url: "/settings/users" },
     { title: "User Roles", url: "/settings/user-roles" },
     { title: "Branches", url: "/settings/branches" },
     { title: "Opening Balances", url: "/settings/opening-balances" },
@@ -657,6 +659,8 @@ function AuthenticatedLayout() {
         return "Export IMEI";
       case "/all-transactions":
         return "All Transactions";
+      case "/settings/users":
+        return "User Management";
       case "/settings/user-roles":
         return "User Roles & Permissions";
       case "/settings/branches":
@@ -728,6 +732,7 @@ function AuthenticatedLayout() {
                 <Route path="/all-transactions" component={AllTransactionsPage} />
                 <Route path="/reports/customer-aging" component={CustomerAgingPage} />
                 <Route path="/send-price-list" component={SendPriceListPage} />
+                <Route path="/settings/users" component={UserManagementPage} />
                 <Route path="/settings/user-roles" component={UserRolesPage} />
                 <Route path="/settings/branches" component={BranchesPage} />
                 <Route path="/settings/opening-balances" component={OpeningBalancesPage} />
