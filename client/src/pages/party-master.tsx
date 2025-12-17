@@ -44,7 +44,7 @@ export default function PartyMaster() {
   const [partyName, setPartyName] = useState("");
   const [partyAddress, setPartyAddress] = useState("");
   const [partyPhone, setPartyPhone] = useState("");
-  const [partyType, setPartyType] = useState<PartyType>("customer");
+  const [partyType, setPartyType] = useState<PartyType>("salesman");
   const [partyArea, setPartyArea] = useState("");
   const [creditLimit, setCreditLimit] = useState("");
   const [commissionRate, setCommissionRate] = useState("");
@@ -66,7 +66,7 @@ export default function PartyMaster() {
     setPartyName("");
     setPartyAddress("");
     setPartyPhone("");
-    setPartyType("customer");
+    setPartyType("salesman");
     setCreditLimit("");
     setPartyArea("");
     setCommissionRate("");
