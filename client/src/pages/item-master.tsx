@@ -51,6 +51,7 @@ export default function ItemMaster() {
   const [fetchingPricing, setFetchingPricing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
     queryKey: ["/api/items"],
@@ -73,6 +74,15 @@ export default function ItemMaster() {
   const stockMap = new Map<string, number>();
   stockBalance.forEach((item) => {
     stockMap.set(item.itemName, item.balance);
+  });
+
+  // Filter items by search query
+  const filteredItems = items.filter(item => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return item.name.toLowerCase().includes(query) ||
+      (item.code && item.code.toLowerCase().includes(query)) ||
+      (item.category && item.category.toLowerCase().includes(query));
   });
 
   type ItemFormData = {
@@ -237,22 +247,31 @@ export default function ItemMaster() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
+        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4 flex-wrap">
           <div className="flex items-center gap-3">
             <Package className="h-5 w-5 text-muted-foreground" />
             <CardTitle className="text-lg font-semibold">Item Master</CardTitle>
           </div>
-          {isAdmin && (
-            <Button onClick={handleOpenAdd} data-testid="button-add-item">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
-          )}
+          <div className="flex items-center gap-3 flex-wrap">
+            <Input
+              placeholder="Search by name, code, category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-64"
+              data-testid="input-search-item"
+            />
+            {isAdmin && (
+              <Button onClick={handleOpenAdd} data-testid="button-add-item">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          {items.length === 0 ? (
+          {filteredItems.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No items found. {isAdmin && "Add your first item to get started."}
+              {searchQuery ? "No items match your search." : (isAdmin ? "No items found. Add your first item to get started." : "No items found.")}
             </div>
           ) : (
             <div className="border rounded-md overflow-x-auto">
@@ -271,7 +290,7 @@ export default function ItemMaster() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => (
+                  {filteredItems.map((item) => (
                     <TableRow key={item.id} data-testid={`row-item-${item.id}`}>
                       <TableCell className="font-mono text-sm text-muted-foreground">
                         {item.id}
