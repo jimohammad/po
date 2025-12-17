@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000;
@@ -136,8 +136,11 @@ export async function setupAuth(app: Express) {
 
       const hashedPassword = await bcrypt.hash(password, 10);
       
-      const allUsers = await db.select().from(users);
-      const isFirstUser = allUsers.length === 0 || !allUsers.some(u => u.role === "admin");
+      const [adminCount] = await db
+        .select({ count: count() })
+        .from(users)
+        .where(eq(users.role, "admin"));
+      const isFirstAdmin = (adminCount?.count ?? 0) === 0;
 
       const [newUser] = await db
         .insert(users)
@@ -147,7 +150,7 @@ export async function setupAuth(app: Express) {
           firstName: firstName || null,
           lastName: lastName || null,
           email: email || null,
-          role: isFirstUser ? "admin" : "viewer",
+          role: isFirstAdmin ? "admin" : "viewer",
         })
         .returning();
 
@@ -181,7 +184,7 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
-      res.redirect("/login");
+      res.redirect("/");
     });
   });
 
