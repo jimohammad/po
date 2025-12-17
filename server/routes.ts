@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertSupplierSchema, insertItemSchema, insertPurchaseOrderSchema, insertLineItemSchema, insertCustomerSchema, insertSalesOrderSchema, insertSalesLineItemSchema, insertPaymentSchema, PAYMENT_TYPES, PAYMENT_DIRECTIONS, insertExpenseCategorySchema, insertExpenseSchema, insertAccountTransferSchema, insertReturnSchema, insertReturnLineItemSchema, insertUserRoleAssignmentSchema, insertDiscountSchema, insertBranchSchema, insertStockTransferSchema, insertStockTransferLineItemSchema, insertInventoryAdjustmentSchema, insertOpeningBalanceSchema, ROLE_TYPES, MODULE_NAMES } from "@shared/schema";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { setupAuth, isAuthenticated, isAdmin } from "./replitAuth";
+import { setupAuth, isAuthenticated, isAdmin } from "./localAuth";
 import { listBackups, getBackupDownloadUrl, createBackup } from "./backupScheduler";
 import { sendSaleNotification } from "./whatsapp";
 
@@ -22,7 +22,7 @@ export async function registerRoutes(
 
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -33,7 +33,7 @@ export async function registerRoutes(
 
   app.put("/api/auth/user/printer-type", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { printerType } = req.body;
       if (!printerType || !["thermal", "a4laser"].includes(printerType)) {
         return res.status(400).json({ error: "Invalid printer type. Must be 'thermal' or 'a4laser'" });
@@ -2361,7 +2361,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Message is required" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       const response = await processAIQuery(message, {
