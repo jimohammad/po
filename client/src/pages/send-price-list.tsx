@@ -38,6 +38,8 @@ export default function SendPriceList() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
+  const [includeQuantity, setIncludeQuantity] = useState(true);
 
   const { data: parties = [] } = useQuery<Supplier[]>({
     queryKey: ["/api/suppliers"],
@@ -64,13 +66,25 @@ export default function SendPriceList() {
   }, [stockBalance]);
 
   const filteredItems = useMemo(() => {
-    if (!searchTerm) return items;
-    const term = searchTerm.toLowerCase();
-    return items.filter(item => 
-      item.name.toLowerCase().includes(term) ||
-      (item.code && item.code.toLowerCase().includes(term))
-    );
-  }, [items, searchTerm]);
+    let result = items;
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(item => 
+        item.name.toLowerCase().includes(term) ||
+        (item.code && item.code.toLowerCase().includes(term))
+      );
+    }
+    
+    if (showOnlyAvailable) {
+      result = result.filter(item => {
+        const stock = stockMap.get(item.name) ?? 0;
+        return stock > 0;
+      });
+    }
+    
+    return result;
+  }, [items, searchTerm, showOnlyAvailable, stockMap]);
 
   const toggleItem = (itemId: number) => {
     setSelectedItems(prev => {
@@ -117,10 +131,15 @@ export default function SendPriceList() {
     for (const item of selectedItemsList) {
       const price = item.sellingPriceKwd ? parseFloat(item.sellingPriceKwd).toFixed(3) : "N/A";
       const stock = stockMap.get(item.name) ?? 0;
-      const availability = stock > 0 ? `Available (${stock})` : "Out of Stock";
       lines.push(`*${item.name}*`);
       lines.push(`  Price: ${price} KWD`);
-      lines.push(`  ${availability}`);
+      if (includeQuantity) {
+        const availability = stock > 0 ? `Available (${stock})` : "Out of Stock";
+        lines.push(`  ${availability}`);
+      } else {
+        const availability = stock > 0 ? "Available" : "Out of Stock";
+        lines.push(`  ${availability}`);
+      }
       lines.push(``);
     }
     
@@ -209,16 +228,36 @@ export default function SendPriceList() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={selectAll} data-testid="button-select-all">
-                <CheckSquare className="h-4 w-4 mr-1" />
-                Select All
-              </Button>
-              <Button variant="outline" size="sm" onClick={deselectAll} data-testid="button-deselect-all">
-                <Square className="h-4 w-4 mr-1" />
-                Deselect All
-              </Button>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={selectAll} data-testid="button-select-all">
+                  <CheckSquare className="h-4 w-4 mr-1" />
+                  Select All
+                </Button>
+                <Button variant="outline" size="sm" onClick={deselectAll} data-testid="button-deselect-all">
+                  <Square className="h-4 w-4 mr-1" />
+                  Deselect All
+                </Button>
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={showOnlyAvailable}
+                    onCheckedChange={(checked) => setShowOnlyAvailable(checked === true)}
+                    data-testid="checkbox-show-available"
+                  />
+                  <span>Show only available</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={includeQuantity}
+                    onCheckedChange={(checked) => setIncludeQuantity(checked === true)}
+                    data-testid="checkbox-include-qty"
+                  />
+                  <span>Include quantity</span>
+                </label>
+              </div>
             </div>
             <Badge variant="secondary">
               {selectedItems.size} items selected
