@@ -164,7 +164,7 @@ export default function PartyMaster() {
       phone: partyPhone.trim() || null,
       partyType,
       creditLimit: (partyType === "customer" || partyType === "salesman") && creditLimit.trim() ? creditLimit.trim() : null,
-      area: partyType === "customer" && partyArea.trim() ? partyArea.trim() : null,
+      area: (partyType === "customer" || partyType === "salesman") && partyArea.trim() ? partyArea.trim() : null,
       commissionRate: partyType === "salesman" && commissionRate.trim() ? commissionRate.trim() : null,
     };
 
@@ -288,7 +288,7 @@ export default function PartyMaster() {
                     data-testid="input-party-address"
                   />
                 </div>
-                {partyType === "customer" && (
+                {(partyType === "customer" || partyType === "salesman") && (
                   <div className="space-y-2">
                     <Label htmlFor="partyArea">Area</Label>
                     <Select
