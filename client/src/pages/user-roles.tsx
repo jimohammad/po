@@ -95,7 +95,7 @@ export default function UserRoles() {
     queryKey: ["/api/branches"],
   });
 
-  const isSuperUser = myPermissions?.role === "super_user";
+  const isSuperUser = myPermissions?.role === "super_user" || myPermissions?.role === "admin";
 
   const createMutation = useMutation({
     mutationFn: (data: { email: string; role: string; branchId?: number | null }) =>
