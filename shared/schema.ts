@@ -640,7 +640,9 @@ export const MODULE_NAMES = [
   "all_transactions",
   "ai_assistant",
   "backup",
-  "settings"
+  "settings",
+  "send_price_list",
+  "user_management"
 ] as const;
 export type ModuleName = typeof MODULE_NAMES[number];
 

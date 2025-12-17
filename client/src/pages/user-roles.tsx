@@ -63,6 +63,8 @@ const MODULE_LABELS: Record<string, string> = {
   ai_assistant: "AI Assistant",
   backup: "Database Backup",
   settings: "Settings",
+  send_price_list: "Send Price List",
+  user_management: "User Management",
 };
 
 interface MyPermissions {
