@@ -150,6 +150,8 @@ export default function PartyMaster() {
 
   const handleOpenEdit = (party: Supplier) => {
     setEditingParty(party);
+    // Scroll to form at top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
