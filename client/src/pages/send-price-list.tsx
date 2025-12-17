@@ -124,8 +124,7 @@ export default function SendPriceList() {
     lines.push(`*Iqbal Electronics Co. WLL*`);
     lines.push(`━━━━━━━━━━━━━━━━━━━━`);
     lines.push(``);
-    lines.push(`Dear ${selectedCustomer?.name},`);
-    lines.push(`Here is our latest price list:`);
+    lines.push(`Our Latest Price List`);
     lines.push(``);
     
     // Group items by category
