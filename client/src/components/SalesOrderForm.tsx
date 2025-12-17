@@ -158,20 +158,8 @@ export function SalesOrderForm({
   }, [lineItems]);
 
   const canSubmit = useMemo(() => {
-    if (noValidLineItems) {
-      return false;
-    }
-    if (creditLimitInfo.exceeded && !isAdmin) {
-      return false;
-    }
-    if (stockExceeded) {
-      return false;
-    }
-    if (pricesBelowMinimum) {
-      return false;
-    }
     return true;
-  }, [noValidLineItems, creditLimitInfo.exceeded, isAdmin, stockExceeded, pricesBelowMinimum]);
+  }, []);
 
   // Get user's printer preference
   const { data: userData } = useQuery<User>({
@@ -609,52 +597,6 @@ export function SalesOrderForm({
               </div>
             </div>
           </div>
-
-          {stockExceeded && (
-            <Alert variant="destructive" data-testid="alert-stock-exceeded">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Quantity exceeds available stock. Please reduce the quantity or select a different item.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {pricesBelowMinimum && (
-            <Alert variant="destructive" data-testid="alert-price-below-minimum">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                One or more items have a price below the minimum selling price. Please adjust the prices to continue.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {noValidLineItems && (
-            <Alert variant="destructive" data-testid="alert-no-items">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <span className="font-medium">Items required:</span> Please add at least one item with quantity greater than 0.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {creditLimitInfo.exceeded && (
-            <Alert variant="destructive" data-testid="alert-credit-limit-exceeded">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                {isAdmin ? (
-                  <>
-                    <span className="font-medium">Warning:</span> Invoice total ({totalKwd} KWD) exceeds customer credit limit ({creditLimitInfo.limit.toFixed(3)} KWD). 
-                    As admin, you can still save this invoice.
-                  </>
-                ) : (
-                  <>
-                    <span className="font-medium">Cannot save invoice:</span> Total ({totalKwd} KWD) exceeds customer credit limit ({creditLimitInfo.limit.toFixed(3)} KWD). 
-                    Please contact admin for approval.
-                  </>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
 
           <div className="flex flex-wrap justify-end gap-2">
             <Button 
