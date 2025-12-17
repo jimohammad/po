@@ -27,6 +27,7 @@ export function getSession() {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: sessionTtl,
+      sameSite: "strict",
     },
   });
 }
@@ -103,11 +104,17 @@ export async function setupAuth(app: Express) {
       if (!user) {
         return res.status(401).json({ message: info?.message || "Invalid credentials" });
       }
-      req.logIn(user, (err) => {
-        if (err) {
-          return res.status(500).json({ message: "Login error" });
+      // Regenerate session to prevent session fixation attacks
+      req.session.regenerate((regenerateErr) => {
+        if (regenerateErr) {
+          return res.status(500).json({ message: "Session error" });
         }
-        return res.json({ user });
+        req.logIn(user, (loginErr) => {
+          if (loginErr) {
+            return res.status(500).json({ message: "Login error" });
+          }
+          return res.json({ user });
+        });
       });
     })(req, res, next);
   });
@@ -119,13 +126,19 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
-      res.redirect("/");
+      req.session.destroy((err) => {
+        res.clearCookie("connect.sid", { path: "/", sameSite: "strict" });
+        res.redirect("/");
+      });
     });
   });
 
   app.post("/api/logout", (req, res) => {
     req.logout(() => {
-      res.json({ success: true });
+      req.session.destroy((err) => {
+        res.clearCookie("connect.sid", { path: "/", sameSite: "strict" });
+        res.json({ success: true });
+      });
     });
   });
 }

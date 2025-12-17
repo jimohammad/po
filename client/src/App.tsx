@@ -238,7 +238,20 @@ function AppSidebar() {
     setExpandedMenu(prev => prev === menuId ? null : menuId);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Clear PWA cache before logout
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      const messageChannel = new MessageChannel();
+      navigator.serviceWorker.controller.postMessage(
+        { type: 'CLEAR_CACHE' },
+        [messageChannel.port2]
+      );
+    }
+    // Also clear caches directly
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => caches.delete(name)));
+    }
     window.location.href = "/api/logout";
   };
 
