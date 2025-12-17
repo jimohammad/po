@@ -1427,8 +1427,8 @@ export async function registerRoutes(
       // Check for local auth user first (has role directly on user object)
       const localUser = req.user;
       if (localUser?.role) {
-        // For local auth users, use their role directly
-        const role = localUser.role === "admin" ? "super_user" : localUser.role;
+        // For local auth users, use their role directly (admin uses admin permissions, not super_user)
+        const role = localUser.role;
         const modules = await storage.getModulesForRole(role);
         const userEmail = localUser.email;
         const assignedBranchId = userEmail ? await storage.getBranchIdForEmail(userEmail) : null;
