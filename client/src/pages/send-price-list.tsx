@@ -219,7 +219,7 @@ export default function SendPriceList() {
                       onClick={() => toggleItem(item.id)}
                       data-testid={`row-item-${item.id}`}
                     >
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedItems.has(item.id)}
                           onCheckedChange={() => toggleItem(item.id)}
