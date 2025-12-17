@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Send, Search, CheckSquare, Square, Loader2, MessageCircle } from "lucide-react";
+import { Send, Search, CheckSquare, Square, MessageCircle } from "lucide-react";
 import type { Supplier, Item } from "@shared/schema";
 
 interface StockBalanceItem {
@@ -93,28 +92,47 @@ export default function SendPriceList() {
     setSelectedItems(new Set());
   };
 
-  const sendMutation = useMutation({
-    mutationFn: async (data: { customerId: number; itemIds: number[] }) => {
-      return apiRequest("POST", "/api/whatsapp/send-price-list", data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Message Sent",
-        description: `Price list sent to ${selectedCustomer?.name} via WhatsApp`,
-      });
-      setSelectedItems(new Set());
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to Send",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const formatPhoneForWhatsApp = (phone: string): string => {
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('00')) {
+      cleaned = cleaned.substring(2);
+    }
+    if (cleaned.length === 8 && /^[2569]/.test(cleaned)) {
+      cleaned = '965' + cleaned;
+    }
+    return cleaned;
+  };
+
+  const buildPriceListMessage = (): string => {
+    const selectedItemsList = items.filter(item => selectedItems.has(item.id));
+    const lines: string[] = [];
+    
+    lines.push(`*Iqbal Electronics Co. WLL*`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(``);
+    lines.push(`Dear ${selectedCustomer?.name},`);
+    lines.push(`Here is our latest price list:`);
+    lines.push(``);
+    
+    for (const item of selectedItemsList) {
+      const price = item.sellingPriceKwd ? parseFloat(item.sellingPriceKwd).toFixed(3) : "N/A";
+      const stock = stockMap.get(item.name) ?? 0;
+      const availability = stock > 0 ? `Available (${stock})` : "Out of Stock";
+      lines.push(`*${item.name}*`);
+      lines.push(`  Price: ${price} KWD`);
+      lines.push(`  ${availability}`);
+      lines.push(``);
+    }
+    
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`For orders, please contact us.`);
+    lines.push(`Thank you!`);
+    
+    return lines.join('\n');
+  };
 
   const handleSend = () => {
-    if (!selectedCustomerId || selectedItems.size === 0) {
+    if (!selectedCustomerId || selectedItems.size === 0 || !selectedCustomer?.phone) {
       toast({
         title: "Selection Required",
         description: "Please select a customer and at least one item",
@@ -122,10 +140,19 @@ export default function SendPriceList() {
       });
       return;
     }
-    sendMutation.mutate({
-      customerId: parseInt(selectedCustomerId),
-      itemIds: Array.from(selectedItems),
+    
+    const phone = formatPhoneForWhatsApp(selectedCustomer.phone);
+    const message = buildPriceListMessage();
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: "WhatsApp Opened",
+      description: `Price list ready to send to ${selectedCustomer.name}`,
     });
+    setSelectedItems(new Set());
   };
 
   const getStockStatus = (itemName: string) => {
@@ -253,14 +280,10 @@ export default function SendPriceList() {
           <div className="flex justify-end">
             <Button
               onClick={handleSend}
-              disabled={!selectedCustomerId || selectedItems.size === 0 || sendMutation.isPending}
+              disabled={!selectedCustomerId || selectedItems.size === 0}
               data-testid="button-send-pricelist"
             >
-              {sendMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
+              <Send className="h-4 w-4 mr-2" />
               Send via WhatsApp
             </Button>
           </div>
