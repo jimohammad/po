@@ -169,6 +169,19 @@ export default function PaymentInPage() {
     queryKey: ["/api/customers"],
   });
 
+  // Fetch selected customer's balance
+  const { data: customerBalance } = useQuery<{ balance: number }>({
+    queryKey: ["/api/customers", customerId, "balance"],
+    queryFn: async () => {
+      const res = await fetch(`/api/customers/${customerId}/balance`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch balance");
+      return res.json();
+    },
+    enabled: !!customerId,
+  });
+
   const createPaymentMutation = useMutation({
     mutationFn: async (data: {
       paymentDate: string;
@@ -877,6 +890,14 @@ export default function PaymentInPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {customerId && customerBalance && (
+                  <div className="text-sm font-medium mt-1">
+                    Previous Balance:{" "}
+                    <span className={customerBalance.balance > 0 ? "text-red-600" : "text-emerald-600"} data-testid="text-customer-balance">
+                      KWD {customerBalance.balance.toFixed(3)}
+                    </span>
+                  </div>
+                )}
               </div>
               
               <div className="space-y-2">
