@@ -151,9 +151,6 @@ export function SalesOrderForm({
     });
   }, [lineItems, items]);
 
-  // Check if customer is selected
-  const customerMissing = !customerId;
-
   // Check if there's at least one valid line item with quantity > 0
   const noValidLineItems = useMemo(() => {
     const validItems = lineItems.filter(li => li.itemName && li.quantity > 0);
@@ -161,9 +158,6 @@ export function SalesOrderForm({
   }, [lineItems]);
 
   const canSubmit = useMemo(() => {
-    if (customerMissing) {
-      return false;
-    }
     if (noValidLineItems) {
       return false;
     }
@@ -177,7 +171,7 @@ export function SalesOrderForm({
       return false;
     }
     return true;
-  }, [customerMissing, noValidLineItems, creditLimitInfo.exceeded, isAdmin, stockExceeded, pricesBelowMinimum]);
+  }, [noValidLineItems, creditLimitInfo.exceeded, isAdmin, stockExceeded, pricesBelowMinimum]);
 
   // Get user's printer preference
   const { data: userData } = useQuery<User>({
@@ -634,16 +628,7 @@ export function SalesOrderForm({
             </Alert>
           )}
 
-          {customerMissing && (
-            <Alert variant="destructive" data-testid="alert-customer-missing">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <span className="font-medium">Customer required:</span> Please select a customer before saving the invoice.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {noValidLineItems && !customerMissing && (
+          {noValidLineItems && (
             <Alert variant="destructive" data-testid="alert-no-items">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
