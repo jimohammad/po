@@ -1307,15 +1307,24 @@ export async function registerRoutes(
   await storage.ensureDefaultRolePermissions();
 
   const isSuperUser = async (req: any, res: any, next: any) => {
-    const userEmail = req.user?.claims?.email;
-    if (!userEmail) {
-      return res.status(403).json({ error: "Unauthorized" });
+    // Support both Replit auth (claims.email) and local auth (email directly)
+    const userEmail = req.user?.claims?.email || req.user?.email;
+    const userRole = req.user?.role;
+    
+    // For local auth, check the role directly from the session
+    if (userRole === "super_user" || userRole === "admin") {
+      return next();
     }
-    const role = await storage.getRoleForEmail(userEmail);
-    if (role !== "super_user") {
-      return res.status(403).json({ error: "Super user access required" });
+    
+    // For Replit auth or if role not in session, check database
+    if (userEmail) {
+      const role = await storage.getRoleForEmail(userEmail);
+      if (role === "super_user" || role === "admin") {
+        return next();
+      }
     }
-    next();
+    
+    return res.status(403).json({ error: "Admin access required" });
   };
 
   app.get("/api/role-permissions", isAuthenticated, async (req, res) => {
