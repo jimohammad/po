@@ -1959,6 +1959,63 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getCustomerBalanceForReturn(customerId: number, returnId: number): Promise<{ previousBalance: number; returnAmount: number; currentBalance: number }> {
+    const result = await db.execute(sql`
+      WITH opening_balance AS (
+        SELECT 
+          COALESCE(CAST(balance_amount AS DECIMAL), 0)::float as balance
+        FROM opening_balances
+        WHERE party_type = 'customer' AND party_id = ${customerId}
+        LIMIT 1
+      ),
+      target_return AS (
+        SELECT id, return_date, created_at, COALESCE(CAST(total_kwd AS DECIMAL), 0)::float as amount
+        FROM returns 
+        WHERE id = ${returnId}
+      ),
+      sales_before AS (
+        SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+        FROM sales_orders
+        WHERE customer_id = ${customerId}
+          AND (sale_date < (SELECT return_date FROM target_return)
+               OR (sale_date = (SELECT return_date FROM target_return) AND created_at < (SELECT created_at FROM target_return)))
+      ),
+      payments_before AS (
+        SELECT COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::float as total
+        FROM payments
+        WHERE customer_id = ${customerId} AND direction = 'IN'
+          AND (payment_date < (SELECT return_date FROM target_return)
+               OR (payment_date = (SELECT return_date FROM target_return) AND created_at < (SELECT created_at FROM target_return)))
+      ),
+      returns_before AS (
+        SELECT COALESCE(SUM(CAST(total_kwd AS DECIMAL)), 0)::float as total
+        FROM returns
+        WHERE customer_id = ${customerId} AND return_type = 'sale_return'
+          AND id != ${returnId}
+          AND (return_date < (SELECT return_date FROM target_return)
+               OR (return_date = (SELECT return_date FROM target_return) AND created_at < (SELECT created_at FROM target_return)))
+      )
+      SELECT 
+        (COALESCE((SELECT balance FROM opening_balance), 0) + 
+         COALESCE((SELECT total FROM sales_before), 0) - 
+         COALESCE((SELECT total FROM payments_before), 0) - 
+         COALESCE((SELECT total FROM returns_before), 0))::float as "previousBalance",
+        COALESCE((SELECT amount FROM target_return), 0)::float as "returnAmount",
+        (COALESCE((SELECT balance FROM opening_balance), 0) + 
+         COALESCE((SELECT total FROM sales_before), 0) - 
+         COALESCE((SELECT total FROM payments_before), 0) - 
+         COALESCE((SELECT total FROM returns_before), 0) -
+         COALESCE((SELECT amount FROM target_return), 0))::float as "currentBalance"
+    `);
+    
+    const row = result.rows[0] as { previousBalance: number; returnAmount: number; currentBalance: number } | undefined;
+    return {
+      previousBalance: row?.previousBalance || 0,
+      returnAmount: row?.returnAmount || 0,
+      currentBalance: row?.currentBalance || 0,
+    };
+  }
+
   async getCustomerCurrentBalance(customerId: number): Promise<number> {
     const result = await db.execute(sql`
       WITH opening_balance AS (

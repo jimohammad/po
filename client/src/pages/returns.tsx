@@ -551,10 +551,7 @@ export default function ReturnsPage() {
     printWindow.document.close();
   };
 
-  const handlePrintReturnA5 = (ret: ReturnWithDetails) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-
+  const handlePrintReturnA5 = async (ret: ReturnWithDetails) => {
     const partyName = ret.returnType === "sale_return" 
       ? ret.customer?.name || "Not specified"
       : ret.supplier?.name || "Not specified";
@@ -562,6 +559,22 @@ export default function ReturnsPage() {
     const returnTypeLabel = ret.returnType === "sale_return" ? "SALE RETURN" : "PURCHASE RETURN";
 
     const grandTotal = ret.lineItems?.reduce((sum, item) => sum + (parseFloat(item.totalKwd || "0")), 0) || 0;
+
+    // Fetch balance data for sale returns
+    let balanceData = { previousBalance: 0, returnAmount: 0, currentBalance: 0 };
+    if (ret.returnType === "sale_return" && ret.customerId) {
+      try {
+        const res = await fetch(`/api/customer-balance-for-return/${ret.id}`, { credentials: "include" });
+        if (res.ok) {
+          balanceData = await res.json();
+        }
+      } catch (e) {
+        console.error("Failed to fetch balance for return:", e);
+      }
+    }
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
 
     const lineItemsHtml = ret.lineItems?.map((item, idx) => `
       <tr>
@@ -604,6 +617,10 @@ export default function ReturnsPage() {
             tbody tr:nth-child(even) { background: #f8fafc; }
             .total-row { background: #f1f5f9; font-weight: bold; }
             .total-row td { padding: 12px 8px; font-size: 14px; }
+            .balance-section { margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 6px; }
+            .balance-table { width: 100%; border-collapse: collapse; }
+            .balance-table td { padding: 8px 0; font-size: 13px; }
+            .balance-table .current-balance { font-weight: bold; font-size: 14px; border-top: 1px solid #e5e7eb; padding-top: 12px; }
             .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #64748b; font-size: 10px; }
             @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
           </style>
@@ -651,6 +668,25 @@ export default function ReturnsPage() {
                 </tr>
               </tbody>
             </table>
+            
+            ${ret.returnType === "sale_return" ? `
+            <div class="balance-section">
+              <table class="balance-table">
+                <tr>
+                  <td>Previous Balance</td>
+                  <td style="text-align: right;">KWD ${balanceData.previousBalance.toFixed(3)}</td>
+                </tr>
+                <tr>
+                  <td>Return Amount (Credit)</td>
+                  <td style="text-align: right;">KWD ${balanceData.returnAmount.toFixed(3)}</td>
+                </tr>
+                <tr class="current-balance">
+                  <td>Current Balance</td>
+                  <td style="text-align: right;">KWD ${balanceData.currentBalance.toFixed(3)}</td>
+                </tr>
+              </table>
+            </div>
+            ` : ''}
             
             <div class="footer">
               <p>Computer Generated Document - Iqbal Electronics Co. WLL</p>
