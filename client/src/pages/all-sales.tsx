@@ -490,7 +490,7 @@ export default function AllSalesPage() {
       <head>
         <title>Credit Invoice ${escapeHtml(selectedSO.invoiceNumber)}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
+          @page { size: A5; margin: 10mm; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: Arial, sans-serif; font-size: 12px; color: #333; }
           .header { background: linear-gradient(135deg, #8B7CB3 0%, #6B5B95 100%); color: white; padding: 20px; display: flex; align-items: center; gap: 20px; }

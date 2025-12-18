@@ -113,7 +113,7 @@ export default function PaymentsPage() {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [direction, setDirection] = useState<PaymentDirection>("IN");
   const [shouldPrintAfterSave, setShouldPrintAfterSave] = useState(false);
-  const [printTypeAfterSave, setPrintTypeAfterSave] = useState<"thermal" | "a4">("thermal");
+  const [printTypeAfterSave, setPrintTypeAfterSave] = useState<"thermal" | "a5">("a5");
   const [customerId, setCustomerId] = useState("");
   const [supplierId, setSupplierId] = useState("");
   const [purchaseOrderId, setPurchaseOrderId] = useState("");
@@ -220,14 +220,15 @@ export default function PaymentsPage() {
       setPage(1);
       toast({ title: "Payment recorded successfully" });
       if (shouldPrintAfterSave) {
-        if (printTypeAfterSave === "thermal") {
-          handlePrintPaymentThermal(savedPayment);
+        if (printTypeAfterSave === "a5") {
+          handlePrintPaymentA5(savedPayment);
         } else {
-          handlePrintPaymentA4(savedPayment);
+          handlePrintPaymentThermal(savedPayment);
         }
       }
       resetForm();
       setShouldPrintAfterSave(false);
+      setPrintTypeAfterSave("a5");
     },
     onError: (error: Error) => {
       toast({ title: "Failed to record payment", description: error.message, variant: "destructive" });
@@ -274,7 +275,7 @@ export default function PaymentsPage() {
   const { data: userData } = useQuery<{ printerType?: string }>({
     queryKey: ["/api/auth/user"],
   });
-  const userPrinterType = userData?.printerType || "thermal";
+  const userPrinterType = userData?.printerType || "a5";
 
   const updatePrinterMutation = useMutation({
     mutationFn: async (printerType: string) => {
@@ -545,7 +546,7 @@ export default function PaymentsPage() {
     printWindow.document.close();
   };
 
-  const handlePrintPaymentA4 = async (payment: PaymentWithDetails) => {
+  const handlePrintPaymentA5 = async (payment: PaymentWithDetails) => {
     const partyName = payment.direction === "IN" 
       ? payment.customer?.name || "Not specified"
       : payment.supplier?.name || "Not specified";
@@ -586,8 +587,8 @@ export default function PaymentsPage() {
           <title>Payment Receipt Voucher</title>
           <style>
             @page {
-              size: A4;
-              margin: 10mm;
+              size: A5;
+              margin: 8mm;
             }
             
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -601,7 +602,7 @@ export default function PaymentsPage() {
             }
             
             .receipt {
-              max-width: 210mm;
+              max-width: 148mm;
               margin: 0 auto;
               padding: 5mm;
             }
@@ -860,10 +861,10 @@ export default function PaymentsPage() {
   };
 
   const handlePrintPayment = (payment: PaymentWithDetails) => {
-    if (userPrinterType === "thermal") {
-      handlePrintPaymentThermal(payment);
+    if (userPrinterType === "a5") {
+      handlePrintPaymentA5(payment);
     } else {
-      handlePrintPaymentA4(payment);
+      handlePrintPaymentThermal(payment);
     }
   };
 
@@ -1409,13 +1410,27 @@ export default function PaymentsPage() {
                     ) : (
                       <>
                         <Printer className="h-4 w-4 mr-2" />
-                        Save & Print ({userPrinterType === "thermal" ? "Thermal" : "A4"})
+                        Save & Print ({userPrinterType === "a5" ? "A5" : "Thermal"})
                         <ChevronDown className="h-4 w-4 ml-2" />
                       </>
                     )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      if (userPrinterType !== "a5") updatePrinterMutation.mutate("a5");
+                      setPrintTypeAfterSave("a5");
+                      setShouldPrintAfterSave(true);
+                      const form = document.querySelector("form");
+                      form?.requestSubmit();
+                    }}
+                    data-testid="menu-save-print-a5"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    A5
+                    {userPrinterType === "a5" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
+                  </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => {
                       if (userPrinterType !== "thermal") updatePrinterMutation.mutate("thermal");
@@ -1429,20 +1444,6 @@ export default function PaymentsPage() {
                     <Printer className="h-4 w-4 mr-2" />
                     Thermal (80mm)
                     {userPrinterType === "thermal" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => {
-                      if (userPrinterType !== "a4laser") updatePrinterMutation.mutate("a4laser");
-                      setPrintTypeAfterSave("a4");
-                      setShouldPrintAfterSave(true);
-                      const form = document.querySelector("form");
-                      form?.requestSubmit();
-                    }}
-                    data-testid="menu-save-print-a4"
-                  >
-                    <Printer className="h-4 w-4 mr-2" />
-                    A4 Laser
-                    {userPrinterType === "a4laser" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1726,11 +1727,22 @@ export default function PaymentsPage() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" data-testid="button-print-payment">
                   <Printer className="h-4 w-4 mr-2" />
-                  Print ({userPrinterType === "thermal" ? "Thermal" : "A4"})
+                  Print ({userPrinterType === "a5" ? "A5" : "Thermal"})
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
+                <DropdownMenuItem 
+                  onClick={() => {
+                    if (userPrinterType !== "a5") updatePrinterMutation.mutate("a5");
+                    selectedPayment && handlePrintPaymentA5(selectedPayment);
+                  }}
+                  data-testid="menu-print-a5"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  A5
+                  {userPrinterType === "a5" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
+                </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => {
                     if (userPrinterType !== "thermal") updatePrinterMutation.mutate("thermal");
@@ -1741,17 +1753,6 @@ export default function PaymentsPage() {
                   <Printer className="h-4 w-4 mr-2" />
                   Thermal (80mm)
                   {userPrinterType === "thermal" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => {
-                    if (userPrinterType !== "a4laser") updatePrinterMutation.mutate("a4laser");
-                    selectedPayment && handlePrintPaymentA4(selectedPayment);
-                  }}
-                  data-testid="menu-print-a4"
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  A4 Laser
-                  {userPrinterType === "a4laser" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

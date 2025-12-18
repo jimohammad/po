@@ -146,7 +146,7 @@ export default function ReturnsPage() {
     queryKey: ["/api/auth/user"],
   });
   
-  const userPrinterType = userData?.printerType || "thermal";
+  const userPrinterType = userData?.printerType || "a5";
 
   // Mutation to update printer preference
   const updatePrinterMutation = useMutation({
@@ -215,8 +215,8 @@ export default function ReturnsPage() {
       
       // Print if requested - respect user's printer preference
       if (shouldPrintAfterSave) {
-        if (userPrinterType === "a4laser") {
-          handlePrintReturnA4(savedReturn);
+        if (userPrinterType === "a5") {
+          handlePrintReturnA5(savedReturn);
         } else {
           handlePrintReturn(savedReturn);
         }
@@ -551,7 +551,7 @@ export default function ReturnsPage() {
     printWindow.document.close();
   };
 
-  const handlePrintReturnA4 = (ret: ReturnWithDetails) => {
+  const handlePrintReturnA5 = (ret: ReturnWithDetails) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
@@ -579,7 +579,7 @@ export default function ReturnsPage() {
         <head>
           <title>Return - ${escapeHtml(ret.returnNumber)}</title>
           <style>
-            @page { size: A4; margin: 15mm; }
+            @page { size: A5; margin: 10mm; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: Arial, sans-serif; font-size: 12pt; color: #333; }
             .container { max-width: 100%; }
@@ -982,7 +982,7 @@ export default function ReturnsPage() {
                       data-testid="button-save-print-return"
                     >
                       <Printer className="h-4 w-4 mr-2" />
-                      {createReturnMutation.isPending && shouldPrintAfterSave ? "Saving..." : `Save & Print (${userPrinterType === "a4laser" ? "A4" : "Thermal"})`}
+                      {createReturnMutation.isPending && shouldPrintAfterSave ? "Saving..." : `Save & Print (${userPrinterType === "a5" ? "A5" : "Thermal"})`}
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -997,20 +997,20 @@ export default function ReturnsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem 
+                          onClick={() => updatePrinterMutation.mutate("a5")}
+                          data-testid="option-a5"
+                        >
+                          <Printer className="h-4 w-4 mr-2" />
+                          A5
+                          {userPrinterType === "a5" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
                           onClick={() => updatePrinterMutation.mutate("thermal")}
                           data-testid="option-thermal"
                         >
                           <Printer className="h-4 w-4 mr-2" />
                           Thermal (80mm)
                           {userPrinterType === "thermal" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => updatePrinterMutation.mutate("a4laser")}
-                          data-testid="option-a4"
-                        >
-                          <Printer className="h-4 w-4 mr-2" />
-                          A4 Laser
-                          {userPrinterType === "a4laser" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -1153,11 +1153,11 @@ export default function ReturnsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handlePrintReturnA5(ret)} data-testid={`button-print-a5-${ret.id}`}>
+                              A5
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handlePrintReturn(ret)} data-testid={`button-print-thermal-${ret.id}`}>
                               Thermal (80mm)
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handlePrintReturnA4(ret)} data-testid={`button-print-a4-${ret.id}`}>
-                              A4 Laser
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

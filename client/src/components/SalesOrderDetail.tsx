@@ -54,7 +54,7 @@ export function SalesOrderDetail({
     queryKey: ["/api/auth/user"],
   });
   
-  const userPrinterType = userData?.printerType || "thermal";
+  const userPrinterType = userData?.printerType || "a5";
 
   // Mutation to update printer preference
   const updatePrinterMutation = useMutation({
@@ -281,18 +281,18 @@ export function SalesOrderDetail({
             }
             
             .invoice-container {
-              max-width: 850px;
+              max-width: 560px;
               margin: 0 auto;
-              padding: 20px 30px;
+              padding: 15px 20px;
             }
             
             .top-title {
               text-align: center;
-              margin-bottom: 15px;
+              margin-bottom: 12px;
             }
             
             .top-title h1 {
-              font-size: 16px;
+              font-size: 14px;
               font-weight: 600;
               text-decoration: underline;
               display: inline-block;
@@ -302,7 +302,7 @@ export function SalesOrderDetail({
               display: flex;
               justify-content: space-between;
               align-items: flex-start;
-              margin-bottom: 20px;
+              margin-bottom: 15px;
             }
             
             .logo-section {
@@ -310,7 +310,7 @@ export function SalesOrderDetail({
             }
             
             .logo-section .iec-text {
-              font-size: 48px;
+              font-size: 36px;
               font-weight: 700;
               color: #1a1a2e;
               letter-spacing: 2px;
@@ -318,7 +318,7 @@ export function SalesOrderDetail({
             }
             
             .logo-section .arabic-text {
-              font-size: 12px;
+              font-size: 10px;
               color: #333;
               direction: rtl;
             }
@@ -496,7 +496,7 @@ export function SalesOrderDetail({
               .amounts-header { background: #8B7CB3 !important; }
             }
             
-            @page { margin: 0.5cm; }
+            @page { size: A5; margin: 0.5cm; }
           </style>
         </head>
         <body>
@@ -686,18 +686,18 @@ export function SalesOrderDetail({
             }
             
             .invoice-container {
-              max-width: 850px;
+              max-width: 560px;
               margin: 0 auto;
-              padding: 20px 30px;
+              padding: 15px 20px;
             }
             
             .top-title {
               text-align: center;
-              margin-bottom: 15px;
+              margin-bottom: 12px;
             }
             
             .top-title h1 {
-              font-size: 16px;
+              font-size: 14px;
               font-weight: 600;
               text-decoration: underline;
               display: inline-block;
@@ -707,7 +707,7 @@ export function SalesOrderDetail({
               display: flex;
               justify-content: space-between;
               align-items: flex-start;
-              margin-bottom: 20px;
+              margin-bottom: 15px;
             }
             
             .logo-section {
@@ -715,7 +715,7 @@ export function SalesOrderDetail({
             }
             
             .logo-section .iec-text {
-              font-size: 48px;
+              font-size: 36px;
               font-weight: 700;
               color: #1a1a2e;
               letter-spacing: 2px;
@@ -723,7 +723,7 @@ export function SalesOrderDetail({
             }
             
             .logo-section .arabic-text {
-              font-size: 12px;
+              font-size: 10px;
               color: #333;
               direction: rtl;
             }
@@ -902,7 +902,7 @@ export function SalesOrderDetail({
               .amounts-header { background: #8B7CB3 !important; }
             }
             
-            @page { margin: 0.5cm; }
+            @page { size: A5; margin: 0.5cm; }
           </style>
         </head>
         <body>
@@ -1073,7 +1073,7 @@ export function SalesOrderDetail({
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  if (userPrinterType === "a4laser") {
+                  if (userPrinterType === "a5") {
                     handlePrint();
                   } else {
                     printThermal();
@@ -1088,7 +1088,7 @@ export function SalesOrderDetail({
                 ) : (
                   <Printer className="h-4 w-4 mr-1" />
                 )}
-                Print ({userPrinterType === "a4laser" ? "A4" : "Thermal"})
+                Print ({userPrinterType === "a5" ? "A5" : "Thermal"})
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1099,6 +1099,17 @@ export function SalesOrderDetail({
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
                     onClick={() => {
+                      if (userPrinterType !== "a5") updatePrinterMutation.mutate("a5");
+                      handlePrint();
+                    }}
+                    data-testid="menu-print-a5"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    A5
+                    {userPrinterType === "a5" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
                       if (userPrinterType !== "thermal") updatePrinterMutation.mutate("thermal");
                       printThermal();
                     }}
@@ -1107,17 +1118,6 @@ export function SalesOrderDetail({
                     <Printer className="h-4 w-4 mr-2" />
                     Thermal (80mm)
                     {userPrinterType === "thermal" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (userPrinterType !== "a4laser") updatePrinterMutation.mutate("a4laser");
-                      handlePrint();
-                    }}
-                    data-testid="menu-print-a4"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    A4 Laser
-                    {userPrinterType === "a4laser" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

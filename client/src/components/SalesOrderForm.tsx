@@ -188,7 +188,7 @@ export function SalesOrderForm({
     queryKey: ["/api/auth/user"],
   });
   
-  const userPrinterType = userData?.printerType || "thermal";
+  const userPrinterType = userData?.printerType || "a5";
 
   // Mutation to update printer preference
   const updatePrinterMutation = useMutation({
@@ -285,8 +285,8 @@ export function SalesOrderForm({
     printWindow.document.close();
   };
 
-  // A4 Laser printer print function
-  const printA4Laser = () => {
+  // A5 printer print function
+  const printA5 = () => {
     const customerName = selectedCustomer?.name || "Walk-in Customer";
     const customerPhone = selectedCustomer?.phone || "";
     const customerAddress = "";
@@ -315,7 +315,7 @@ export function SalesOrderForm({
       <head>
         <title>Credit Invoice ${invoiceNumber}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
+          @page { size: A5; margin: 10mm; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: Arial, sans-serif; font-size: 12px; color: #333; }
           .header { background: linear-gradient(135deg, #8B7CB3 0%, #6B5B95 100%); color: white; padding: 20px; display: flex; align-items: center; gap: 20px; }
@@ -487,7 +487,7 @@ export function SalesOrderForm({
     handleReset(true);
   };
 
-  const handleSaveAndPrintA4 = async () => {
+  const handleSaveAndPrintA5 = async () => {
     if (!canSubmit) {
       return;
     }
@@ -501,7 +501,7 @@ export function SalesOrderForm({
     });
     
     // Print after saving
-    printA4Laser();
+    printA5();
     handleReset(true);
   };
 
@@ -675,8 +675,8 @@ export function SalesOrderForm({
                 variant="outline" 
                 disabled={!canSubmit || isSubmitting}
                 onClick={() => {
-                  if (userPrinterType === "a4laser") {
-                    handleSaveAndPrintA4();
+                  if (userPrinterType === "a5") {
+                    handleSaveAndPrintA5();
                   } else {
                     handleSaveAndPrintThermal();
                   }
@@ -685,7 +685,7 @@ export function SalesOrderForm({
                 data-testid="button-print-sales"
               >
                 <Printer className="h-4 w-4 mr-2" />
-                Save & Print ({userPrinterType === "a4laser" ? "A4" : "Thermal"})
+                Save & Print ({userPrinterType === "a5" ? "A5" : "Thermal"})
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -694,6 +694,18 @@ export function SalesOrderForm({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (userPrinterType !== "a5") updatePrinterMutation.mutate("a5");
+                      handleSaveAndPrintA5();
+                    }}
+                    disabled={!canSubmit || isSubmitting}
+                    data-testid="menu-print-a5"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    A5
+                    {userPrinterType === "a5" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
                       if (userPrinterType !== "thermal") updatePrinterMutation.mutate("thermal");
@@ -705,18 +717,6 @@ export function SalesOrderForm({
                     <Printer className="h-4 w-4 mr-2" />
                     Thermal (80mm)
                     {userPrinterType === "thermal" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (userPrinterType !== "a4laser") updatePrinterMutation.mutate("a4laser");
-                      handleSaveAndPrintA4();
-                    }}
-                    disabled={!canSubmit || isSubmitting}
-                    data-testid="menu-print-a4"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    A4 Laser
-                    {userPrinterType === "a4laser" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

@@ -130,7 +130,7 @@ export default function PurchaseOrdersPage() {
     queryKey: ["/api/auth/user"],
   });
   
-  const userPrinterType = userData?.printerType || "thermal";
+  const userPrinterType = userData?.printerType || "a5";
 
   const updatePrinterMutation = useMutation({
     mutationFn: async (printerType: string) => {
@@ -330,7 +330,7 @@ export default function PurchaseOrdersPage() {
     printWindow.document.close();
   };
 
-  const printA4Laser = (po: PurchaseOrderDraft) => {
+  const printA5 = (po: PurchaseOrderDraft) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
@@ -352,9 +352,9 @@ export default function PurchaseOrdersPage() {
               font-size: 12px;
             }
             .invoice-container {
-              max-width: 850px;
+              max-width: 560px;
               margin: 0 auto;
-              padding: 20px 30px;
+              padding: 15px 20px;
             }
             .top-title {
               text-align: center;
@@ -458,7 +458,7 @@ export default function PurchaseOrdersPage() {
               border-radius: 5px;
             }
             @media print {
-              @page { margin: 10mm; }
+              @page { size: A5; margin: 8mm; }
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
           </style>
@@ -568,7 +568,7 @@ export default function PurchaseOrdersPage() {
     if (printerFormat === "thermal") {
       printThermal(po);
     } else {
-      printA4Laser(po);
+      printA5(po);
     }
   };
 
@@ -779,20 +779,20 @@ export default function PurchaseOrdersPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
+                      onClick={() => handlePrint(selectedPO, "a5")}
+                      data-testid="menu-print-a5"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      A5
+                      {userPrinterType === "a5" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                       onClick={() => handlePrint(selectedPO, "thermal")}
                       data-testid="menu-print-thermal"
                     >
                       <Printer className="h-4 w-4 mr-2" />
                       Thermal 80mm
                       {userPrinterType === "thermal" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handlePrint(selectedPO, "a4laser")}
-                      data-testid="menu-print-a4"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      A4 Laser
-                      {userPrinterType === "a4laser" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
