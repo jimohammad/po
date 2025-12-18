@@ -276,23 +276,23 @@ export function SalesOrderDetail({
               font-family: 'Inter', Arial, sans-serif; 
               background: #fff;
               color: #000;
-              line-height: 1.4;
-              font-size: 12px;
+              line-height: 1.2;
+              font-size: 8px;
             }
             
             .invoice-container {
               max-width: 560px;
               margin: 0 auto;
-              padding: 15px 20px;
+              padding: 8px 10px;
             }
             
             .top-title {
               text-align: center;
-              margin-bottom: 12px;
+              margin-bottom: 6px;
             }
             
             .top-title h1 {
-              font-size: 14px;
+              font-size: 11px;
               font-weight: 600;
               text-decoration: underline;
               display: inline-block;
@@ -302,7 +302,7 @@ export function SalesOrderDetail({
               display: flex;
               justify-content: space-between;
               align-items: flex-start;
-              margin-bottom: 15px;
+              margin-bottom: 8px;
             }
             
             .logo-section {
@@ -310,15 +310,15 @@ export function SalesOrderDetail({
             }
             
             .logo-section .iec-text {
-              font-size: 36px;
+              font-size: 22px;
               font-weight: 700;
               color: #1a1a2e;
-              letter-spacing: 2px;
-              margin-bottom: 2px;
+              letter-spacing: 1px;
+              margin-bottom: 1px;
             }
             
             .logo-section .arabic-text {
-              font-size: 10px;
+              font-size: 7px;
               color: #333;
               direction: rtl;
             }
@@ -328,29 +328,29 @@ export function SalesOrderDetail({
             }
             
             .company-section .company-name {
-              font-size: 18px;
+              font-size: 11px;
               font-weight: 600;
               color: #1a1a2e;
               font-style: italic;
             }
             
             .company-section .phone {
-              font-size: 12px;
+              font-size: 8px;
               color: #333;
-              margin-top: 4px;
+              margin-top: 2px;
             }
             
             .second-title {
               text-align: center;
-              margin: 20px 0;
-              font-size: 16px;
+              margin: 8px 0;
+              font-size: 10px;
               font-weight: 600;
             }
             
             .info-row {
               display: flex;
               justify-content: space-between;
-              margin-bottom: 20px;
+              margin-bottom: 8px;
             }
             
             .bill-to-section {
@@ -359,12 +359,13 @@ export function SalesOrderDetail({
             
             .bill-to-section .label {
               font-weight: 600;
-              margin-bottom: 5px;
+              margin-bottom: 2px;
+              font-size: 9px;
             }
             
             .bill-to-section .value {
-              font-size: 12px;
-              margin-bottom: 3px;
+              font-size: 8px;
+              margin-bottom: 1px;
             }
             
             .invoice-details-section {
@@ -373,12 +374,13 @@ export function SalesOrderDetail({
             
             .invoice-details-section .title {
               font-weight: 600;
-              margin-bottom: 5px;
+              margin-bottom: 2px;
+              font-size: 9px;
             }
             
             .invoice-details-section .detail-row {
-              font-size: 12px;
-              margin-bottom: 3px;
+              font-size: 8px;
+              margin-bottom: 1px;
             }
             
             .items-table {
@@ -393,9 +395,9 @@ export function SalesOrderDetail({
             }
             
             .items-table th {
-              padding: 8px 10px;
+              padding: 3px 4px;
               text-align: left;
-              font-size: 11px;
+              font-size: 7px;
               font-weight: 600;
               border: 1px solid #8B7CB3;
             }
@@ -404,9 +406,9 @@ export function SalesOrderDetail({
             .items-table th.text-right { text-align: right; }
             
             .items-table td {
-              padding: 8px 10px;
+              padding: 3px 4px;
               border: 1px solid #ddd;
-              font-size: 11px;
+              font-size: 8px;
               vertical-align: middle;
             }
             
@@ -428,23 +430,23 @@ export function SalesOrderDetail({
             }
             
             .right-column {
-              width: 300px;
+              width: 180px;
             }
             
             .section-header {
               background: #8B7CB3;
               color: #fff;
-              padding: 6px 10px;
-              font-size: 11px;
+              padding: 3px 5px;
+              font-size: 7px;
               font-weight: 600;
             }
             
             .section-content {
-              padding: 8px 10px;
+              padding: 4px 5px;
               border: 1px solid #ddd;
               border-top: none;
-              font-size: 11px;
-              min-height: 30px;
+              font-size: 8px;
+              min-height: 18px;
             }
             
             .amounts-table {
@@ -453,9 +455,9 @@ export function SalesOrderDetail({
             }
             
             .amounts-table td {
-              padding: 6px 10px;
+              padding: 3px 5px;
               border: 1px solid #ddd;
-              font-size: 11px;
+              font-size: 8px;
             }
             
             .amounts-table td:first-child {
@@ -469,15 +471,15 @@ export function SalesOrderDetail({
             .amounts-header {
               background: #8B7CB3;
               color: #fff;
-              padding: 6px 10px;
-              font-size: 11px;
+              padding: 3px 5px;
+              font-size: 7px;
               font-weight: 600;
             }
             
             .balance-row td {
-              padding: 6px 10px;
+              padding: 3px 5px;
               border: 1px solid #ddd;
-              font-size: 11px;
+              font-size: 8px;
             }
             
             .balance-row td:first-child {
@@ -490,13 +492,13 @@ export function SalesOrderDetail({
             
             @media print {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              .invoice-container { padding: 15px; }
+              .invoice-container { padding: 8px; }
               .items-table thead tr { background: #8B7CB3 !important; }
               .section-header { background: #8B7CB3 !important; }
               .amounts-header { background: #8B7CB3 !important; }
             }
             
-            @page { size: A5; margin: 0.5cm; }
+            @page { size: A5; margin: 5mm; }
           </style>
         </head>
         <body>
@@ -653,51 +655,51 @@ export function SalesOrderDetail({
               font-family: 'Inter', Arial, sans-serif; 
               background: #fff;
               color: #000;
-              line-height: 1.4;
-              font-size: 12px;
+              line-height: 1.2;
+              font-size: 8px;
             }
             
             .pdf-instructions {
               text-align: center;
-              padding: 15px;
+              padding: 10px;
               background: #fef3c7;
               border: 2px solid #f59e0b;
               border-radius: 8px;
-              margin: 10px 30px 20px 30px;
-              font-size: 14px;
+              margin: 10px 30px 15px 30px;
+              font-size: 12px;
               color: #92400e;
             }
             
             .pdf-instructions strong {
               display: block;
-              font-size: 16px;
-              margin-bottom: 8px;
+              font-size: 13px;
+              margin-bottom: 5px;
             }
             
             .pdf-instructions .shortcut {
               display: inline-block;
               background: #fff;
               border: 1px solid #d97706;
-              padding: 4px 12px;
+              padding: 3px 8px;
               border-radius: 4px;
               font-family: monospace;
               font-weight: 600;
-              margin: 4px;
+              margin: 3px;
             }
             
             .invoice-container {
               max-width: 560px;
               margin: 0 auto;
-              padding: 15px 20px;
+              padding: 8px 10px;
             }
             
             .top-title {
               text-align: center;
-              margin-bottom: 12px;
+              margin-bottom: 6px;
             }
             
             .top-title h1 {
-              font-size: 14px;
+              font-size: 11px;
               font-weight: 600;
               text-decoration: underline;
               display: inline-block;
@@ -707,7 +709,7 @@ export function SalesOrderDetail({
               display: flex;
               justify-content: space-between;
               align-items: flex-start;
-              margin-bottom: 15px;
+              margin-bottom: 8px;
             }
             
             .logo-section {
@@ -715,15 +717,15 @@ export function SalesOrderDetail({
             }
             
             .logo-section .iec-text {
-              font-size: 36px;
+              font-size: 22px;
               font-weight: 700;
               color: #1a1a2e;
-              letter-spacing: 2px;
-              margin-bottom: 2px;
+              letter-spacing: 1px;
+              margin-bottom: 1px;
             }
             
             .logo-section .arabic-text {
-              font-size: 10px;
+              font-size: 7px;
               color: #333;
               direction: rtl;
             }
@@ -733,29 +735,29 @@ export function SalesOrderDetail({
             }
             
             .company-section .company-name {
-              font-size: 18px;
+              font-size: 11px;
               font-weight: 600;
               color: #1a1a2e;
               font-style: italic;
             }
             
             .company-section .phone {
-              font-size: 12px;
+              font-size: 8px;
               color: #333;
-              margin-top: 4px;
+              margin-top: 2px;
             }
             
             .second-title {
               text-align: center;
-              margin: 20px 0;
-              font-size: 16px;
+              margin: 8px 0;
+              font-size: 10px;
               font-weight: 600;
             }
             
             .info-row {
               display: flex;
               justify-content: space-between;
-              margin-bottom: 20px;
+              margin-bottom: 8px;
             }
             
             .bill-to-section {
@@ -764,12 +766,13 @@ export function SalesOrderDetail({
             
             .bill-to-section .label {
               font-weight: 600;
-              margin-bottom: 5px;
+              margin-bottom: 2px;
+              font-size: 9px;
             }
             
             .bill-to-section .value {
-              font-size: 12px;
-              margin-bottom: 3px;
+              font-size: 8px;
+              margin-bottom: 1px;
             }
             
             .invoice-details-section {
@@ -778,12 +781,13 @@ export function SalesOrderDetail({
             
             .invoice-details-section .title {
               font-weight: 600;
-              margin-bottom: 5px;
+              margin-bottom: 2px;
+              font-size: 9px;
             }
             
             .invoice-details-section .detail-row {
-              font-size: 12px;
-              margin-bottom: 3px;
+              font-size: 8px;
+              margin-bottom: 1px;
             }
             
             .items-table {
@@ -798,9 +802,9 @@ export function SalesOrderDetail({
             }
             
             .items-table th {
-              padding: 8px 10px;
+              padding: 3px 4px;
               text-align: left;
-              font-size: 11px;
+              font-size: 7px;
               font-weight: 600;
               border: 1px solid #8B7CB3;
             }
@@ -809,9 +813,9 @@ export function SalesOrderDetail({
             .items-table th.text-right { text-align: right; }
             
             .items-table td {
-              padding: 8px 10px;
+              padding: 3px 4px;
               border: 1px solid #ddd;
-              font-size: 11px;
+              font-size: 8px;
               vertical-align: middle;
             }
             
@@ -833,23 +837,23 @@ export function SalesOrderDetail({
             }
             
             .right-column {
-              width: 300px;
+              width: 180px;
             }
             
             .section-header {
               background: #8B7CB3;
               color: #fff;
-              padding: 6px 10px;
-              font-size: 11px;
+              padding: 3px 5px;
+              font-size: 7px;
               font-weight: 600;
             }
             
             .section-content {
-              padding: 8px 10px;
+              padding: 4px 5px;
               border: 1px solid #ddd;
               border-top: none;
-              font-size: 11px;
-              min-height: 30px;
+              font-size: 8px;
+              min-height: 18px;
             }
             
             .amounts-table {
@@ -858,9 +862,9 @@ export function SalesOrderDetail({
             }
             
             .amounts-table td {
-              padding: 6px 10px;
+              padding: 3px 5px;
               border: 1px solid #ddd;
-              font-size: 11px;
+              font-size: 8px;
             }
             
             .amounts-table td:first-child {
@@ -874,15 +878,15 @@ export function SalesOrderDetail({
             .amounts-header {
               background: #8B7CB3;
               color: #fff;
-              padding: 6px 10px;
-              font-size: 11px;
+              padding: 3px 5px;
+              font-size: 7px;
               font-weight: 600;
             }
             
             .balance-row td {
-              padding: 6px 10px;
+              padding: 3px 5px;
               border: 1px solid #ddd;
-              font-size: 11px;
+              font-size: 8px;
             }
             
             .balance-row td:first-child {
@@ -896,13 +900,13 @@ export function SalesOrderDetail({
             @media print {
               .pdf-instructions { display: none !important; }
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              .invoice-container { padding: 15px; }
+              .invoice-container { padding: 8px; }
               .items-table thead tr { background: #8B7CB3 !important; }
               .section-header { background: #8B7CB3 !important; }
               .amounts-header { background: #8B7CB3 !important; }
             }
             
-            @page { size: A5; margin: 0.5cm; }
+            @page { size: A5; margin: 5mm; }
           </style>
         </head>
         <body>

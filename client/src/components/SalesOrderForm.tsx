@@ -301,11 +301,11 @@ export function SalesOrderForm({
     
     const itemsHtml = validItems.map((li, idx) => `
       <tr>
-        <td style="padding:8px;border:1px solid #ddd;text-align:center;">${idx + 1}</td>
-        <td style="padding:8px;border:1px solid #ddd;">${li.itemName}</td>
-        <td style="padding:8px;border:1px solid #ddd;text-align:center;">${li.quantity}</td>
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">${parseFloat(li.priceKwd || "0").toFixed(3)}</td>
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">${li.totalKwd}</td>
+        <td style="padding:4px 3px;border:1px solid #ddd;text-align:center;">${idx + 1}</td>
+        <td style="padding:4px 3px;border:1px solid #ddd;">${li.itemName}</td>
+        <td style="padding:4px 3px;border:1px solid #ddd;text-align:center;">${li.quantity}</td>
+        <td style="padding:4px 3px;border:1px solid #ddd;text-align:right;">${parseFloat(li.priceKwd || "0").toFixed(3)}</td>
+        <td style="padding:4px 3px;border:1px solid #ddd;text-align:right;">${li.totalKwd}</td>
       </tr>
     `).join("");
     
@@ -315,39 +315,41 @@ export function SalesOrderForm({
       <head>
         <title>Credit Invoice ${invoiceNumber}</title>
         <style>
-          @page { size: A5; margin: 10mm; }
+          @page { size: A5; margin: 6mm; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; font-size: 12px; color: #333; }
-          .header { background: linear-gradient(135deg, #8B7CB3 0%, #6B5B95 100%); color: white; padding: 20px; display: flex; align-items: center; gap: 20px; }
-          .logo { width: 80px; height: 80px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+          body { font-family: Arial, sans-serif; font-size: 9px; color: #333; }
+          .header { background: linear-gradient(135deg, #8B7CB3 0%, #6B5B95 100%); color: white; padding: 10px 12px; display: flex; align-items: center; gap: 12px; }
+          .logo { width: 50px; height: 50px; background: white; border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
           .logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
           .company-info { flex: 1; }
-          .company-name { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
-          .company-details { font-size: 11px; opacity: 0.9; }
+          .company-name { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+          .company-details { font-size: 8px; opacity: 0.9; }
           .invoice-title { text-align: right; }
-          .invoice-title h1 { font-size: 28px; margin-bottom: 5px; }
-          .content { padding: 20px; }
-          .info-section { display: flex; justify-content: space-between; margin-bottom: 20px; }
-          .info-box { background: #f8f8f8; padding: 15px; border-radius: 5px; width: 48%; }
-          .info-box h3 { color: #6B5B95; margin-bottom: 10px; font-size: 14px; }
-          .info-row { margin: 5px 0; }
-          .info-label { font-weight: bold; display: inline-block; width: 100px; }
-          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-          th { background: #6B5B95; color: white; padding: 10px; text-align: left; }
+          .invoice-title h1 { font-size: 16px; margin-bottom: 2px; }
+          .invoice-title div { font-size: 9px; }
+          .content { padding: 10px 12px; }
+          .info-section { display: flex; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
+          .info-box { background: #f8f8f8; padding: 8px; border-radius: 3px; flex: 1; }
+          .info-box h3 { color: #6B5B95; margin-bottom: 5px; font-size: 10px; }
+          .info-row { margin: 2px 0; font-size: 9px; }
+          .info-label { font-weight: bold; display: inline-block; width: 60px; }
+          table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+          th { background: #6B5B95; color: white; padding: 4px 3px; text-align: left; font-size: 8px; }
+          td { font-size: 9px; }
           .totals-section { display: flex; justify-content: flex-end; }
-          .totals-box { width: 300px; background: #f8f8f8; padding: 15px; border-radius: 5px; }
-          .totals-row { display: flex; justify-content: space-between; padding: 5px 0; }
-          .totals-row.total { font-weight: bold; font-size: 16px; border-top: 2px solid #6B5B95; padding-top: 10px; margin-top: 5px; color: #6B5B95; }
-          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }
-          .signature-section { display: flex; justify-content: space-between; margin-top: 40px; }
-          .signature-box { width: 200px; text-align: center; }
-          .signature-line { border-top: 1px solid #333; margin-top: 50px; padding-top: 5px; }
+          .totals-box { width: 180px; background: #f8f8f8; padding: 8px; border-radius: 3px; }
+          .totals-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 9px; }
+          .totals-row.total { font-weight: bold; font-size: 10px; border-top: 1px solid #6B5B95; padding-top: 5px; margin-top: 3px; color: #6B5B95; }
+          .footer { margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd; }
+          .signature-section { display: flex; justify-content: space-between; margin-top: 20px; }
+          .signature-box { width: 120px; text-align: center; font-size: 8px; }
+          .signature-line { border-top: 1px solid #333; margin-top: 30px; padding-top: 3px; }
         </style>
       </head>
       <body>
         <div class="header">
           <div class="logo">
-            ${logoBase64 ? `<img src="${logoBase64}" alt="Logo" />` : '<span style="color:#6B5B95;font-weight:bold;">LOGO</span>'}
+            ${logoBase64 ? `<img src="${logoBase64}" alt="Logo" />` : '<span style="color:#6B5B95;font-weight:bold;font-size:10px;">LOGO</span>'}
           </div>
           <div class="company-info">
             <div class="company-name">Iqbal Electronics Co. WLL</div>
@@ -375,11 +377,11 @@ export function SalesOrderForm({
           <table>
             <thead>
               <tr>
-                <th style="width:50px;text-align:center;">#</th>
+                <th style="width:30px;text-align:center;">#</th>
                 <th>Description</th>
-                <th style="width:80px;text-align:center;">Qty</th>
-                <th style="width:100px;text-align:right;">Unit Price</th>
-                <th style="width:100px;text-align:right;">Amount</th>
+                <th style="width:50px;text-align:center;">Qty</th>
+                <th style="width:70px;text-align:right;">Unit Price</th>
+                <th style="width:70px;text-align:right;">Amount</th>
               </tr>
             </thead>
             <tbody>
