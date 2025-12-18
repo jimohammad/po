@@ -49,7 +49,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { ReturnWithDetails, Customer, Supplier, Item } from "@shared/schema";
+import type { ReturnWithDetails, Customer, Supplier, Item, User } from "@shared/schema";
 
 const escapeHtml = (str: string | null | undefined): string => {
   if (!str) return "";
@@ -141,6 +141,23 @@ export default function ReturnsPage() {
     queryKey: ["/api/items"],
   });
 
+  // Get user's printer preference
+  const { data: userData } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+  });
+  
+  const userPrinterType = userData?.printerType || "thermal";
+
+  // Mutation to update printer preference
+  const updatePrinterMutation = useMutation({
+    mutationFn: async (printerType: string) => {
+      return apiRequest("PUT", "/api/auth/user/printer-type", { printerType });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+  });
+
   const generateReturnNumber = (): string => {
     const existingNumbers = returns
       .map(r => r.returnNumber)
@@ -196,9 +213,13 @@ export default function ReturnsPage() {
     onSuccess: async (savedReturn: ReturnWithDetails) => {
       queryClient.invalidateQueries({ queryKey: ["/api/returns"] });
       
-      // Print if requested
+      // Print if requested - respect user's printer preference
       if (shouldPrintAfterSave) {
-        handlePrintReturn(savedReturn);
+        if (userPrinterType === "a4laser") {
+          handlePrintReturnA4(savedReturn);
+        } else {
+          handlePrintReturn(savedReturn);
+        }
         setShouldPrintAfterSave(false);
       }
       
@@ -949,18 +970,51 @@ export default function ReturnsPage() {
                   >
                     {createReturnMutation.isPending && !shouldPrintAfterSave ? "Saving..." : "Save"}
                   </Button>
-                  <Button 
-                    type="button"
-                    disabled={createReturnMutation.isPending}
-                    onClick={() => {
-                      setShouldPrintAfterSave(true);
-                      form.handleSubmit(onSubmit)();
-                    }}
-                    data-testid="button-save-print-return"
-                  >
-                    <Printer className="h-4 w-4 mr-2" />
-                    {createReturnMutation.isPending && shouldPrintAfterSave ? "Saving..." : "Save & Print"}
-                  </Button>
+                  <div className="flex">
+                    <Button 
+                      type="button"
+                      disabled={createReturnMutation.isPending}
+                      onClick={() => {
+                        setShouldPrintAfterSave(true);
+                        form.handleSubmit(onSubmit)();
+                      }}
+                      className="rounded-r-none border-r-0"
+                      data-testid="button-save-print-return"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      {createReturnMutation.isPending && shouldPrintAfterSave ? "Saving..." : `Save & Print (${userPrinterType === "a4laser" ? "A4" : "Thermal"})`}
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          type="button"
+                          className="rounded-l-none px-2"
+                          disabled={createReturnMutation.isPending}
+                          data-testid="button-print-options"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={() => updatePrinterMutation.mutate("thermal")}
+                          data-testid="option-thermal"
+                        >
+                          <Printer className="h-4 w-4 mr-2" />
+                          Thermal (80mm)
+                          {userPrinterType === "thermal" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => updatePrinterMutation.mutate("a4laser")}
+                          data-testid="option-a4"
+                        >
+                          <Printer className="h-4 w-4 mr-2" />
+                          A4 Laser
+                          {userPrinterType === "a4laser" && <span className="ml-2 text-xs text-muted-foreground">(Default)</span>}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </form>
             </Form>
