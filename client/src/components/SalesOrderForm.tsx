@@ -114,18 +114,25 @@ export function SalesOrderForm({
   });
 
   const creditLimitInfo = useMemo(() => {
-    if (!selectedCustomer) return { hasLimit: false, limit: 0, exceeded: false };
+    if (!selectedCustomer) return { hasLimit: false, limit: 0, exceeded: false, currentBalance: 0, newTotal: 0, available: 0 };
     
     const limit = selectedCustomer.creditLimit ? parseFloat(selectedCustomer.creditLimit) : 0;
-    if (limit === 0) return { hasLimit: false, limit: 0, exceeded: false };
+    if (limit === 0) return { hasLimit: false, limit: 0, exceeded: false, currentBalance: 0, newTotal: 0, available: 0 };
     
-    const total = parseFloat(totalKwd) || 0;
+    const currentBalance = customerBalance?.balance || 0;
+    const saleAmount = parseFloat(totalKwd) || 0;
+    const newTotal = currentBalance + saleAmount;
+    const available = limit - currentBalance;
+    
     return {
       hasLimit: true,
       limit,
-      exceeded: total > limit,
+      exceeded: newTotal > limit,
+      currentBalance,
+      newTotal,
+      available: available > 0 ? available : 0,
     };
-  }, [selectedCustomer, totalKwd]);
+  }, [selectedCustomer, totalKwd, customerBalance]);
 
   // Check if any line item exceeds available stock
   // Only block if we have stock data AND the item exists in stock map
@@ -163,13 +170,18 @@ export function SalesOrderForm({
     );
   }, [lineItems]);
 
+  // Credit limit exceeded blocks non-admin users
+  const creditLimitBlocked = creditLimitInfo.exceeded && !isAdmin;
+
   const canSubmit = useMemo(() => {
     // Customer is required
     if (isCustomerMissing) return false;
     // At least one valid line item with item, qty > 0, and price > 0 is required
     if (!hasValidLineItem) return false;
+    // Credit limit exceeded blocks non-admin users
+    if (creditLimitBlocked) return false;
     return true;
-  }, [isCustomerMissing, hasValidLineItem]);
+  }, [isCustomerMissing, hasValidLineItem, creditLimitBlocked]);
 
   // Get user's printer preference
   const { data: userData } = useQuery<User>({
@@ -533,9 +545,16 @@ export function SalesOrderForm({
                 </p>
               )}
               {creditLimitInfo.hasLimit && (
-                <p className="text-xs text-muted-foreground" data-testid="text-credit-limit-info">
-                  Credit Limit: {creditLimitInfo.limit.toFixed(3)} KWD
-                </p>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground" data-testid="text-credit-limit-info">
+                    Credit Limit: {creditLimitInfo.limit.toFixed(3)} KWD | Available: <span className={creditLimitInfo.available <= 0 ? "text-red-600 dark:text-red-400 font-medium" : "text-green-600 dark:text-green-400 font-medium"}>{creditLimitInfo.available.toFixed(3)} KWD</span>
+                  </p>
+                  {creditLimitInfo.exceeded && (
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium" data-testid="text-credit-exceeded-warning">
+                      New balance ({creditLimitInfo.newTotal.toFixed(3)} KWD) will exceed credit limit!
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -607,6 +626,24 @@ export function SalesOrderForm({
               </div>
             </div>
           </div>
+
+          {creditLimitInfo.exceeded && (
+            <Alert variant="destructive" data-testid="alert-credit-limit-exceeded">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="flex flex-col gap-1">
+                <span className="font-medium">Credit Limit Exceeded!</span>
+                <span>
+                  This sale of {totalKwd} KWD will bring the customer balance to {creditLimitInfo.newTotal.toFixed(3)} KWD, 
+                  which exceeds their credit limit of {creditLimitInfo.limit.toFixed(3)} KWD.
+                </span>
+                {isAdmin ? (
+                  <span className="text-xs mt-1">As an admin, you can still proceed with this sale.</span>
+                ) : (
+                  <span className="text-xs mt-1">Contact an admin to approve this sale or collect payment first.</span>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="flex flex-wrap justify-end gap-2">
             <Button 

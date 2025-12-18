@@ -31,7 +31,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Loader2, Users, RotateCcw, Save, ClipboardCheck } from "lucide-react";
+import { Pencil, Trash2, Loader2, Users, RotateCcw, Save, ClipboardCheck, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Supplier, PartyType } from "@shared/schema";
 
@@ -57,6 +57,26 @@ export default function PartyMaster() {
   const { data: allParties = [], isLoading } = useQuery<Supplier[]>({
     queryKey: ["/api/suppliers"],
   });
+
+  // Fetch all customer balances for credit limit warnings
+  const { data: customerBalances = [] } = useQuery<{ customerId: number; balance: number }[]>({
+    queryKey: ["/api/customers/balances/all"],
+  });
+
+  // Create a map of customer ID to balance for quick lookup
+  const balanceMap = new Map(customerBalances.map(b => [b.customerId, b.balance]));
+
+  // Helper to check if customer is over credit limit
+  const getCreditStatus = (party: Supplier) => {
+    if (party.partyType !== "customer") return null;
+    const limit = party.creditLimit ? parseFloat(party.creditLimit) : 0;
+    if (limit === 0) return null; // No limit set
+    const balance = balanceMap.get(party.id) || 0;
+    const utilization = (balance / limit) * 100;
+    if (balance > limit) return { status: "exceeded", balance, limit, utilization };
+    if (utilization >= 80) return { status: "warning", balance, limit, utilization };
+    return { status: "ok", balance, limit, utilization };
+  };
 
   const filteredParties = allParties.filter(p => {
     const matchesType = filterType === "all" || p.partyType === filterType;
@@ -487,8 +507,37 @@ export default function PartyMaster() {
                         {party.phone || "-"}
                       </TableCell>
                       <TableCell className="text-right text-sm font-medium" data-testid={`text-credit-limit-${party.id}`}>
-                        {party.partyType === "customer" ? formatCurrency(party.creditLimit) : 
-                         party.partyType === "salesman" && party.commissionRate ? `${party.commissionRate}%` : "-"}
+                        {party.partyType === "customer" ? (
+                          <div className="flex items-center justify-end gap-1">
+                            {(() => {
+                              const creditStatus = getCreditStatus(party);
+                              if (creditStatus && (creditStatus.status === "exceeded" || creditStatus.status === "warning")) {
+                                return (
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <AlertTriangle 
+                                        className={`h-4 w-4 ${creditStatus.status === "exceeded" ? "text-red-500" : "text-amber-500"}`}
+                                        data-testid={`icon-credit-warning-${party.id}`}
+                                      />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <div className="text-xs">
+                                        <p className="font-medium">
+                                          {creditStatus.status === "exceeded" ? "Credit Limit Exceeded!" : "Approaching Credit Limit"}
+                                        </p>
+                                        <p>Balance: {creditStatus.balance.toFixed(3)} KWD</p>
+                                        <p>Limit: {creditStatus.limit.toFixed(3)} KWD</p>
+                                        <p>Utilization: {creditStatus.utilization.toFixed(0)}%</p>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                );
+                              }
+                              return null;
+                            })()}
+                            <span>{formatCurrency(party.creditLimit)}</span>
+                          </div>
+                        ) : party.partyType === "salesman" && party.commissionRate ? `${party.commissionRate}%` : "-"}
                       </TableCell>
                       {isAdmin && (
                         <TableCell className="text-right">

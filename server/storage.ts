@@ -1990,6 +1990,22 @@ export class DatabaseStorage implements IStorage {
     return row?.balance || 0;
   }
 
+  async getAllCustomerBalances(): Promise<{ customerId: number; balance: number }[]> {
+    const result = await db.execute(sql`
+      SELECT 
+        c.id as "customerId",
+        (
+          COALESCE((SELECT CAST(balance_amount AS DECIMAL) FROM opening_balances WHERE party_type = 'customer' AND party_id = c.id LIMIT 1), 0) +
+          COALESCE((SELECT SUM(CAST(total_kwd AS DECIMAL)) FROM sales_orders WHERE customer_id = c.id), 0) -
+          COALESCE((SELECT SUM(CAST(amount AS DECIMAL)) FROM payments WHERE customer_id = c.id AND direction = 'IN'), 0) -
+          COALESCE((SELECT SUM(CAST(total_kwd AS DECIMAL)) FROM returns WHERE customer_id = c.id AND return_type = 'sale_return'), 0)
+        )::float as balance
+      FROM customers c
+      WHERE c.party_type = 'customer'
+    `);
+    return (result.rows as { customerId: number; balance: number }[]) || [];
+  }
+
   // ==================== EXPORT IMEI ====================
 
   async getExportImei(filters: { customerId?: number; itemName?: string; invoiceNumber?: string; dateFrom?: string; dateTo?: string }): Promise<{ imei: string; itemName: string; customerName: string; invoiceNumber: string; saleDate: string }[]> {

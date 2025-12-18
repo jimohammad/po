@@ -328,6 +328,17 @@ export async function registerRoutes(
     }
   });
 
+  // Get all customer balances (for credit limit checks in party master)
+  app.get("/api/customers/balances/all", isAuthenticated, async (req, res) => {
+    try {
+      const balances = await storage.getAllCustomerBalances();
+      res.json(balances);
+    } catch (error) {
+      console.error("Error fetching all customer balances:", error);
+      res.status(500).json({ error: "Failed to fetch customer balances" });
+    }
+  });
+
   // Get customer's current balance
   app.get("/api/customers/:id/balance", isAuthenticated, async (req, res) => {
     try {
